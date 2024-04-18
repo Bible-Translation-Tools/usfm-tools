@@ -115,7 +115,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
                                              onvalue=True, offvalue=False)
         suppress4_checkbox.grid(row=11, column=4, sticky=W)
         suppress4_Tip = Hovertip(suppress4_checkbox, hover_delay=500,
-             text=r"Suppress warnings about useless markers before section/title markers")
+             text=r"Suppress warnings about invalid placement of paragraph/poetry markers")
         suppress5_checkbox = ttk.Checkbutton(self, text=r'Verse counts', variable=self.suppress[5],
                                              onvalue=True, offvalue=False)
         suppress5_checkbox.grid(row=12, column=1, sticky=W)
