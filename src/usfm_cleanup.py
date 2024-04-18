@@ -127,10 +127,12 @@ def fix_booktitles_x(str, compiled_expression):
     while title_line:
         pos = title_line.start()
         title = title_line.group(2)
+        title = title.rstrip(". ")
+        title = " ".join(title.split())  # eliminates consecutive spaces
         if not title.istitle():     # not title case already
             title = title.title().replace("Iii", 'III')
             title = title.replace("Ii", 'II')
-            str = str[:pos] + title_line.group(1) + title + str[title_line.end():]
+        str = str[:pos] + title_line.group(1) + title + str[title_line.end():]
         pos += 5
         title_line = compiled_expression.search(str, pos)
     return str

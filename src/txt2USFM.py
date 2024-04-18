@@ -462,12 +462,16 @@ def getBookTitle(folder):
     if not os.path.isfile(path):
         path = os.path.join(folder, "00/title.txt")
     if os.path.isfile(path):
-        f = io.open(path, "tr", 1, encoding='utf-8-sig')
-        bookTitle = f.readline().strip()
-        f.close()
+        with io.open(path, "tr", 1, encoding='utf-8-sig') as f:
+            bookTitle = f.readline().strip()
+        bookTitle = bookTitle.rstrip(". ")
+        bookTitle = " ".join(bookTitle.split())  # eliminates consecutive spaces
+        if not bookTitle.istitle():
+            bookTitle = bookTitle.title().replace("Iii", 'III')
+            bookTitle = bookTitle.replace("Ii", 'II')
     else:
         reportError("   Can't open " + path + "!")
-    return bookTitle.title()
+    return bookTitle
 
 # Appends information about the current book to the global projects list.
 def appendToProjects(bookId, bookTitle):
