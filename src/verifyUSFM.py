@@ -37,7 +37,7 @@ import usfm_utils
 import sentences
 from datetime import date
 
-# Marker types
+# Item categories
 PP = 1      # paragraph or quote
 QQ = 2      # poetry
 B = 3       # \b for blank line; no titles, text, or verse markers may immediately follow
@@ -73,8 +73,8 @@ class State:
         self.lastRef = ""
         self.startChunkRef = ""
         self.errorRefs = set()
-        self.currMarkerType = OTHER
-        self.prevMarkerType = OTHER
+        self.currItemCategory = OTHER
+        self.prevItemCategory = OTHER
         self.currMarker = None
         self.prevMarker = None
 
@@ -106,8 +106,8 @@ class State:
         self.lastRef = self.reference
         self.startChunkRef = ""
         self.reference = id + " header/intro"
-        self.currMarkerType = OTHER
-        self.prevMarkerType = OTHER
+        self.currItemCategory = OTHER
+        self.prevItemCategory = OTHER
         self.toc3 = None
         self.upperCaseReported = False
 
@@ -116,15 +116,15 @@ class State:
 
     def addTitle(self, bookTitle):
         self.booktitles.append(bookTitle)
-        self.prevMarkerType = self.currMarkerType
-        self.currMarkerType = OTHER
+        self.prevItemCategory = self.currItemCategory
+        self.currItemCategory = OTHER
 
     def addToc3(self, toc3):
         self.toc3 = toc3
 
     def addB(self):
-        self.prevMarkerType = self.currMarkerType
-        self.currMarkerType = B
+        self.prevItemCategory = self.currItemCategory
+        self.currItemCategory = B
 
     def addChapter(self, c):
         self.lastChapter = self.chapter
@@ -137,8 +137,8 @@ class State:
         self.lastRef = self.reference
         self.reference = self.ID + " " + c
         self.startChunkRef = self.reference + ":1"
-        self.prevMarkerType = self.currMarkerType
-        self.currMarkerType = C
+        self.prevItemCategory = self.currItemCategory
+        self.currItemCategory = C
 
     # Isolate the word/phrase for "chapter" from the given string.
     # Add it to the list of chapter titles.
@@ -157,8 +157,8 @@ class State:
     def addNB(self):
         self.needPP = False
         self.textOkayHere = True
-        self.prevMarkerType = self.currMarkerType
-        self.currMarkerType = PP
+        self.prevItemCategory = self.currItemCategory
+        self.currItemCategory = PP
 
     def addParagraph(self):
         self.nParagraphs += 1
@@ -166,8 +166,8 @@ class State:
         self.needQQ = False
         self.textOkayHere = True
         self.sentenceEnd = True
-        self.prevMarkerType = self.currMarkerType
-        self.currMarkerType = PP
+        self.prevItemCategory = self.currItemCategory
+        self.currItemCategory = PP
 
     def addPoetry(self):
         self.nPoetry += 1
@@ -175,24 +175,25 @@ class State:
         self.needQQ = False
         self.needPP = False
         self.textOkayHere = True
-        self.prevMarkerType = self.currMarkerType
-        self.currMarkerType = QQ
+        self.prevItemCategory = self.currItemCategory
+        self.currItemCategory = QQ
 
     def addSection(self):
-        self.prevMarkerType = self.currMarkerType
-        self.currMarkerType = OTHER
+        self.prevItemCategory = self.currItemCategory
+        self.currItemCategory = OTHER
 
     # Records the start of a new chunk
     def addS5(self):
         self.startChunkVerse = self.verse + 1
         self.startChunkRef = self.ID + " " + str(self.chapter) + ":" + str(self.startChunkVerse)
 
-    # Keeps track of the current and previous token types.
-    # Returns False if there is a repetition of tokens that should not repeat.
-    def addMarker(self, type):
-        okay = (type != self.currMarker or repeatableMarker(type))
+    # Returns False if there is a unwanted repetition of tokens.
+    # Records the marker in state.
+    def addMarker(self, token):
+        cat = category(token)
+        okay = (cat == OTHER or cat != self.currItemCategory)
         self.prevMarker = self.currMarker
-        self.currMarker = type
+        self.currMarker = token.type
         return okay
 
     def addVerse(self, v):
@@ -203,8 +204,8 @@ class State:
         self.textOkayHere = True
         self.lastRef = self.reference
         self.reference = self.ID + " " + str(self.chapter) + ":" + v
-        self.prevMarkerType = self.currMarkerType
-        self.currMarkerType = OTHER
+        self.prevItemCategory = self.currItemCategory
+        self.currItemCategory = OTHER
         self.asciiVerse = True   # until proven False
 
     def addAcrosticHeading(self):
@@ -231,8 +232,8 @@ class State:
         return self.textLength
 
     def addText(self, text):
-        self.prevMarkerType = self.currMarkerType
-        self.currMarkerType = OTHER
+        self.prevItemCategory = self.currItemCategory
+        self.currItemCategory = OTHER
         self.needVerseText = False
         self.textLength += len(text)
         self.textOkayHere = True
@@ -250,8 +251,8 @@ class State:
     # Increments \f counter
     def addFootnoteStart(self):
         self.footnote_starts += 1
-        self.prevMarkerType = self.currMarkerType
-        self.currMarkerType = OTHER
+        self.prevItemCategory = self.currItemCategory
+        self.currItemCategory = OTHER
         self.needVerseText = False
         self.textOkayHere = True
 
@@ -264,8 +265,8 @@ class State:
     # Increments \fe counter
     def addEndnoteStart(self):
         self.endnote_starts += 1
-        self.prevMarkerType = self.currMarkerType
-        self.currMarkerType = OTHER
+        self.prevItemCategory = self.currItemCategory
+        self.currItemCategory = OTHER
         self.needVerseText = False
         self.textOkayHere = True
 
@@ -295,9 +296,18 @@ class State:
     def reportedUpperCase(self):
         self.upperCaseReported = True
 
-# Returns True if it is normal for two markers of the specified type to occur in succession.
-def repeatableMarker(marker):
-    return (marker == 'v')
+# Returns the category of the specified marker.
+def category(token):
+    category = OTHER
+    if token.isB():
+        category = B
+    elif token.isC():
+        category = C
+    elif token.isP() or token.isPI() or token.isPC() or token.isNB() or token.isM():
+        category = PP
+    elif isPoetry(token):
+        category = QQ
+    return category
 
 # Tries to interpret the specified string as an integer, regardless of language.
 # Returns 0 if unable to interpret.
@@ -558,11 +568,11 @@ def takeID(id):
     state.addID(id)
 
 def reportParagraphMarkerErrors(type):
-    if state.currMarkerType in {QQ,PP} and not suppress[4]:
-        reportError("Warning: back to back paragraph/poetry markers after: " + state.reference, 24)
+    if state.currItemCategory in {QQ,PP} and not suppress[4]:
+        reportError("Warning: back to back paragraph/poetry markers near: " + state.reference, 24)
     if state.needText() and not isOptional(state.reference):
         reportError("Paragraph marker after verse marker, or empty verse: " + state.reference, 25)
-    if type == 'nb' and state.currMarkerType != C:
+    if type == 'nb' and state.currItemCategory != C:
         reportError("\\nb marker should follow chapter marker: " + state.reference, 25.1)
 
 def takeP(type):
@@ -585,11 +595,11 @@ def takeS5():
 
 def takeSection(tag):
     if not suppress[4]:
-        if state.currMarkerType == PP:
+        if state.currItemCategory == PP:
             reportError(f"Warning: useless paragraph (p,m,nb) marker before \\{tag} marker at: {state.reference}", 27)
-        elif state.currMarkerType == QQ:
+        elif state.currItemCategory == QQ:
             reportError(f"Warning: useless \q before \\{tag} marker at: {state.reference}", 28)
-        elif state.currMarkerType == B:
+        elif state.currItemCategory == B:
             reportError(f"\\b may not be used before or after section heading. {state.reference}", 29)
     state.addSection()
 
@@ -611,7 +621,7 @@ def takeTitle(token):
         state.reportedUpperCase()
     if token.value.startswith("Ii"):
         reportError(f"Mixed case roman numerals in \\{token.type} field", 31.1)
-    if state.currMarkerType == B:
+    if state.currItemCategory == B:
         reportError("\\b may not be used before or after titles or headings. " + state.reference, 32)
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
@@ -621,7 +631,7 @@ vinvalid_re = re.compile(r'[^\d\-]')
 # Reports missing text in previous verse.
 # Reports errors related to the verse number(s), such as missing or duplicated verses.
 def takeV(vstr):
-    if state.currMarkerType == B:
+    if state.currItemCategory == B:
         reportError(f"\\b should be used only between paragraphs. {state.reference}", 33)
     if vstr != "1":
         previousVerseCheck()   # Checks previous verse
@@ -697,7 +707,7 @@ def reportCaps(s):
     if state.needCaps():
         word = sentences.firstword(s)
         if word and word[0].islower():
-            if state.currMarkerType == PP or state.prevMarkerType == PP:
+            if state.currItemCategory == PP or state.prevItemCategory == PP:
                 reportError(f"First word of paragraph not capitalized near {state.reference}", 44, suppress[10])
             else:
                 reportError(f"First word in sentence is not capitalized: \"{word}\" at {state.reference}", 44.1, suppress[10])
@@ -859,6 +869,7 @@ allpunc = ".,:;!?-\[\]{}()<>'\"“‘’”`*/"
 quoteend_re = re.compile(r"[.,:;!?-\[\]{}()<>'\"“‘’”`*/]'$")
 notnumberinfootnote_re = re.compile(r'[^\d:\-.,]')
 
+# Parses all the words out of the t string and adds them to the wordlist[].
 def addWords(t):
     for item in t.split():
         word = item.strip(".,:;!?+-[]{}()<>\"“‘’”*/")
@@ -866,9 +877,10 @@ def addWords(t):
             word = word.rstrip(allpunc)
         if word:
             if not state.inFootnote() or notnumberinfootnote_re.search(word):
-                (count, ref) = wordlist.get(word, (0, None))
-                ref = state.reference if count == 0 else ""
-                wordlist[word] = (count+1, ref)
+                if not any(c.isnumeric() for c in word):
+                    (count, ref) = wordlist.get(word, (0, None))
+                    ref = state.reference if count == 0 else ""
+                    wordlist[word] = (count+1, ref)
 
 # Returns true if token is part of a footnote
 def isFootnote(token):
@@ -926,13 +938,15 @@ def take(token):
     global usfm_version
 
     if not token.isTEXT():
-        if not state.addMarker(token.type):
+        if not state.addMarker(token):
             reportError(f"Back to back markers of type {token.type} at {state.reference}", 62)
     else:
         takeText(token.value, state.inFootnote())
 
     if token.isID():
         takeID(token.value)
+    elif token.isV():
+        takeV(token.value)
     elif token.isC():
         if not suppress[5]:
             verifyVerseCount()  # for the preceding chapter
@@ -949,8 +963,6 @@ def take(token):
         if token.value:     # paragraph markers can be followed by text
             reportError("Unexpected: text returned as part of paragraph token." +  state.reference, 63)
             takeText(token.value)
-    elif token.isV():
-        takeV(token.value)
     elif isFootnote(token):
         takeFootnote(token)
     elif token.isS5():
