@@ -19,7 +19,7 @@ import quotes
 import doublequotes
 import parseUsfm
 import sentences
-import usfmFile
+import usfmWriter
 from datetime import date
 
 gui = None
@@ -396,8 +396,7 @@ def convert_by_token(path):
     with io.open(path, "tr", 1, encoding="utf-8-sig") as input:
         str = input.read(-1)
 
-    from usfmFile import usfmFile
-    usfm = usfmFile(path)
+    usfm = usfmWriter.usfmWriter(path)
     usfm.setInlineTags({"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"})
     global needcaps
     needcaps = True

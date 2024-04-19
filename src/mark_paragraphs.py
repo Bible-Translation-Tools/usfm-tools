@@ -15,7 +15,7 @@ import re
 import shutil
 import sentences
 import usfm_verses
-from usfmFile import usfmFile
+import usfmWriter
 
 gui = None
 config = None
@@ -38,7 +38,7 @@ class State:
         self.sVerse = 0      # location of latest section heading already in input text
         self.reference = ""
         self.paragraphs_model = []   # list of {mark, chapter, verse, located}
-        self.sections_model = []
+        self.sections_model = []    # same structure as paragraphs_model
         self.expectText = False
 
     def __repr__(self):
@@ -58,7 +58,7 @@ class State:
         ## Open output USFM file for writing.
         global config
         tmpPath = os.path.join(config['source_dir'], fname + ".tmp")
-        self.usfm = usfmFile(tmpPath)
+        self.usfm = usfmWriter.usfmWriter(tmpPath)
 
     def addID(self, id):
         self.ID = id

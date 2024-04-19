@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Implements usfmFile object to write usfm file with proper spacing.
+# Implements usfmWriter object to write usfm file with proper spacing.
 # By default, all usfm tags except footnotes start on a new line.
 # The caller can modify placement of line breaks:
 #    by calling setInlineTags() to specify a different set of usfm tags that should not start on a new line
@@ -8,7 +8,7 @@
 
 import io
 
-class usfmFile:
+class usfmWriter:
     def __init__(self, path):
         self._path = path
         self._file = io.open(path, "tw", encoding='utf-8', newline='\n')
