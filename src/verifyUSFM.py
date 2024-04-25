@@ -2,7 +2,10 @@
 # Script for verifying proper USFM.
 # Reports errors to stderr and issues.txt.
 # Uses these config values:
-#   source_dir
+#   source_dir - location of files to be checked.
+#       This is an unfortunate name, because source_dir contains the translated text, not the source text.
+#   compare_dir - location of files containing the source text,
+#       against which the translated text may be compared.
 #   file  (optional)
 #   language_code
 #   standard_chapter_title (optional)
@@ -49,7 +52,12 @@ class State:
     def __init__(self):
         self.IDs = []
         self.ID = ""
-        self.titles = []
+        self.reference = ""
+        self.errorRefs = set()
+        self.initBook()
+
+    def initBook(self):
+        self.booktitles = []
         self.chaptertitles = []
         self.nChapterLabels = 0
         self.nParagraphs = 0
@@ -69,47 +77,27 @@ class State:
         self.footnote_ends = 0
         self.endnote_starts = 0
         self.endnote_ends = 0
+        self.needVerseText = False
         self.reference = ""
         self.lastRef = ""
         self.startChunkRef = ""
-        self.errorRefs = set()
         self.currItemCategory = OTHER
         self.prevItemCategory = OTHER
+        self.toc3 = None
+        self.upperCaseReported = False
         self.currMarker = None
         self.prevMarker = None
+        self.sourcetext = {}
 
     def __repr__(self):
         return f'State({self.reference})'
 
     # Resets state data for a new book
     def addID(self, id):
+        self.initBook()
         self.IDs.append(id)
         self.ID = id
-        self.booktitles = []
-        self.chaptertitles = []
-        self.nChapterLabels = 0
-        self.nParagraphs = 0
-        self.nPoetry = 0
-        self.chapter = 0
-        self.lastVerse = 0
-        self.verse = 0
-        self.startChunkVerse = 1
-        self.footnote_starts = 0
-        self.footnote_ends = 0
-        self.endnote_starts = 0
-        self.endnote_ends = 0
-        self.needVerseText = False
-        self.textLength = 0
-        self.textOkayHere = False
-        self.sentenceEnd = True
-        self.quotedSentenceEnd = False
-        self.lastRef = self.reference
-        self.startChunkRef = ""
         self.reference = id + " header/intro"
-        self.currItemCategory = OTHER
-        self.prevItemCategory = OTHER
-        self.toc3 = None
-        self.upperCaseReported = False
 
     def getIDs(self):
         return self.IDs
@@ -329,7 +317,7 @@ def nChapters(id):
 # Returns the number of verses that the specified chapter should contain
 def nVerses(id, chap):
     chaps = usfm_verses.verseCounts[id]['verses']
-    n = chaps[chap-1]
+    n = 0 if chap > len(chaps) else chaps[chap-1]
     return n
 
 # Returns the English title for the specified book
@@ -337,10 +325,10 @@ def bookTitleEnglish(id):
     return usfm_verses.verseCounts[id]['en_name']
 
 def shortname(longpath):
-    source_dir = Path(config['source_dir'])
+    workdir = Path(config['source_dir'])
     shortname = Path(longpath)
-    if shortname.is_relative_to(source_dir):
-        shortname = shortname.relative_to(source_dir)
+    if shortname.is_relative_to(workdir):
+        shortname = shortname.relative_to(workdir)
     return str(shortname)
 
 # If issues.txt file is not already open, opens it for writing.
@@ -350,14 +338,14 @@ def shortname(longpath):
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        source_dir = config['source_dir']
-        path = os.path.join(source_dir, "issues.txt")
+        workdir = config['source_dir']
+        path = os.path.join(workdir, "issues.txt")
         if os.path.exists(path):
-            bakpath = os.path.join(source_dir, "issues-oldest.txt")
+            bakpath = os.path.join(workdir, "issues-oldest.txt")
             if not os.path.exists(bakpath):
                 os.rename(path, bakpath)
         issuesFile = io.open(path, "tw", encoding='utf-8', newline='\n')
-        issuesFile.write(f"Issues detected by verifyUSFM, {date.today()}, {source_dir}\n-------------------\n")
+        issuesFile.write(f"Issues detected by verifyUSFM, {date.today()}, {workdir}\n-------------------\n")
     return issuesFile
 
 # Returns the longest common substring at the start of s1 and s2
@@ -442,6 +430,27 @@ def wordkey(item):
     assert(word == word2)
     return str.lower(word)
 
+# Parses the source text into a Python data structure.
+def scanSourceFile(path):
+    with io.open(path, "tr", encoding="utf-8-sig") as input:
+        str = input.read(-1)
+        reportProgress(f"Parsing source text for {os.path.basename(path)}")
+        sys.stdout.flush()
+    #     state.addFile(fname)
+    #     tokens = parseUsfm.parseString(str)
+    #     for token in tokens:
+    #         scan(token)
+    
+# Loads the source text for the current book if compare_dir is set.
+# Slow operation, it parses a usfm file and stores verse text in a dict.
+def load_source(workpath):
+    sourcedir = config['compare_dir']
+    if sourcedir:
+        filename = os.path.basename(workpath)
+        sourcepath = os.path.join(sourcedir, filename)
+        if os.path.isfile(sourcepath):
+            scanSourceFile(sourcepath)
+
 # Report missing text or all ASCII text, in previous verse
 def previousVerseCheck():
     if not isOptional(state.reference) and state.getTextLength() < 10 and state.verse != 0:
@@ -475,7 +484,7 @@ def verifyChapterTitles():
     global std_titles
     if len(state.chaptertitles) > 1 and len(state.chaptertitles) != len(std_titles):
         reportError(f"Inconsistent chapter titling: {state.chaptertitles} in {state.ID}", 6)
-    if state.nChapterLabels > 1 and state.nChapterLabels != state.chapter:
+    if state.nChapterLabels > 1 and state.nChapterLabels < state.chapter:
         reportError(f"Some chapters do not have chapter labels but {state.nChapterLabels} do.", 7)
 
 # Verifies correct number of verses for the current chapter.
@@ -519,6 +528,8 @@ def takeC(c):
         previousVerseCheck()
         # longChunkCheck()
     state.addChapter(c)
+    if state.chapter < 1 or state.chapter > nChapters(state.ID):
+        reportError(f"Invalid chapter number ({c}) is found after {state.lastRef}", 13.1)
     if len(state.IDs) == 0:
         reportError("Missing ID before chapter: " + c, 13)
     if state.chapter < state.lastChapter:
@@ -1072,9 +1083,8 @@ backslasheol_re = re.compile(r'\\ *\n')
 # Corresponding entry point in tx-manager code is verify_contents_quiet()
 def verifyFile(path):
     global aligned_usfm
-    input = io.open(path, "r", buffering=1, encoding="utf-8-sig")
-    contents = input.read(-1)
-    input.close()
+    with io.open(path, "r", encoding="utf-8-sig") as input:
+        contents = input.read(-1)
 
     if wjwj_re.search(contents):
         reportError("Empty \\wj \\wj* pair(s) in " + shortname(path), 77)
@@ -1089,6 +1099,7 @@ def verifyFile(path):
     if len(contents) < 100:
         reportError("Incomplete file: " + shortname(path), 80)
     else:
+        # load_source(path)
         reportProgress(f"CHECKING {shortname(path)}...")
         sys.stdout.flush()
         tokens = parseUsfm.parseString(contents)    # Slow!
@@ -1109,8 +1120,8 @@ def verifyFile(path):
         sys.stderr.flush()
 
 # Verifies all .usfm files under the specified folder.
-def verifyDir(dir):
-    dirpath = Path(dir)
+def verifyDir(workdir):
+    dirpath = Path(workdir)
     for path in dirpath.iterdir():
         if path.name[0] != '.':         # ignore hidden files
             if path.is_dir():
@@ -1122,20 +1133,14 @@ def verifyDir(dir):
 def main(app=None):
     global config
     global suppress
-    global language_code
     global gui
 
     gui = app
     config = configmanager.ToolsConfigManager().get_section('VerifyUSFM')   # configmanager version
     if config:
-        source_dir = config['source_dir']
+        workdir = config['source_dir']
         for i in range(1, len(suppress)):
             suppress[i] = config.getboolean('suppress'+str(i), fallback = False)
-        language_code = config['language_code']
-        if language_code in {'diu','en','es','es-419','gl','ha','hr','id','kcn','kpj','nag','plt','pmy','pt-br','sw','tl','tpi'}:    # ASCII content
-            suppress[9] = True
-        if language_code in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','pa','ru','ta','te','zh'}:    # ASCII content
-            suppress[9] = False
         global std_titles
         std_titles = [ config.get('standard_chapter_title', fallback = '') ]
         if std_titles == ['']:
@@ -1148,16 +1153,15 @@ def main(app=None):
         global issues
         issues = dict()
 
-        file = config['filename']    # configmanager version
-
+        file = config['filename']
         if file:
-            path = os.path.join(source_dir, file)
+            path = os.path.join(workdir, file)
             if os.path.isfile(path):
                 verifyFile(path)
             else:
                 reportError(f"No such file: {path}")
         else:
-            verifyDir(source_dir)
+            verifyDir(workdir)
 
         global issuesFile
         if issuesFile:
