@@ -237,9 +237,7 @@ def verifyCleanDir(dirpath):
             reportError("Extra manifest file: " + os.path.relpath(path, manifestDir))
         if "temp" in fname or "tmp" in fname or "orig" in fname or "bak" in fname or \
           "Copy" in fname or "txt" in fname or "projects" in fname or fname.endswith(".field"):
-            if issuesfile_re.match(fname):
-                reportWarning(f"{fname} file may be extraneous")
-            elif fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md", "issues.txt", "issues-extra.txt"}:
+            if not issuesfile_re.match(fname) and fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md", "wordlist.txt"}:
                 reportError("Extraneous file: " + os.path.relpath(path, manifestDir))
 
         elif badname_re.match(fname):
@@ -366,7 +364,7 @@ def verifyIdentifier(core):
             reportError("Invalid id: " + id)
         else:
             projtype = id
-            reportStatus("projtype = " + projtype)
+            # reportStatus("projtype = " + projtype)
         parts = manifestDir.rsplit('_', 1)
         lastpart = parts[-1].lower()
         if lastpart != id.lower() and not lastpart.startswith(id.lower() + '.'):
@@ -571,10 +569,10 @@ def verifyReadme(dirpath):
             delta = modtime - datetime.fromtimestamp(pathlibpath.stat().st_mtime)
         else:
             delta = timedelta(hours=2)
-        if modtime.date() != date.today():
-            reportWarning("README file was not updated today")
-        else:
-            reportStatus("Remember to update README file.")
+        # if modtime.date() != date.today():
+        #     reportWarning("README file was not updated today")
+        # else:
+        reportStatus("Remember to update README file.")
 
 # NOT DONE - need to support UHG-type entries
 def verifyRelation(rel):
