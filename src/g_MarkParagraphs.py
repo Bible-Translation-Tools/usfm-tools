@@ -33,7 +33,7 @@ class MarkParagraphs(g_step.Step):
             count = g_util.count_files(values['source_dir'], ".*sfm$")
         self.script = "mark_paragraphs"
         self.mainapp.execute_script(self.script, count*2)
-        self.frame.clear_status()
+        self.frame.clear_messages()
 
     # Runs the revertChanges script to revert mark_paragraphs changes.
     def revertChanges(self):
@@ -43,7 +43,7 @@ class MarkParagraphs(g_step.Step):
         self.mainapp.save_values('RevertChanges', sec)
         self.script = "revertChanges"
         self.mainapp.execute_script(self.script, 1)
-        self.frame.clear_status()
+        self.frame.clear_messages()
 
     # Called by the mainapp.
     def onScriptEnd(self, status):
@@ -152,11 +152,6 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
             self.message_area.insert('end', "Resolve as appropriate.\n")
             self.message_area.see('end')
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-
-    # Called by the controller when script execution begins.
-    def clear_status(self):
-        self.message_area['state'] = NORMAL   # enables insertions to message area
-        self.message_area.delete('1.0', 'end')
 
     def _save_values(self):
         self.values['source_dir'] = self.source_dir.get()

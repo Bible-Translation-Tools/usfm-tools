@@ -32,7 +32,7 @@ class UsfmCleanup(g_step.Step):
         if not values['filename']:
             count = g_util.count_files(values['source_dir'], ".*sfm$")
         self.mainapp.execute_script("usfm_cleanup", count)
-        self.frame.clear_status()
+        self.frame.clear_messages()
 
     # Runs the revertChanges script to revert usfm_cleanup changes.
     def revertChanges(self):
@@ -41,7 +41,7 @@ class UsfmCleanup(g_step.Step):
                'correctExt': ".usfm"}
         self.mainapp.save_values('RevertChanges', sec)
         self.mainapp.execute_script("revertChanges", 1)
-        self.frame.clear_status()
+        self.frame.clear_messages()
 
 class UsfmCleanup_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
@@ -147,7 +147,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         # Create buttons
         self.controller.showbutton(1, "<<<", tip="Verify usfm", cmd=self._onBack)
         self.controller.showbutton(2, "CLEAN", tip="Run the USFM cleanup script now.", cmd=self._onExecute)
-        self.controller.showbutton(3, "Open usfm folder", cmd=self._onOpenSourceDir)
+        self.controller.showbutton(3, "Work folder", cmd=self._onOpenSourceDir)
         self.controller.showbutton(4, "Undo", tip="Restore any and all .usfm.orig backup files.",
                                    cmd=self._onUndo)
         self.controller.showbutton(5, ">>>", tip="Mark paragraphs", cmd=self._onNext)
@@ -159,11 +159,6 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self.controller.enablebutton(2, True)
         nChanged = g_util.count_files(self.source_dir.get(), ".*\.usfm\.orig$")
         self.controller.enablebutton(4, nChanged > 0)
-
-    # Called by the controller when script execution begins.
-    def clear_status(self):
-        self.message_area['state'] = NORMAL   # enables insertions to message area
-        self.message_area.delete('1.0', 'end')
 
     def _onChangeQuotes(self, *args):
         if promote_all := self.enable[4].get():    # promote all straight quotes

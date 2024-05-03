@@ -30,7 +30,7 @@ class Usfm2Usx(g_step.Step):
         if not values['filename']:
             count = g_util.count_files(values['source_dir'], ".*sfm$")
         self.mainapp.execute_script("usfm2usx", count)
-        self.frame.clear_status()
+        self.frame.clear_messages()
 
     # Called by the main app.
     def onScriptEnd(self, status: str):
@@ -153,11 +153,6 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
 
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-
-    # Called by the controller when script execution begins.
-    def clear_status(self):
-        self.message_area['state'] = NORMAL   # enables insertions to message area
-        self.message_area.delete('1.0', 'end')
 
     # Copies current values from GUI into self.values dict, and calls mainapp to save
     # them to the configuration file.

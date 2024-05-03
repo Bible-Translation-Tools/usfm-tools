@@ -108,6 +108,18 @@ class Step_Frame(ttk.Frame, ABC):
         self.message_area.insert('end', status + '\n')
         self.message_area.see('end')
 
+    # Clears all text in the message box and enable insertions.
+    def clear_messages(self):
+        self.message_area['state'] = NORMAL   # enables insertions to message area
+        self.message_area.delete('1.0', 'end')
+    
+    # Clears the message area and shows the specified message
+    # Disables new insertions.
+    def clear_show(self, message):
+        self.clear_messages()
+        self.message_area.insert('end', message)
+        self.message_area['state'] = DISABLED
+
     def _onBack(self, *args):
         self._save_values()
         self.controller.onBack()

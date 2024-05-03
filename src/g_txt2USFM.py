@@ -28,7 +28,7 @@ class Txt2USFM(g_step.Step):
         self.values = values
         count = g_util.count_folders(values['source_dir'], f"{values['language_code']}_[\w][\w][\w].*_reg|_ulb$")
         self.mainapp.execute_script("txt2USFM", count)
-        self.frame.clear_status()
+        self.frame.clear_messages()
 
     def onNext(self):
         copyparms = {'language_code': self.values['language_code'], 'source_dir': self.values['target_dir']}
@@ -93,11 +93,6 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.controller.showbutton(4, "Usfm folder", cmd=self._onOpenTargetDir)
         self.controller.showbutton(5, ">>>", tip="Verify USFM", cmd=self._onSkip)
         self._set_button_status()
-
-    # Called by the controller when script execution begins.
-    def clear_status(self):
-        self.message_area['state'] = NORMAL   # enables insertions to message area
-        self.message_area.delete('1.0', 'end')
 
     # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
     def _save_values(self):
