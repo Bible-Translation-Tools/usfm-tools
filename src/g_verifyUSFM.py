@@ -26,7 +26,7 @@ class VerifyUSFM(g_step.Step):
 
     def onNext(self):
         if self.executed:
-            super().onNext('source_dir', 'filename', 'language_code', 'standard_chapter_title')
+            super().onNext('source_dir', 'filename', 'standard_chapter_title')
         else:
             super().onNext()
         self.executed = False
@@ -39,23 +39,23 @@ class VerifyUSFM(g_step.Step):
         if not values['filename']:
             count = g_util.count_files(values['source_dir'], ".*sfm$")
         self.mainapp.execute_script("verifyUSFM", count)
-        self.frame.clear_status()
+        self.frame.clear_messages()
         self.executed = True
     
     def executeInventoryLabels(self, folder):
         self.mainapp.execute_script("inventory_chapter_labels", 0)
-        self.frame.clear_status()
+        self.frame.clear_messages()
 
 class VerifyUSFM_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
-        # self.controller = controller
 
         self.language_code = StringVar()
         self.source_dir = StringVar()
         self.filename = StringVar()
         self.std_titles = StringVar()
-        for var in (self.language_code, self.source_dir, self.filename):
+        self.compare_dir = StringVar()
+        for var in (self.source_dir, self.filename, self.compare_dir):
             var.trace_add("write", self._onChangeEntry)
         self.suppress = [BooleanVar(value = False) for i in range(12)]
         self.suppress[6].trace_add("write", self._onChangeQuotes)
@@ -91,6 +91,14 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
              text="Leave filename blank to verify all .usfm files in the folder.")
         file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
         file_find.grid(row=5, column=3, sticky=W, padx=12)
+        compare_dir_label = ttk.Label(self, text="Source text folder:", width=20)
+        compare_dir_label.grid(row=6, column=1, sticky=W, pady=2)
+        compare_dir_entry = ttk.Entry(self, width=43, textvariable=self.compare_dir)
+        compare_dir_entry.grid(row=6, column=2, columnspan=3, sticky=W)
+        cmp_Tip = Hovertip(compare_dir_entry, hover_delay=500,
+             text="The source text used for this translation (optional)")
+        cmp_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindCmpDir)
+        cmp_dir_find.grid(row=6, column=4, sticky=W)
 
         subheadingFont = font.Font(size=10, slant='italic')     # normal size is 9
         suppressions_label = ttk.Label(self, text="Suppress these warnings?", font=subheadingFont)
@@ -139,10 +147,10 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         suppress8_Tip = Hovertip(suppress8_checkbox, hover_delay=500,
              text=r"Suppress warnings about UPPER CASE BOOK TITLES")
         
-        suppress9_checkbox = ttk.Checkbutton(self, text=r'ASCII content', variable=self.suppress[9],
+        self.suppress9_checkbox = ttk.Checkbutton(self, text=r'ASCII content', variable=self.suppress[9],
                                              onvalue=True, offvalue=False)
-        suppress9_checkbox.grid(row=13, column=1, sticky=W)
-        suppress9_Tip = Hovertip(suppress9_checkbox, hover_delay=500,
+        self.suppress9_checkbox.grid(row=13, column=1, sticky=W)
+        suppress9_Tip = Hovertip(self.suppress9_checkbox, hover_delay=500,
              text=r"Suppress warnings about ASCII content")
         
         suppress10_checkbox = ttk.Checkbutton(self, text=r'Capitalization', variable=self.suppress[10],
@@ -167,6 +175,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.language_code.set(values.get('language_code', fallback=""))
         self.source_dir.set(values.get('source_dir', fallback=""))
         self.filename.set(values.get('filename', fallback=""))
+        self.compare_dir.set(values.get('compare_dir', fallback=""))
         self.std_titles.set(values.get('standard_chapter_title', fallback=""))
         for si in range(len(self.suppress)):
             configvalue = f"suppress{si}"
@@ -197,17 +206,13 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
         self.controller.enablebutton(2, True)
 
-    # Called by the controller when script execution begins.
-    def clear_status(self):
-        self.message_area['state'] = NORMAL   # enables insertions to message area
-        self.message_area.delete('1.0', 'end')
-
     # Copies current values from GUI into self.values dict, and calls mainapp to save
     # them to the configuration file.
     def _save_values(self):
         self.values['language_code'] = self.language_code.get()
         self.values['source_dir'] = self.source_dir.get()
         self.values['filename'] = self.filename.get()
+        self.values['compare_dir'] = self.compare_dir.get()
         self.values['standard_chapter_title'] = self.std_titles.get()
         for si in range(len(self.suppress)):
             configvalue = f"suppress{si}"
@@ -215,6 +220,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
 
+    # Executes a script that inventories the existing chapter labels
     def _onInventoryLabels(self, *args):
         self._save_values()
         self.controller.executeInventoryLabels(self.values['source_dir'])
@@ -227,8 +233,15 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         if path:
             self.filename.set(os.path.basename(path))
 
+    def _onFindCmpDir(self, *args):
+        self.controller.askdir(self.compare_dir)
+
     def _onChangeEntry(self, *args):
+        nonascii_script = self.language_code.get() in {'as','bn','gu','hi','kn','ml','mr','nag','ne','or','pa','ru','ta','te','zh'}
+        self.suppress[9].set(not nonascii_script)
+        self.suppress9_checkbox.state(['disabled'] if nonascii_script else ['!disabled'])
         self._set_button_status()
+
     def _onChangeQuotes(self, *args):
         if suppress_all := self.suppress[6].get():    # suppress all straight quotes
             self.suppress[7].set(True)
@@ -241,21 +254,22 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         path = os.path.join(self.values['source_dir'], "issues.txt")
         os.startfile(path)
     # Opens usfm folder, or specific usfm file
-    def _onOpenUsfmFile(self, *args):
+    def _onOpenUsfm(self, *args):
         path = os.path.join(self.source_dir.get(), self.filename.get())
         os.startfile(path)
 
     def _set_button_status(self):
         good_dir = os.path.isdir(self.source_dir.get())
+        good_cmp = not self.compare_dir.get() or os.path.isdir(self.compare_dir.get())
         namedfile = self.filename.get()
         good_subject = good_dir and not namedfile
         if good_dir and namedfile:
             filepath = os.path.join(self.source_dir.get(), namedfile)
             good_subject = os.path.isfile(filepath)
-        self.controller.enablebutton(2, self.language_code.get() and good_subject)
+        self.controller.enablebutton(2, good_subject and good_cmp)
         if good_dir:
-            title = namedfile if namedfile and good_subject else "Usfm folder"
-            self.controller.showbutton(4, title, tip=f"Open {title}", cmd=self._onOpenUsfmFile)
+            title = namedfile if namedfile and good_subject else "Work folder"
+            self.controller.showbutton(4, title, tip=f"Open {title}", cmd=self._onOpenUsfm)
         else:
             self.controller.hidebutton(4)
 
