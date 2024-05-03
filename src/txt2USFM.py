@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # This script converts text files from tStudio to USFM Resource Container format.
 #    Parses manifest.json to get the book ID.
-#    Outputs list of contributors gleaned from all manifest.json files.
+#    Outputs list of contributors and sources gleaned from all manifest.json files.
 #    Finds and parses title.txt to get the book title.
 #    Populates the USFM headers.
 #    Standardizes the names of .usfm files. For example 41-MAT.usfm and 42-MRK.usfm.
@@ -15,9 +15,12 @@ import re
 import operator
 import io
 import os
+import sys
+import json
 
 config = None
 contributors = []
+sources = []
 projects = []
 gui = None
 
@@ -413,9 +416,32 @@ def isBookFolder(path):
     chapterPath = os.path.join(path, '01')
     return os.path.isdir(chapterPath)
 
-import sys
-import json
+relevantKeys = ['language_id', 'resource_id', 'version']
+                
+# Returns True if the two sources represent the same resouce.
+def source_eq(src1, src2):
+    eq = True
+    for key in relevantKeys:
+        if src1[key] != src2[key]:
+            eq = False
+            break
+    return eq
 
+# Adds the specified source to the global sources list if it is unique.
+def addSource(source):
+    global sources
+    unique = True
+    for src in sources:
+        if source_eq(src, source):
+            unique = False
+            break
+    if unique:
+        newsource = {}
+        for key in relevantKeys:
+            newsource[key] = source[key]
+        sources.append(newsource)
+
+# Extracts information from the specified manifest.
 def parseManifest(path):
     bookId = ""
     try:
@@ -424,6 +450,7 @@ def parseManifest(path):
         reportError("   Can't open: " + path + "!")
     else:
         global contributors
+        global sources
         try:
             manifest = json.load(jsonFile)
         except ValueError as e:
@@ -431,7 +458,8 @@ def parseManifest(path):
         else:
             bookId = manifest['project']['id']
             contributors += [x.title() for x in manifest['translators']]
-
+            for source in manifest['source_translations']:
+                addSource(source)
         jsonFile.close()
     return bookId.upper()
 
@@ -543,17 +571,28 @@ def writeHeader(usfmfile, bookId, bookTitle):
     usfmfile.write("\n\\toc3 " + bookId.lower())
     usfmfile.write("\n\\mt " + bookTitle + "\n")
 
-# Eliminates duplicates from contributors list and sorts it.
-# Outputs list to contributors.txt.
+# Eliminates duplicates from contributors list and sorts them.
+# Outputs both the contributors and source resources to contributors.txt.
 def dumpContributors(target_dir):
     global contributors
     contribs = list(set(contributors))
     contribs.sort()
+
     path = os.path.join(target_dir, "contributors.txt")
     f = io.open(path, 'tw', encoding='utf-8', newline='\n')
+    f.write("This file lists unique contributor names and source language resources\n")
+    f.write("gleaned from all the converted repos.\n")
+    f.write("These sections may be copied verbatim into the dublin_core section of the manifest.yaml file.\n\n")
+    f.write("  contributor:\n")
     for name in contribs:
         if name:
             f.write('    - "' + name + '"\n')
+    f.write("\n  source:\n")
+    for src in sources:
+        f.write( "    -\n")
+        f.write(f"      identifier: '{src['resource_id']}'\n")
+        f.write(f"      language: '{src['language_id']}'\n")
+        f.write(f"      version: '{src['version']}'\n")
     f.close()
 
 # This method returns a list of chapter folders in the specified directory.
