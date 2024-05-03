@@ -456,7 +456,9 @@ def main(app = None):
     global gui
     global config
     global std_titles
+    global nChanged
 
+    nChanged = 0
     gui = app
     config = configmanager.ToolsConfigManager().get_section('UsfmCleanup')
     if config:
