@@ -2,9 +2,10 @@
 # This script converts plain text files containing books of the Bible to usfm files.
 # The text files must be prepared to meet these conditions:
 #    Each file contains a single book of the Bible, and no extraneous text.
-#    The file names match XXX.txt, where XXX is the 3-character book id.
+#    The file names match XXX.txt or NN-XXX.txt, where XXX is the 3-character book id
+#       and NN is the stardard, 2-digit number.
 #    UTF-8 encoding is required.
-#    The first line of each file contains the book title, with no other characters.
+#    The first line of each file contains the indigenous book title, with no other characters.
 #    Chapter and verse numbers are in Arabic numerals (0-9).
 #    Input text file does not contain USFM markers.
 # The script performs these operations:
@@ -21,7 +22,6 @@ import operator
 import io
 import os
 import sys
-import json
 from pathlib import Path
 
 config = None
@@ -334,15 +334,23 @@ def openIssuesFile():
         issues_file = io.open(path, "tw", buffering=2048, encoding='utf-8', newline='\n')
     return issues_file
 
+num_name_re = re.compile(r'([0-6][0-9]?)[ \-\.]*([A-Za-z1-3][A-Za-z][A-Za-z])')
+
 # Parses the book id from the file name.
 # Return upper case bookId, or empty string on failure.
 def getBookId(filename):
     bookId = None
-    (id, ext) = os.path.splitext(filename)
-    if ext == ".txt" and len(id) == 3 and id.upper() in usfm_verses.verseCounts:
+    id = ""
+    (fname, ext) = os.path.splitext(filename)
+    if ext == ".txt" and len(fname) == 3:
+        id = fname
+    else:
+        if num_name := num_name_re.match(fname):
+            id = num_name.group(2)
+    if id.upper() in usfm_verses.verseCounts:
         bookId = id.upper()
     else:
-        reportError(f"Cannot identify book from file name: {filename}.\n  Use XXX.txt where XXX is book ID.")
+        reportError(f"Cannot identify book from file name: {filename}.\n  Use XXX.txt or NN-XXX.txt")
     return bookId
 
 # Appends information about the current book to the global projects list.
