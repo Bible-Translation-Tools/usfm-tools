@@ -7,7 +7,6 @@
 #   compare_dir - location of files containing the source text,
 #       against which the translated text may be compared.
 #   file  (optional)
-#   language_code
 #   standard_chapter_title (optional)
 #   suppress1 thru suppress11 (optional)
 # Detects whether files are aligned USFM.
@@ -39,6 +38,7 @@ import unicodedata
 import usfm_utils
 import sentences
 from datetime import date
+import yaml
 
 # Item categories
 PP = 1      # paragraph or quote
@@ -54,6 +54,7 @@ class State:
         self.ID = ""
         self.reference = ""
         self.errorRefs = set()
+        self.sourcetext = {}
         self.initBook()
 
     def initBook(self):
@@ -70,6 +71,7 @@ class State:
         self.needQQ = False
         self.needVerseText = False
         self.textLength = 0
+        self.versetext = ""
         self.textOkayHere = False
         self.sentenceEnd = True
         self.quotedSentenceEnd = False
@@ -87,15 +89,18 @@ class State:
         self.upperCaseReported = False
         self.currMarker = None
         self.prevMarker = None
-        self.sourcetext = {}
 
     def __repr__(self):
         return f'State({self.reference})'
 
     # Resets state data for a new book
-    def addID(self, id):
+    # The scan parameter is set when source text is being parsed.
+    def addID(self, id, scan=False):
         self.initBook()
-        self.IDs.append(id)
+        if scan:
+            self.sourcetext = {}
+        else:
+            self.IDs.append(id)
         self.ID = id
         self.reference = id + " header/intro"
 
@@ -189,6 +194,7 @@ class State:
         self.verse = int(v)
         self.needVerseText = True
         self.textLength = 0
+        self.versetext = ""
         self.textOkayHere = True
         self.lastRef = self.reference
         self.reference = self.ID + " " + str(self.chapter) + ":" + v
@@ -223,7 +229,9 @@ class State:
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = OTHER
         self.needVerseText = False
-        self.textLength += len(text)
+        if text not in '-+':
+            self.textLength += len(text)
+            self.versetext += text + " "
         self.textOkayHere = True
         if not text.isascii():
           self.asciiVerse = False
@@ -263,6 +271,13 @@ class State:
         self.endnote_ends += 1
         self.needVerseText = False
         self.textOkayHere = True
+
+    # Simply appends the text to the
+    def addSourceText(self, t):
+        if self.reference in self.sourcetext:
+            state.sourcetext[state.reference] += " " + t
+        else:
+            state.sourcetext[state.reference] = t
 
     # Adds the specified reference to the set of error references
     # Returns True if reference can be added
@@ -430,26 +445,68 @@ def wordkey(item):
     assert(word == word2)
     return str.lower(word)
 
+# Returns the name of the Bible in the specified folder.
+# def getBibleName(dir):
+#     name = ""
+#     path = os.path.join(dir, "manifest.yaml")
+#     if os.path.isfile(path):
+#         with io.open(path, "tr", encoding='utf-8-sig') as file:
+#             contents = yaml.safe_load(file)
+#         language = contents['dublin_core']['language']['title']
+#         title = contents['dublin_core']['title']
+#     if language in title:
+#         name = title
+#     else:
+#         name = f"{language} {title}"
+#     return name
+
+# Handles the next token in the source text.
+# Only cares about storing text, as of the date of this comment (Apr-2024)
+def scan(token):
+    if token.isTEXT():
+        state.addSourceText(token.value)
+    elif token.isV():
+        vs = token.value.split('-')
+        state.addVerse(vs[-1])
+    elif token.isC():
+        state.addChapter(token.value)
+    elif token.isID():
+        state.addID(token.value[0:3].upper(), scan=True)
+    elif isFootnote(token):
+        state.addSourceText(token.value)
+
 # Parses the source text into a Python data structure.
 def scanSourceFile(path):
+    state.initBook()
     with io.open(path, "tr", encoding="utf-8-sig") as input:
         str = input.read(-1)
-        reportProgress(f"Parsing source text for {os.path.basename(path)}")
-        sys.stdout.flush()
-    #     state.addFile(fname)
-    #     tokens = parseUsfm.parseString(str)
-    #     for token in tokens:
-    #         scan(token)
-    
+    tokens = parseUsfm.parseString(str)
+    for token in tokens:
+        scan(token)
+
 # Loads the source text for the current book if compare_dir is set.
 # Slow operation, it parses a usfm file and stores verse text in a dict.
-def load_source(workpath):
+def load_source(fname):
     sourcedir = config['compare_dir']
     if sourcedir:
-        filename = os.path.basename(workpath)
-        sourcepath = os.path.join(sourcedir, filename)
+        sourcepath = os.path.join(sourcedir, fname)
         if os.path.isfile(sourcepath):
+            reportStatus(f"Loading source text...")
+            sys.stdout.flush()
             scanSourceFile(sourcepath)
+
+# Compares current verse to the source text
+# Returns Jaccard Similarity value, and number of wordsof length > 2 in common.
+def similarToSource():
+    similarity = 0
+    n = 0
+    if state.sourcetext and state.reference in state.sourcetext:
+        A = set(state.sourcetext[state.reference].split())
+        B = set(state.versetext.split())
+        wordsincommon = [w for w in A&B if len(w) > 2 and w.islower()]
+        n = len(wordsincommon)
+        similarity = n / len(A|B)
+    return (similarity, n)
 
 # Report missing text or all ASCII text, in previous verse
 def previousVerseCheck():
@@ -460,6 +517,9 @@ def previousVerseCheck():
             reportError("Verse fragment: " + state.reference, 2)
     if not suppress[9] and state.asciiVerse and state.getTextLength() > 0:
         reportError("Verse is entirely ASCII: " + state.reference, 3)
+    (sim, n) = similarToSource()
+    if sim > 0.4:
+        reportError(f"Verse may be untranslated (based on words in common): {state.reference}", 3.5)
 
 def longChunkCheck():
     max_chunk_length = 400  # set lower if this is ever needed again
@@ -644,7 +704,7 @@ vinvalid_re = re.compile(r'[^\d\-]')
 def takeV(vstr):
     if state.currItemCategory == B:
         reportError(f"\\b should be used only between paragraphs. {state.reference}", 33)
-    if vstr != "1":
+    if vstr != "1" and vstr[0:2] != "1-":
         previousVerseCheck()   # Checks previous verse
     vlist = []
     if vstr.find('-') > 0:
@@ -997,11 +1057,10 @@ def take(token):
             reportError("Unnumbered verse after " + state.reference, 66)
         elif usfm_version == 2:
             reportError("Invalid USFM token (\\" + token.value + ") near " + state.reference, 67)
-
-    if config['language_code'] in {"ur"} and isNumericCandidate(token) and re.search(r'[0-9]', token.value):
-        reportError("Arabic numerals in footnote at " + state.reference, 68)
-
     lastToken = token
+
+    # if config['language_code'] in {"ur"} and isNumericCandidate(token) and re.search(r'[0-9]', token.value):
+        # reportError("Arabic numerals in footnote at " + state.reference, 68)
 
 bad_chapter_re1 = re.compile(r'[^\n](\\c\s*\d+)', re.UNICODE)
 bad_chapter_re2 = re.compile(r'(\\c[0-9]+)', re.UNICODE)
@@ -1099,8 +1158,8 @@ def verifyFile(path):
     if len(contents) < 100:
         reportError("Incomplete file: " + shortname(path), 80)
     else:
-        # load_source(path)
-        reportProgress(f"CHECKING {shortname(path)}...")
+        load_source(os.path.basename(path))
+        reportProgress(f"Checking {shortname(path)}...")
         sys.stdout.flush()
         tokens = parseUsfm.parseString(contents)    # Slow!
         verifyWholeFile(contents, shortname(path))  # placed after parseUsfm so that its error messages come after the long parsing time pause
