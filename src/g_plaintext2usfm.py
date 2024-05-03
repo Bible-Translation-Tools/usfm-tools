@@ -29,7 +29,7 @@ class Plaintext2Usfm(g_step.Step):
         if not values['filename']:
             count = g_util.count_files(values['source_dir'], ".*txt$")
         self.mainapp.execute_script("plaintext2usfm", count)
-        self.frame.clear_status()
+        self.frame.clear_messages()
     def onNext(self):
         copyparms = {'source_dir': self.values['target_dir']}
         self.mainapp.step_next(copyparms)
@@ -99,11 +99,19 @@ class Plaintext2Usfm_Frame(g_step.Step_Frame):
         self.controller.showbutton(5, ">>>", tip="Verify USFM", cmd=self._onSkip)
         self._set_button_status()
 
-    # Called by the controller when script execution begins.
-    def clear_status(self):
-        self.message_area['state'] = NORMAL   # enables insertions to message area
-        self.message_area.delete('1.0', 'end')
-
+        self.clear_show("This process converts Scripture text files to USFM. \
+To be converted, the text files must meet these conditions:\n\
+  * Each file contains a single book of the Bible.\n\
+  * No extraneous text in file.\n\
+  * File names must be like XXX.txt or NN-XXX.txt, where XXX=book id and NN is the book number.\n\
+  * UTF-8 encoding is required.\n\
+  * The first line of each file contains the book title.\n\
+  * It is okay if the book title is preceded by \mt or \h.\n\
+  * Chapter and verse numbers in Arabic numerals (0-9).\n\n\
+The process creates one USFM file per book, with \
+standardized names, like 41-MAT.usfm. \
+The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
+    
     # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
     def _save_values(self):
         self.values['filename'] = self.filename.get()
