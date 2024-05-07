@@ -63,7 +63,12 @@ class VerifyManifest_Frame(g_step.Step_Frame):
     def show_values(self, values):
         self.values = values
         self.source_dir.set(values.get('source_dir', fallback = ""))
-        self.expectAscii.set(values.get('expectascii', fallback = False))
+        if not values.get('expectascii'):
+            # This is a workaround for my bug in configmanager.py
+            # I should be able to remove it after everyone has used verifyManifest once.
+            self.expectAscii.set(False)
+        else:
+            self.expectAscii.set(values.get('expectascii', fallback = False))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", tip="Previous step", cmd=self._onBack)
