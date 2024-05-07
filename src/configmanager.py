@@ -47,7 +47,7 @@ class ToolsConfigManager:
             values = self.default_section(sectionname)
             self.write_section(sectionname, values)
         return self.config[sectionname]     # returning local variable values is wrong
-    
+
     def write_section(self, sectionname, sec):
         self.config[sectionname] = sec
         with io.open(self.configpath, "tw", encoding='utf-8', newline='\n') as file:
@@ -105,7 +105,7 @@ class ToolsConfigManager:
                        'version': "" }
             case 'VerifyManifest':
                 sec = {'source_dir': "",
-                       'expectascii': "" }
+                       'expectascii': False }
             case 'VerifyUSFM':
                 sec = {'source_dir': "",
                        'filename': "",
