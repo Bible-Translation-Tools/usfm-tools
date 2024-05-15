@@ -128,11 +128,11 @@ def fix_booktitles_x(str, compiled_expression):
         pos = title_line.start()
         title = title_line.group(2)
         title = title.rstrip(". ")
-        title = " ".join(title.split())  # eliminates consecutive spaces
+        title = " ".join(title.split())  # eliminates consecutive spaces and trailing white space
         if not title.istitle():     # not title case already
             title = title.title().replace("Iii", 'III')
             title = title.replace("Ii", 'II')
-        str = str[:pos] + title_line.group(1) + title + str[title_line.end():]
+        str = str[:pos] + title_line.group(1) + title + str[title_line.end()-1:]
         pos += 5
         title_line = compiled_expression.search(str, pos)
     return str
@@ -170,7 +170,7 @@ def fix_punctuation(str):
 # spacing_list is a list of compiled expressions where a space needs to be inserted
 spacing_list = [ re.compile(r'[\.,;:][A-Za-z]') ]
 
-# Adds spaces where needed. spacing_list contrals what happens.
+# Adds spaces where needed. spacing_list controls what happens.
 # spacing_list may need to be customized for every language.
 def add_spaces(str):
     for sub_re in spacing_list:
@@ -186,10 +186,9 @@ def add_spaces(str):
 def convert_wholefile(path):
     global aligned_usfm
 
-    input = io.open(path, "tr", encoding="utf-8-sig")
-    alltext = input.read()
+    with io.open(path, "tr", encoding="utf-8-sig") as input:
+        alltext = input.read()
     origtext = alltext
-    input.close()
     aligned_usfm = ("lemma=" in alltext)
     changed = False
 
@@ -208,9 +207,8 @@ def convert_wholefile(path):
         elif enable[3]:
             alltext = doublequotes.promoteQuotes(alltext)
     if alltext != origtext:
-        output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
-        output.write(alltext)
-        output.close()
+        with io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n') as output:
+            output.write(alltext)
         changed = True
     return changed
 
