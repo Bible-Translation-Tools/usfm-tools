@@ -8,7 +8,7 @@ import io
 import os
 import sys
 from pathlib import Path
-from docx import Document
+import docx
 
 config = None
 gui = None
@@ -123,7 +123,7 @@ def getBookId(filename):
             name3 = num_name.group(2).upper()
             if name3 in books:
                 bookId = name3
-            elif 0 < num2 < 68:
+            elif 3 < num2 < 68:
                 bookId = bookByNumber(f"{num2:02d}", fname[fname.find(num_name.group(2)):], bookIds)
     return bookId
 
@@ -150,9 +150,19 @@ def convertFile(path, bookId):
     sys.stdout.flush()
     if not bookId:
         reportError("Unable to identify this book from the file name.")
+    
+    # Begin the actual conversion
+    document = docx.Document(path)
+
+    # Write the output file
     txtpath = makeTxtPath(path, bookId)
     with io.open(txtpath, 'tw', encoding='utf-8', newline='\n') as output:
-        output.write(f"The text in this file was extracted from {path}.\n")
+        path = path.replace('\\', '/')  # avoid false usfm tags
+        output.write(f"\\rem The text in this file was extracted from {path}.\n\n")
+        str = '\n'.join([p.text.strip() for p in document.paragraphs]) 
+        str = re.sub(r' +', r' ', str)
+        output.write(str)
+        output.write('\n')
 
 def convertFolder(folder):
     for entry in os.listdir(folder):
