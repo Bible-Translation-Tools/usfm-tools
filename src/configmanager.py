@@ -28,7 +28,8 @@ class ToolsConfigManager:
 
     def _make_default_config(self):
         for section in ['MarkParagraphs','Plaintext2Usfm','RenameParatextFiles','RevertChanges',
-                        'Txt2USFM','Usfm2Usx','UsfmCleanup','VerifyManifest','VerifyUSFM']:
+                        'Txt2USFM','Usfm2Usx','UsfmCleanup','VerifyManifest','VerifyUSFM',
+                        'Word2text']:
             self.config.add_section(section)
             self.config[section] = self.default_section(section)
         with io.open(self.configpath, "tw", encoding='utf-8', newline='\n') as file:
@@ -70,8 +71,8 @@ class ToolsConfigManager:
                 sec = {}
             case 'RevertChanges':
                 sec = {'source_dir': "",
-                    'backupExt': "",
-                    'correctExt': ".usfm" }
+                       'backupExt': "",
+                       'correctExt': ".usfm" }
             case 'SelectProcess':
                 sec = {'selection': 'Txt2USFM'}
             case 'Txt2USFM':
@@ -107,8 +108,9 @@ class ToolsConfigManager:
                 sec = {'source_dir': "",
                        'expectascii': False }
             case 'VerifyUSFM':
-                sec = {'source_dir': "",
+                sec = {'source_dir': "",    # location of usfm files to be checked
                        'filename': "",
+                       'compare_dir': "",   # the source language folder, for comparisons
                        'language_code': "",
                        'standard_chapter_title': "",
                        'usfm_version': "2.0",
@@ -123,6 +125,10 @@ class ToolsConfigManager:
                        'suppress9': False,
                        'suppress10': False,
                        'suppress11': False }
+            case 'Word2text':
+                sec = {'source_dir': "",
+                       'filename': "",
+                       'target_dir': ""}
             case _:
                 sec = {}
         return sec
