@@ -907,7 +907,7 @@ def takeText(t, footnote=False):
             # reportError(u"Missing verse marker or extra text around " + state.reference + u": <" + t[0:10] + u'>.')
             reportError("Missing verse marker or extra text near " + state.reference, 54)
         if lastToken:
-            reportError("  preceding Token was \\" + lastToken.getValue(), 0)
+            reportError("  preceding Token was \\" + lastToken.type, 0)
         else:
             reportError("  no preceding Token", 0)
     if state.textOkay() and state.verse == 0:
@@ -1022,7 +1022,7 @@ def take(token):
         if not suppress[5]:
             verifyVerseCount()  # for the preceding chapter
         if not state.ID:
-            reportError("Missing book ID: " + state.reference, 62.1)
+            reportError("Missing book ID: " + state.reference + " Cannot check this file.", 62.1)
             sys.exit(-1)
         if token.value == "1":
             verifyBookTitle()
