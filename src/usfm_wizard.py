@@ -22,6 +22,7 @@ import g_MarkParagraphs
 import g_plaintext2usfm
 import g_verifyManifest
 import g_usfm2usx
+import g_word2text
 from txt2USFM import main
 from verifyUSFM import main
 from inventory_chapter_labels import main
@@ -31,8 +32,9 @@ from plaintext2usfm import main
 from revertChanges import main
 from usfm2usx import main
 from verifyManifest import main
+from word2text import main
 
-app_version = "1.1.3"
+app_version = "1.2"
 
 class UsfmWizard(tkinter.Tk):
     def __init__(self):
@@ -61,7 +63,7 @@ class UsfmWizard(tkinter.Tk):
     def _build_steps(self, mainframe):
         self.steps = {}
         for S in (g_selectProcess, g_txt2USFM, g_verifyUSFM, g_UsfmCleanup, g_MarkParagraphs,
-                  g_verifyManifest, g_plaintext2usfm, g_usfm2usx):
+                  g_verifyManifest, g_plaintext2usfm, g_usfm2usx, g_word2text):
             stepclass = getattr(sys.modules[S.__name__], S.stepname)
             step = stepclass(mainframe, mainapp=self)   # create an instance of the class
             self.steps[step.name()] = step
@@ -114,10 +116,15 @@ class UsfmWizard(tkinter.Tk):
         match self.current_step.name():
             case 'MarkParagraphs':
                 gotostep = 'UsfmCleanup'
-            case 'Plaintext2Usfm':
+            case 'Word2text':
                 gotostep = 'SelectProcess'
             case 'Txt2USFM':
                 gotostep = 'SelectProcess'
+            case 'Plaintext2Usfm':
+                if self.process == 'Plaintext2Usfm':
+                    gotostep = 'SelectProcess'
+                else:
+                    gotostep = 'Word2text'
             case 'Usfm2Usx':
                 gotostep = 'VerifyUSFM'
             case 'UsfmCleanup':
@@ -125,10 +132,10 @@ class UsfmWizard(tkinter.Tk):
             case 'VerifyManifest':
                 gotostep = 'MarkParagraphs'
             case 'VerifyUSFM':
-                if self.process in {'Usfm2Usx', 'VerifyUSFM'}:
-                    gotostep = 'SelectProcess'
-                else:
+                if self.process in {'Txt2USFM', 'Plaintext2Usfm'}:
                     gotostep = self.process
+                else:
+                    gotostep = 'Plaintext2Usfm'
         return gotostep
     
     # Activates the previous step
@@ -148,6 +155,8 @@ class UsfmWizard(tkinter.Tk):
                     gotostep = self.process
             case 'Txt2USFM':
                 gotostep = 'VerifyUSFM'
+            case 'Word2text':
+                gotostep = 'Plaintext2Usfm'
             case 'Plaintext2Usfm':
                 gotostep = 'VerifyUSFM'
             case 'UsfmCleanup':
@@ -273,7 +282,7 @@ def create_menu(wizard):
     menu_file.add_command(label='Exit', command=exit_wizard)
     menu_help = Menu(menubar)
     menubar.add_cascade(menu=menu_help, label='Help')
-    menu_help.add_command(label='Documentation', command=read_the_docs)
+    menu_help.add_command(label='Procedures', command=read_the_docs)
     menu_help.add_command(label='About', command=about)
     menu_help.add_command(label='Version history', command=version_history)
     wizard['menu'] = menubar
