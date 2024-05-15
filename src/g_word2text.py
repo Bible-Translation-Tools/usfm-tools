@@ -37,7 +37,8 @@ class Word2text(g_step.Step):
     # Called by the main app.
     def onScriptEnd(self, status: str):
         if not status:
-            status = f"The conversion is done.\nNow prepare the text files for the next step."
+            status = f"The conversion is done.\n\
+You will need to edit the text file(s) to conform to the requirements for the next step."
         self.frame.show_progress(status)
         self.frame.onScriptEnd()
         self.enablebutton(2, True)
@@ -98,6 +99,12 @@ class Word2text_Frame(g_step.Step_Frame):
         self.controller.showbutton(4, "Target folder", cmd=self._onOpenTargetDir)
         self.controller.showbutton(5, ">>>", tip="Convert the text files to usfm.", cmd=self._onSkip)
         self._set_button_status()
+
+        self.clear_show(
+"This is the first step, which copies the text from Word .docx files to ordinary, UTF-8 text files. \
+It assumes that each Word document contains a single book of the Bible. \
+It attempts to identify the Bible book, based on the .docx file name.\n\n\
+Word headers, footers, footnotes, styles, etc. are not supported at this time.")
 
     # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
     def _save_values(self):

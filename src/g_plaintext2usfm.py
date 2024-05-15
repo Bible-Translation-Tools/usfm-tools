@@ -102,11 +102,12 @@ class Plaintext2Usfm_Frame(g_step.Step_Frame):
         self.clear_show("This process converts Scripture text files to USFM. \
 To be converted, the text files must meet these conditions:\n\
   * Each file contains a single book of the Bible.\n\
-  * No extraneous text in file.\n\
+  * No extraneous text (e.g. from headers or footers).\n\
+  * Any sections must be premarked with \\s.\n\
   * File names must be like XXX.txt or NN-XXX.txt, where XXX=book id and NN is the book number.\n\
   * UTF-8 encoding is required.\n\
-  * The first line of each file contains the book title.\n\
-  * It is okay if the book title is preceded by \mt or \h.\n\
+  * The first line of each file contains the book title, no longer than 40 characters.\n\
+  * Alternatively, the book title is marked by \mt or \h, anywhere prior to chapter 1.\n\
   * Chapter and verse numbers in Arabic numerals (0-9).\n\n\
 The process creates one USFM file per book, with \
 standardized names, like 41-MAT.usfm. \
