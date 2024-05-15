@@ -1,10 +1,23 @@
 # UsfmWizard Version history
 
+## 1.2.0
+* Add Word-to-text conversion for simple cases.
+* Detect untranslated verses.
+* Fix verifyUsfm overreporting of back to back markers.
+* Fix usfm_cleanup bug placing all title fields on a single line.
+* Other bug fixes.
+* Omit numbers from word list.
+* Eliminate extra characters from book titles.
+* List source text resources in contributors.txt.
+* Reduce warnings from verifyManifest.
+* Redesigned plaintext2usfm to handle broader variety of input texts.
+
 ## 1.1.3
 * Add Plaintext2Usfm process.
 * Add chapter label finder function.
 * Add option to fix chapter labels.
-* Minor GUI improvements
+* Minor GUI improvements.
+* Source code moved to https://github.com/Bible-Translation-Tools/usfm-tools.
 
 ## 1.1.2
 * Solve button display inconsistency.
