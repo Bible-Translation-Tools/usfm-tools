@@ -24,21 +24,22 @@ class usfmWriter:
             self._file = None
 
     # Specify a set of usfm tags that do not have to start on a new line
+    # See __init__() for the defaults.
     def setInlineTags(self, tags):
         self._inline_tags = tags
 
     # Writes specified string to the usfm file, inserting spaces where needed.
     # Technical debt: the beginning of the string should be checked for inline tags. Currently
     # this function places all leading usfm markers on a new line.
-    def writeStr(self, str):
-        if str:
-            if not self._newlined and str[0] == '\\':
-                str = "\n" + str
-            elif not self._spaced and str[0] != '\n':
-                str = " " + str
-            self._file.write(str)
-            self._spaced = (str[-1] == ' ')
-            self._newlined = (str[-1] == '\n')
+    def writeStr(self, s):
+        if s:
+            if not self._newlined and s[0] == '\\':
+                s = "\n" + s
+            elif not self._spaced and s[0] not in '\n ':
+                s = " " + s
+            self._file.write(s)
+            self._spaced = (s[-1] == ' ')
+            self._newlined = (s[-1] == '\n')
 
     # Writes a usfm tagged value, insert newline if needed
     def writeUsfm(self, key, value=None):
@@ -52,8 +53,9 @@ class usfmWriter:
         if value:
             self.writeStr(value)
 
-    # Inserts a line break into the file
-    def newline(self):
-        self._file.write("\n")
+    # Inserts the specified number of line breaks (defualt 1) into the file.
+    def newline(self, n=1):
+        for i in range(n):
+            self._file.write("\n")
         self._spaced = True
-        self.newlined = True
+        self._newlined = True
