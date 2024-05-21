@@ -74,10 +74,10 @@ def getLanguageId():
     parts = os.path.basename(manifestDir).split('_', 1)
     return parts[0]
 
-def expectAscii(language_id):
+def expectAscii(language_id=None):
     expectAsciiTitles = config.getboolean('expectascii')
-    if expectAsciiTitles == None:
-        expectAsciiTitles = (language_id in {'ceb','dan','en','es','es-419','fr','gl','ha','hr','id','ilo','kvb','lko','ngp','plt','pmy','pt-br','ruc','tl','tpi'})
+    # if expectAsciiTitles == None and language_id:
+    #     expectAsciiTitles = (language_id in {'ceb','dan','en','es','es-419','fr','gl','ha','hr','id','ilo','kvb','lko','ngp','plt','pmy','pt-br','ruc','tl','tpi'})
     return expectAsciiTitles
 
 # Writes error message to stderr.
@@ -127,9 +127,28 @@ def countFiles(ext):
             n += 1
     return n
 
+title_re = re.compile(r'\\(h|mt|mt1|toc1|toc2) (.+)')
+
+# Returns a set of titles found in the first N lines of the specified usfm file.
+def getBookTitles(path):
+    N = 8
+    titles = set()
+    with io.open(path, "tr", encoding='utf-8-sig') as file:
+        for i in range(N):
+            try:
+                line = next(file).strip()
+                if titleline := title_re.match(line):
+                    titles.add(titleline.group(2))
+            except StopIteration:
+                break
+    return titles
+
 # Returns True if the specified string is a recognized Bible type of project type
 def isBibleType(id):
-    return (isAlignedBibleType(id) or id in {'ulb','udb','reg', 'ayt', 'blv','cuv','nav','det','juds','opcb'})
+    isbible = (isAlignedBibleType(id) or id in {'ulb','udb','reg', 'ayt', 'blv','cuv','nav','det','juds','opcb'})
+    if not isbible:
+        isbible = config.getboolean('bibletype')
+    return isbible
 
 # Returns True if the specified string is a recognized Aligned Bible type of project type
 # Preliminary implementation - list needs refinement (6/21/21)
@@ -169,6 +188,49 @@ def verifyAcademyProject(project):
             reportError("Invalid project:sort: " + str(project['sort']))
     else:
         reportError("Invalid project:identifier: " + section)
+
+# Compares the titles of the two books. They should correspond.
+def verifyBookTitlePairs(projects, id1, id2):
+    proj1 = next((proj for proj in projects if proj['identifier'] == id1), None)
+    proj2 = next((proj for proj in projects if proj['identifier'] == id2), None)
+    if proj1 and proj2:
+        title1 = proj1['title']
+        title2 = proj2['title']
+        if title1[0].isdecimal() != title2[0].isdecimal() or title1[-1].isdecimal() != title2[-1].isdecimal():
+            reportError(f"Inconsistent book titles ({title1} for {id1.upper()} vs. {title2} for {id2.upper()})")
+        elif re.search(r'[\d]', title1) or re.search(r'[\d]', title2):
+            name1 = ' '.join(word for word in title1.split() if not word.isdecimal())
+            name2 = ' '.join(word for word in title2.split() if not word.isdecimal())
+            if name1 != name2:
+                reportError(f"Inconsistent book names ({name1} for {id1.upper()} vs. {name2} for {id2.upper()})")
+
+# Verifies that the title does not contain unwanted digits.
+# Verifies the Bible book title against the title as given in the usfm file.
+def verifyBookTitle(booktitle, bookId, relpath):
+    if booktitle.isascii() and not expectAscii():
+        # reportError("ASCII project:title book title: " + str(project['title']))
+        reportError("ASCII project:title: " + booktitle)
+    if booktitle.endswith('.'):
+        reportError(f"project:title has punctuation: {booktitle}")
+
+    if digits := re.findall(r'[\d]', booktitle):
+        unwanted = set(digits)
+        if bookId in {'1sa', '1ki', '1ch', '1co', '1th', '1ti', '1pe', '1jn'}:
+            unwanted -= {'1','२','১','၁'}
+        elif bookId in {'2sa', '2ki', '2ch', '2co', '2th', '2ti', '2pe', '2jn'}:
+            unwanted -= {'2','२','২','၂'}
+        elif bookId in {'3jn'}:
+            unwanted -= {'3','३','৩','၃'}
+        if unwanted:
+            reportError(f"Unwanted digits {unwanted} in project:title: {booktitle}")
+        elif len(digits) > 1:
+            reportError(f"Extra digits in project:title: {booktitle}")
+
+    path = os.path.join(manifestDir, relpath)
+    if os.path.exists(path):
+        titles = getBookTitles(path)
+        if booktitle not in titles:
+            reportError(f"project:title {booktitle} does not match any of the titles in {relpath}.")
 
 # Verifies that all chapters exist for the given folder.
 def verifyBook(book, bookpath):
@@ -464,8 +526,7 @@ def verifyProject(project, language_code):
         if project['title'] not in {'translationWords','Translation Words'}:
             reportError("Invalid project:title: " + project['title'] + ". Should be translationWords or Translation Words")
     elif isBibleType(projtype):
-        if project['title'].isascii() and not expectAscii(language_code):
-            reportError("ASCII project:title book title: " + str(project['title']))
+        verifyBookTitle(project['title'].strip(), project['identifier'], project['path'])
         bookinfo = usfm_verses.verseCounts[project['identifier'].upper()]
         if int(project['sort']) != bookinfo['sort']:
             reportError("Incorrect project:sort: " + str(project['sort']))
@@ -516,8 +577,8 @@ def verifyProjects(projects, language_code):
         nprojects = len(projects)
         if nprojects < 1:
             reportError('Empty projects list')
-        if isBibleType(projtype) and nprojects != countFiles(".usfm"):
-            reportError("Number of projects listed " + str(nprojects) + " does not match number of usfm files: " + str(countFiles(".usfm")))
+        if isBibleType(projtype):
+            verifyProjectsBible(projects, language_code)
         elif projtype in {'tn-tsv'} and nprojects != countFiles(".tsv"):
             reportError("Number of projects listed " + str(nprojects) + " does not match number of tsv files: " + str(countFiles(".tsv")))
         elif projtype in {'tn', 'tq'} and nprojects != countBookDirs():
@@ -533,6 +594,20 @@ def verifyProjects(projects, language_code):
         for p in projects:
             verifyProject(p, language_code)
 
+def verifyProjectsBible(projects, language_code):
+    if len(projects) != countFiles(".usfm"):
+        reportError("Number of projects listed " + str(len(projects)) + " does not match number of usfm files: " + str(countFiles(".usfm")))
+    verifyBookTitlePairs(projects, '1sa', '2sa')
+    verifyBookTitlePairs(projects, '1ki', '2ki')
+    verifyBookTitlePairs(projects, '1ch', '2ch')
+    verifyBookTitlePairs(projects, '1co', '2co')
+    verifyBookTitlePairs(projects, '1th', '2th')
+    verifyBookTitlePairs(projects, '1ti', '2ti')
+    verifyBookTitlePairs(projects, '1pe', '2pe')
+    verifyBookTitlePairs(projects, '1jn', '2jn')
+    verifyBookTitlePairs(projects, '1jn', '3jn')
+    verifyBookTitlePairs(projects, '2jn', '3jn')
+    
 # Verify one project of an OBS media.yaml file
 def verifyProjectOBS(project):
     if project['identifier'] in {'obs','obs-tn','obs-tq'}:
@@ -560,19 +635,19 @@ def verifyReadme(dirpath):
         readmepath = os.path.join(dirpath, "README")
     if not os.path.isfile(readmepath):
         reportError("No README file is found")
-    else:
-        pathlibpath = pathlib.Path(readmepath)
-        modtime = datetime.fromtimestamp(pathlibpath.stat().st_mtime)
-        gitpath = os.path.join(dirpath, ".git/config")
-        if os.path.isfile(gitpath):
-            pathlibpath = pathlib.Path(gitpath)
-            delta = modtime - datetime.fromtimestamp(pathlibpath.stat().st_mtime)
-        else:
-            delta = timedelta(hours=2)
-        # if modtime.date() != date.today():
-        #     reportWarning("README file was not updated today")
+    # else:
+        # pathlibpath = pathlib.Path(readmepath)
+        # modtime = datetime.fromtimestamp(pathlibpath.stat().st_mtime)
+        # gitpath = os.path.join(dirpath, ".git/config")
+        # if os.path.isfile(gitpath):
+        #     pathlibpath = pathlib.Path(gitpath)
+        #     delta = modtime - datetime.fromtimestamp(pathlibpath.stat().st_mtime)
         # else:
-        reportStatus("Remember to update README file.")
+        #     delta = timedelta(hours=2)
+        # # if modtime.date() != date.today():
+        # #     reportWarning("README file was not updated today")
+        # # else:
+        # reportStatus("Remember to update README file.")
 
 # NOT DONE - need to support UHG-type entries
 def verifyRelation(rel):

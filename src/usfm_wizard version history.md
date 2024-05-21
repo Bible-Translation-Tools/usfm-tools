@@ -1,6 +1,10 @@
 # UsfmWizard Version history
 
-## 1.2.0
+## 1.2.1
+* verifyManifest - detect book title inconsistencies.
+* verifyManifest - fewer low priority warnings.
+
+## 1.2.0  5/15/24
 * Add Word-to-text conversion for simple cases.
 * Detect untranslated verses.
 * Fix verifyUsfm overreporting of back to back markers.

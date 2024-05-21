@@ -88,6 +88,7 @@ class VerifyManifest_Frame(g_step.Step_Frame):
     def _save_values(self):
         self.values['source_dir'] = self.source_dir.get()
         self.values['expectascii'] = str(self.expectAscii.get())
+        self.values['bibletype'] = "True"
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
 

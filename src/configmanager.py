@@ -106,7 +106,8 @@ class ToolsConfigManager:
                        'version': "" }
             case 'VerifyManifest':
                 sec = {'source_dir': "",
-                       'expectascii': False }
+                       'expectascii': False,
+                        'bibletype': True }
             case 'VerifyUSFM':
                 sec = {'source_dir': "",    # location of usfm files to be checked
                        'filename': "",
