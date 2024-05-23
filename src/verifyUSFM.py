@@ -429,20 +429,53 @@ def reportIssues():
 def dumpWords():
     path = os.path.join(config['source_dir'], "wordlist.txt")
     with io.open(path, "tw", encoding='utf-8', newline = '\n') as file:
-        file.write("For better viewing, used a fixed-width font if available.\n")
-        file.write("---------------------------------------------------------\n")
+        file.write("For better viewing, use a fixed-width font.\n")
+        file.write("-------------------------------------------\n")
 
         for entry in sorted(wordlist.items(), key=wordkey):
             line = f"{entry[0]:20}  {entry[1][0]}"
-            if entry[1][0] < 3:
-                line = line + ",   " + entry[1][1]
+            if entry[1][0] == 1:
+                line = line + "    " + entry[1][1]
             file.write(line + '\n')
+
+trans = str.maketrans('', '', "'’\"-")
+
+# Returns True if s is a mixed case word.
+def isMixed(word):
+    global trans
+    mixed = False
+    if not (word.islower() or word.istitle() or word.isupper()):
+        w2 = word.translate(trans)
+        if w2 and not (w2.islower() or w2.istitle() or w2.isupper()):
+            mixed = True
+    return mixed
+
+# Scans the word list for anomalies.
+def scanWords():
+    mcwords = []
+    limit = 20
+    for entry in wordlist.items():
+        if len(mcwords) > limit:
+            break
+        if entry[1][0] == 1:
+            if isMixed(entry[0]):
+                reportError(f"Mixed case word in {entry[1][1]}: {entry[0]}", 0.1)
+        elif entry[1][0] < 5:
+            if isMixed(entry[0]):
+                mcwords.append(entry[0])
+    if 0 < len(mcwords) < limit:
+        reportError(f"{len(mcwords)} more mixed case words: {mcwords}", 0.2)
+    elif len(mcwords) >= limit:
+        reportError("Numerous mixed case words; reporting cancelled", 0.3)
 
 # Returns sort key for the specified item. 
 def wordkey(item):
-    word = item[0].lstrip("' .,:;!?-[]{}()<>\"“‘’”*/")
-    word2 = item[0].lstrip("'")
-    assert(word == word2)
+    word = item[0].lstrip("'")
+    # word2 = item[0].lstrip("' .,:;!?+-[]{}()<>\"“‘’”*/")
+    # try:
+    #     assert(word == word2)
+    # except AssertionError as e:
+    #     reportError(f"Internal error comparing {word} and {word2}", 0.4)
     return str.lower(word)
 
 # Returns the name of the Bible in the specified folder.
@@ -537,7 +570,7 @@ def verifyBookTitle():
         if title and title != en_name:
             title_ok = True
     if not title_ok:
-        reportError("No non-English book title for " + state.ID, 5)
+        reportError("No non-English book title for " + en_name, 5)
 
 # Reports inconsistent chapter titling
 def verifyChapterTitles():
@@ -651,7 +684,7 @@ def takeP(type):
     if not aligned_usfm and not suppress[3] and not state.sentenceEnded():
         if state.verse > 0:
             reportError(f"Punctuation missing at end of paragraph: {state.reference}", 26, suppress[11])
-        else:
+        elif state.reference != "ACT 22":
             reportError(f"Punctuation missing at end of paragraph before {state.reference}", 26.1, suppress[11])
     state.addParagraph() if type != 'nb' else state.addNB()
 
@@ -937,7 +970,8 @@ def takeText(t, footnote=False):
     addWords(t)
 
 allpunc = ".,:;!?-\[\]{}()<>'\"“‘’”`*/"
-quoteend_re = re.compile(r"[.,:;!?-\[\]{}()<>'\"“‘’”`*/]'$")
+quoteend_re = re.compile(r"[.,:;!?-\[\]{}()<>'\"“‘’”`*/]'$")    # punct ' EOL
+quotebegin_re = re.compile(r"'[.,:;!?-\[\]{}()<>'\"“‘’”`*/]")    # ' punct
 notnumberinfootnote_re = re.compile(r'[^\d:\-.,]')
 
 # Parses all the words out of the t string and adds them to the wordlist[].
@@ -946,6 +980,8 @@ def addWords(t):
         word = item.strip(".,:;!?+-[]{}()<>\"“‘’”*/")
         if quoteend_re.search(word):
             word = word.rstrip(allpunc)
+        if quotebegin_re.match(word):
+            word = word.lstrip(allpunc)
         if word:
             if not state.inFootnote() or notnumberinfootnote_re.search(word):
                 if not any(c.isnumeric() for c in word):
@@ -1221,6 +1257,8 @@ def main(app=None):
                 reportError(f"No such file: {path}")
         else:
             verifyDir(workdir)
+        scanWords()
+        dumpWords()
 
         global issuesFile
         if issuesFile:
@@ -1229,7 +1267,6 @@ def main(app=None):
             issuesFile = None
         else:
             reportStatus("No issues to report.")
-        dumpWords()
         reportStatus("\nDone.")
         sys.stdout.flush()
     if gui:
