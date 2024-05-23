@@ -168,7 +168,7 @@ def fix_punctuation(str):
     return str
 
 # spacing_list is a list of compiled expressions where a space needs to be inserted
-spacing_list = [ re.compile(r'[\.,;:][A-Za-z]') ]
+spacing_list = [ re.compile(r'[\.,;:”][A-Za-z]') ]
 
 # Adds spaces where needed. spacing_list controls what happens.
 # spacing_list may need to be customized for every language.
