@@ -290,7 +290,7 @@ def create_menu(wizard):
 def read_the_docs(*args):
     os.startfile(r'https://wycliffeassociatesinc-my.sharepoint.com/:w:/g/personal/larry_versaw_wycliffeassociates_org/EVOk8ijgv-hOkdNo2T--mmsBhlNzHiwDd2v3JQ44XN_Ciw?e=y6ww9j')
 def version_history(*args):
-    os.startfile(r'https://wycliffeassociatesinc-my.sharepoint.com/:t:/g/personal/larry_versaw_wycliffeassociates_org/ETt0OZay-m9Pj8OkJkGzd_UB0KxRq3Qi0Ee2YQjkIlftxg?e=Ti44XS')
+    os.startfile(r'https://wycliffeassociatesinc-my.sharepoint.com/:t:/g/personal/larry_versaw_wycliffeassociates_org/EfAjyDKzT85Dg27NcWhk-jABmk6a2K6jSlwIjc_ddfSWaA?e=sry9f0')
 def about(*args):
     configpath = wizard.config.config_path()
     messagebox.showinfo(title='About USFM Wizard', message=f"Version {app_version}",
