@@ -272,7 +272,7 @@ class State:
         self.needVerseText = False
         self.textOkayHere = True
 
-    # Simply appends the text to the
+    # Simply appends the text to the sourcetext for the current verse
     def addSourceText(self, t):
         if self.reference in self.sourcetext:
             state.sourcetext[state.reference] += " " + t
@@ -466,7 +466,7 @@ def scanWords():
     if 0 < len(mcwords) < limit:
         reportError(f"{len(mcwords)} more mixed case words: {mcwords}", 0.2)
     elif len(mcwords) >= limit:
-        reportError("Numerous mixed case words; reporting cancelled", 0.3)
+        reportError("Too many mixed case words; reporting cancelled", 0.3)
 
 # Returns sort key for the specified item. 
 def wordkey(item):
@@ -921,13 +921,13 @@ def reportNumbers(t, footnote):
                 reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.reference}", 60.1)
     if unsegmented := unsegmented_re.search(t):
         if len(unsegmented.group(0)) > 4:
-            reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61.5)
+            reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61)
     if fmt := numberformat_re.search(t):
-        reportError(f"Space in number {fmt.group(0)} at {state.reference}", 61.6)
+        reportError(f"Space in number {fmt.group(0)} at {state.reference}", 61.1)
     elif leadzero := leadingzero_re.search(t):
-        reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61)
+        reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61.2)
 
-period_re = re.compile(r'[\s]*[\.,;:!\?]', re.UNICODE)  # detects phrase-ending punctuation standing alone or starting a phrase
+period_re = re.compile(r'[\s]*[\.,;:!\?]')  # detects phrase-ending punctuation standing alone or starting a phrase
 
 # Performs checks on some text, at most a verse in length.
 def takeText(t, footnote=False):
@@ -944,7 +944,7 @@ def takeText(t, footnote=False):
         else:
             reportError("  no preceding Token", 0)
     if state.textOkay() and state.verse == 0:
-        reportError(f"Unmarked text before {state.reference + ':1'}", 76)
+        reportError(f"Unmarked text before {state.reference + ':1'}", 54.1)
     if "<" in t and not ">" in t:
         if "<< HEAD" in t:
             reportError("Unresolved translation conflict near " + state.reference, 55)
@@ -1157,6 +1157,16 @@ def verifyWholeFile(contents, path):
         elif nsingle > 0 and not suppress[7]:
             reportError(f"Straight quotes in {shortname(path)}: {nsingle} singles not counting {nembedded} word-medial.", 75)
 
+# Returns the fraction of words which are title case.
+# But returns 0 if the first word is not title case.
+def percentTitlecase(words):
+    percent = 0
+    n = 0
+    if words and words[0].istitle():
+        for word in words:
+            if word.istitle():
+                n += 1
+    return n / len(words)
 
 conflict_re = re.compile(r'<+ HEAD', re.UNICODE)   # conflict resolution tag
 
@@ -1165,11 +1175,9 @@ def reportOrphans(lines, path):
     lineno = 0
     for line in lines:
         lineno += 1
-        if not prevline and line and line[0] != '\\':
-            if not conflict_re.match(line):
-                reportError("Unmarked text at line " + str(lineno) + " in " + path, 76)
-            # else:
-                #  Will be reported later as an unresolved translation conflict
+        if line and line[0] != '\\' and not conflict_re.match(line):
+            if not prevline or line.istitle() or line.isupper() or percentTitlecase(line.split()) > 0.5:
+                reportError("Possible section title at line " + str(lineno) + " in " + path, 76)
         prevline = line
 
 wjwj_re = re.compile(r' \\wj +\\wj\*', flags=re.UNICODE)
