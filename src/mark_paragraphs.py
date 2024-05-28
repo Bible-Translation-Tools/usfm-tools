@@ -16,6 +16,7 @@ import shutil
 import sentences
 import usfm_verses
 import usfmWriter
+# import cProfile
 
 gui = None
 config = None
@@ -167,6 +168,8 @@ def takePQ(tag, value):
         state.usfm.writeUsfm(tag)
     if value:
         state.usfm.writeStr(value)
+    else:
+        state.usfm.newline()
 
 def takeS5():
     if not config.getboolean('removeS5markers', fallback=True):
@@ -501,6 +504,8 @@ def processFile(path):
     #if nParagraphs / nChapters < 2.5 and nPoetry / nChapters < 15:
     model_path = os.path.join(config['model_dir'], fname)
     if os.path.isfile(model_path):
+        # cmd = f"scanModelFile( r'{model_path}', '{fname}' )"
+        # cProfile.run(cmd)
         if scanModelFile(model_path, fname):
             backupUsfmFile(path)
             if not convertFile(path, fname):
