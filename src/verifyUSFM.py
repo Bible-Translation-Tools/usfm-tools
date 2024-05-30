@@ -454,17 +454,20 @@ def isMixed(word):
 def scanWords():
     mcwords = []
     limit = 20
+    nSingleMixed = 0
     for entry in wordlist.items():
         if len(mcwords) > limit:
             break
         if entry[1][0] == 1:
             if isMixed(entry[0]):
+                nSingleMixed += 1
                 reportError(f"Mixed case word in {entry[1][1]}: {entry[0]}", 0.1)
         elif entry[1][0] < 5:
             if isMixed(entry[0]):
                 mcwords.append(entry[0])
     if 0 < len(mcwords) < limit:
-        reportError(f"{len(mcwords)} more mixed case words: {mcwords}", 0.2)
+        start = "Other mixed" if nSingleMixed > 0 else "Mixed"
+        reportError(f"{start} case words: {mcwords}", 0.2)
     elif len(mcwords) >= limit:
         reportError("Too many mixed case words; reporting cancelled", 0.3)
 
@@ -477,21 +480,6 @@ def wordkey(item):
     # except AssertionError as e:
     #     reportError(f"Internal error comparing {word} and {word2}", 0.4)
     return str.lower(word)
-
-# Returns the name of the Bible in the specified folder.
-# def getBibleName(dir):
-#     name = ""
-#     path = os.path.join(dir, "manifest.yaml")
-#     if os.path.isfile(path):
-#         with io.open(path, "tr", encoding='utf-8-sig') as file:
-#             contents = yaml.safe_load(file)
-#         language = contents['dublin_core']['language']['title']
-#         title = contents['dublin_core']['title']
-#     if language in title:
-#         name = title
-#     else:
-#         name = f"{language} {title}"
-#     return name
 
 # Handles the next token in the source text.
 # Only cares about storing text, as of the date of this comment (Apr-2024)
@@ -780,6 +768,7 @@ def takeV(vstr):
 
 reference_re = re.compile(r'[\d]+[\s]*:[\s]*[\d]+', re.UNICODE)
 bracketed_re = re.compile(r'\[ *([^\]]+) *\]', re.UNICODE)
+parenNumber_re = re.compile(r'\([\d, ]{0,11}\)')
 
 # Looks for possible verse references and square brackets in the text, not preceded by a footnote marker.
 # This function is only called when parsing a piece of text preceded by a verse marker.
@@ -789,7 +778,10 @@ def reportFootnotes(text):
         if ref := reference_re.search(text):
             reportFootnote(ref.group(0))
         elif ('(' in text or '[' in text or ')' in text) and (isOptional(state.reference) or state.reference in footnoted_verses.footnotedVerses):
-            reportFootnote('(')
+            # Don't suspect numbers in parens as being a footnote
+            matches = parenNumber_re.findall(text)
+            if text.count('(') > len(matches):     # not every paren includes a simple number
+                reportFootnote('(')
         elif "[" in text:
             fn = bracketed_re.search(text)
             if not fn or ' ' in fn.group(1):    # orphan [, or more than one word between brackets
@@ -888,7 +880,7 @@ numbersuffix_re = re.compile(r'[\d]+[^\s,;:.\-?!"\d\)\]]', re.UNICODE)
 unsegmented_re = re.compile(r'[\d][\d][\d][\d]+')
 numberformat_re = re.compile(r'[\d]+[.,]?\s[.,]?[\d]+')    # space between digits
 leadingzero_re = re.compile(r'[\s]0[0-9,]*', re.UNICODE)
-number_re = re.compile(r'[^\d](\d+)[^\d,]')       # possible verse number in text
+number_re = re.compile(r'[^\d(](\d+)[^\d,]')       # possible verse number in text
 chapverse_re = re.compile(r'(\d+)([:\-])(\d+)')
 
 def reportNumbers(t, footnote):
@@ -1237,7 +1229,9 @@ def main(app=None):
     global config
     global suppress
     global gui
+    global wordlist
 
+    wordlist = dict()
     gui = app
     config = configmanager.ToolsConfigManager().get_section('VerifyUSFM')   # configmanager version
     if config:
