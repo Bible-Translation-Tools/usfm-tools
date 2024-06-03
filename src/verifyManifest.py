@@ -499,10 +499,16 @@ def verifyOtherFiles():
 def verifyProject(project, language_code):
     verifyKeys("projects", project, ['title', 'versification', 'identifier', 'sort', 'path', 'categories'])
 
-    global manifestDir
-    fullpath = os.path.join(manifestDir, project['path'])
-    if len(project['path']) < 5 or not os.path.exists(fullpath):
-        reportError("Invalid path: " + project['path'])
+    projpath = project['path']
+    (root,ext) = os.path.splitext(projpath)
+    if ext.lower() == ".usfm" and (ext.isupper() or not root.isupper()):
+        reportError(f"Incorrect case in project:path: {projpath}. Use {projpath.upper().replace('USFM', 'usfm')}")
+    elif len(projpath) < 5 or not os.path.exists(os.path.join(manifestDir, projpath)):
+        reportError("Invalid path: " + projpath)
+    else:
+        filenames = os.listdir(manifestDir)     # this is necessary to get case sensitive file names in Windows
+        if not os.path.basename(projpath) in filenames:
+            reportError(f"Case mismatch in file name. Use {os.path.basename(projpath)}, as in manifest file.")
     if not isinstance(project['sort'], numbers.Integral):
         reportError("project:sort is the wrong type: " + str(project['sort']))
     if projtype == 'ta':
