@@ -438,7 +438,7 @@ def dumpWords():
                 line = line + "    " + entry[1][1]
             file.write(line + '\n')
 
-trans = str.maketrans('', '', "'’\"-")
+trans = str.maketrans('', '', "'’\"-_()")
 
 # Returns True if s is a mixed case word.
 def isMixed(word):
