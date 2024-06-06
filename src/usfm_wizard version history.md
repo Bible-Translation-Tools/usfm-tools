@@ -1,9 +1,14 @@
 # UsfmWizard Version history
 
+## 1.2.3
+* Bug fixes.
+* verifyUsfm - fewer false positives of possible issues.
+* verifyManifest - case sensitive file name checks.
+
 ## 1.2.2
-* verifyUsfm - omit punctuation warning before Acts 22
-* verifyUsfm - report mixed case words
-* verifyUsfm - report likely section titles
+* verifyUsfm - omit punctuation warning before Acts 22.
+* verifyUsfm - report mixed case words.
+* verifyUsfm - report likely section titles.
 
 ## 1.2.1
 * verifyManifest - detect book title inconsistencies.
