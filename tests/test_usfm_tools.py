@@ -4,7 +4,7 @@
 import os
 import sys
 tests_path = os.path.dirname(os.path.realpath(__file__))
-src_path = os.path.join(os.path.dirname(tests_path, "src"))
+src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 import pytest
 
