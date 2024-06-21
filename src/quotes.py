@@ -19,22 +19,24 @@ subs = [
 ]
 
 import re
-quote0_re = re.compile(r'\s([\'"]+)[\w]+([\'"]+)\s')     # a single word in quotes
-quote1_re = re.compile(r'[ \(]([\'"]+)\w')     # SPACE|PAREN quotes word => open quotes
-quote2_re = re.compile(r': ([\'"])+')     # colon SPACE quotes => open quotes
+quote0_re = re.compile(r'[^\w]([\'"]+)[\w]+([\'"]+)[^\w]')   # a single word in quotes
+quote1_re = re.compile(r'[ \(\[]([\'"]+)\w')     # SPACE|PAREN quotes word => open quotes
+quote2_re = re.compile(r': +([\'"])+[^\.!?)]')     # colon SPACE quotes => open quotes
 quote3_re = re.compile(r'[,;]([\'"]+)[ \)]')     # comma/semicolon quotes SPACE|PAREN => close quotes
-quote4_re = re.compile(r'[\.,!\?]([\'"]+)')     # period/bang/question quotes => close quotes
+quote4_re = re.compile(r'[\.!\?]([\'"]+)')     # period/bang/question quotes => close quotes
 quote5_re = re.compile(r'\w([\'"]+) *\n')        # word quotes EOL
-quote6_re = re.compile(r'([\'"]+\?)')         # quotes question => close quotes question
+quote6_re = re.compile(r'\w[\w ]([\'"]+\?)')       # quotes question => close quotes question
+quote7_re = re.compile(r': +([\'"])+\n')     # colon SPACE quotes EOL
+quote8_re = re.compile(r'\n([\'"]+)\w')   # quotes word at start of line
 opentrans = str.maketrans('\'"', "‘“")
 closetrans = str.maketrans('\'"', '’”')
 
 # Changes straight quotes to curly quotes where context suggests with very high confidence.
+# Called by usfm_cleanup, passing in the entire usfm file as a string.
 def promoteQuotes(str):
     pos = 0
     snippet = quote0_re.search(str, pos)
     while snippet:
-        # if len(snippet.group(1)) == 1 and len(snippet.group(1)) == 1:       # TEMPORARY!!!!!!
         if snippet.group(1) == snippet.group(2) and len(snippet.group(1)) == 1:
             (i,j) = (snippet.start()+1, snippet.end()-1)
             str = str[0:i] + snippet.group(1).translate(opentrans) + str[i+1:j-1] + snippet.group(2).translate(closetrans) + str[j:]
@@ -49,7 +51,7 @@ def promoteQuotes(str):
 
     snippet = quote2_re.search(str)
     while snippet:
-        (i,j) = (snippet.start()+2, snippet.end())
+        (i,j) = (snippet.start()+2, snippet.end()-1)
         str = str[0:i] + snippet.group(1).translate(opentrans) + str[j:]
         snippet = quote2_re.search(str)
 
@@ -77,6 +79,16 @@ def promoteQuotes(str):
         str = str[0:i] + snippet.group(0).translate(closetrans) + str[j:]
         snippet = quote6_re.search(str)
 
+    snippet = quote7_re.search(str)
+    while snippet:
+        (i,j) = (snippet.start()+2, snippet.end())
+        str = str[0:i] + snippet.group(1).translate(opentrans) + str[j:]
+        snippet = quote7_re.search(str)
+
     for pair in subs:
         str = str.replace(pair[0], pair[1])
     return str
+
+if __name__ == "__main__":
+    teststr = 'end of phrase,\''
+    print(f"promoteQuotes({teststr}) => ({promoteQuotes(teststr)})")
