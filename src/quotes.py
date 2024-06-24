@@ -27,7 +27,7 @@ quote4_re = re.compile(r'[\.!\?]([\'"]+)')     # period/bang/question quotes => 
 quote5_re = re.compile(r'\w([\'"]+) *\n')        # word quotes EOL
 quote6_re = re.compile(r'\w[\w ]([\'"]+\?)')       # quotes question => close quotes question
 quote7_re = re.compile(r': +([\'"])+\n')     # colon SPACE quotes EOL
-quote8_re = re.compile(r'\n([\'"]+)\w')   # quotes word at start of line
+quote8_re = re.compile(r'\n *([\'"]+)\w')   # quotes word at start of line
 opentrans = str.maketrans('\'"', "‘“")
 closetrans = str.maketrans('\'"', '’”')
 
@@ -85,10 +85,16 @@ def promoteQuotes(str):
         str = str[0:i] + snippet.group(1).translate(opentrans) + str[j:]
         snippet = quote7_re.search(str)
 
+    snippet = quote8_re.search(str)
+    while snippet:
+        (i,j) = (snippet.start()+1, snippet.end()-1)
+        str = str[0:i] + snippet.group(1).translate(opentrans) + str[j:]
+        snippet = quote8_re.search(str)
+
     for pair in subs:
         str = str.replace(pair[0], pair[1])
     return str
 
-if __name__ == "__main__":
-    teststr = 'end of phrase,\''
-    print(f"promoteQuotes({teststr}) => ({promoteQuotes(teststr)})")
+# if __name__ == "__main__":
+#     teststr = '\n"The '
+#     print(f"promoteQuotes({teststr}) => ({promoteQuotes(teststr)})")

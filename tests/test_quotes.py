@@ -31,15 +31,20 @@ import pytest
         ("apple,'\n", "apple,'\n"),
         ("apple,' ", "apple,’ "),
         (':  "boat', ':  “boat'),
+        ('end of phrase,\'next phrase', 'end of phrase,\'next phrase'),
+        ('end of phrase, \'next phrase', 'end of phrase, ‘next phrase'),
+        ('end of phrase,\' ', 'end of phrase,’ '),
         ('Jackson."', 'Jackson.”'),     # period, quotes
         ('" Jackson."', '" Jackson.”'),
         ('!"', '!”'),
         ('questions ?"next', 'questions ?”next'),
-        ('end of phrase,\'next phrase', 'end of phrase,\'next phrase'),
-        ('end of phrase, \'next phrase', 'end of phrase, ‘next phrase'),
-        ('end of phrase eol,\'\n', 'end of phrase eol,\'\n'),
-        ('end of phrase,\' ', 'end of phrase,’ '),
-        ('\n"start of line', '\n"start of line'),
+        ('end of phrase eol,\'\n', 'end of phrase eol,\'\n'),   # word quote EOL
+        ('end of phrase eol, "\n', 'end of phrase eol, "\n'),
+        ('thus: "\n', 'thus: “\n'),   # colon SPACE quotes EOL
+        ('thus: " \n', 'thus: “ \n'),
+        ('\n"start of line', '\n“start of line'),   # quotes word at start of line
+        ('\n "start of line', '\n “start of line'),
+        ('\n" start of line', '\n" start of line'),
     ])
 def test_promoteQuotes(str, result):
     import quotes
