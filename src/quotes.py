@@ -20,13 +20,12 @@ subs = [
 
 import re
 quote0_re = re.compile(r'[^\w]([\'"]+)[\w]+([\'"]+)[^\w]')   # a single word in quotes
-quote1_re = re.compile(r'[ \(\[]([\'"]+)\w')     # SPACE|PAREN quotes word => open quotes
-quote2_re = re.compile(r': +([\'"])+[^\.!?)]')     # colon SPACE quotes => open quotes
-quote3_re = re.compile(r'[,;]([\'"]+)[ \)]')     # comma/semicolon quotes SPACE|PAREN => close quotes
-quote4_re = re.compile(r'[\.!\?]([\'"]+)')     # period/bang/question quotes => close quotes
-quote5_re = re.compile(r'\w([\'"]+) *\n')        # word quotes EOL
-quote6_re = re.compile(r'\w[\w ]([\'"]+\?)')       # quotes question => close quotes question
-quote7_re = re.compile(r': +([\'"])+\n')     # colon SPACE quotes EOL
+quote1_re = re.compile(r'[ \(\[][“‘]*([\'"]+)\w')     # SPACE|PAREN quotes word => open quotes
+quote2_re = re.compile(r': +[“‘]*([\'"]+)[^\.!?)]')     # colon SPACE quotes ... => open quotes
+quote3_re = re.compile(r'[,;][’”]*([\'"]+)[ \)]')     # comma/semicolon quotes SPACE|PAREN => close quotes
+quote4_re = re.compile(r'[\.!\?][’”]*([\'"]+)')     # period/bang/question quotes => close quotes
+quote5_re = re.compile(r'\w[’”]*([\'"]+) *\n')        # word quotes EOL
+quote6_re = re.compile(r'\w[\w ][’”]*([\'"]+\?)')       # quotes question => close quotes question
 quote8_re = re.compile(r'\n *([\'"]+)\w')   # quotes word at start of line
 opentrans = str.maketrans('\'"', "‘“")
 closetrans = str.maketrans('\'"', '’”')
@@ -38,63 +37,76 @@ def promoteQuotes(str):
     snippet = quote0_re.search(str, pos)
     while snippet:
         if snippet.group(1) == snippet.group(2) and len(snippet.group(1)) == 1:
-            (i,j) = (snippet.start()+1, snippet.end()-1)
+            (i,j) = (snippet.start(1), snippet.end(2))
             str = str[0:i] + snippet.group(1).translate(opentrans) + str[i+1:j-1] + snippet.group(2).translate(closetrans) + str[j:]
         pos = snippet.end()
         snippet = quote0_re.search(str, pos)
 
-    snippet = quote1_re.search(str)
-    while snippet:
-        (i,j) = (snippet.start()+1, snippet.end()-1)
-        str = str[0:i] + snippet.group(1).translate(opentrans) + str[j:]
-        snippet = quote1_re.search(str)
-
-    snippet = quote2_re.search(str)
-    while snippet:
-        (i,j) = (snippet.start()+2, snippet.end()-1)
-        str = str[0:i] + snippet.group(1).translate(opentrans) + str[j:]
-        snippet = quote2_re.search(str)
-
-    snippet = quote3_re.search(str)
-    while snippet:
-        (i,j) = (snippet.start()+1, snippet.end()-1)
-        str = str[0:i] + snippet.group(1).translate(closetrans) + str[j:]
-        snippet = quote3_re.search(str)
-
-    snippet = quote4_re.search(str)
-    while snippet:
-        (i,j) = (snippet.start()+1, snippet.end())
-        str = str[0:i] + snippet.group(1).translate(closetrans) + str[j:]
-        snippet = quote4_re.search(str)
-
-    snippet = quote5_re.search(str)
-    while snippet:
-        (i,j) = (snippet.start()+1, snippet.start() + 1 + len(snippet.group(1)))
-        str = str[0:i] + snippet.group(1).translate(closetrans) + str[j:]
-        snippet = quote5_re.search(str)
-
-    snippet = quote6_re.search(str)
-    while snippet:
-        (i,j) = (snippet.start(), snippet.end())
-        str = str[0:i] + snippet.group(0).translate(closetrans) + str[j:]
-        snippet = quote6_re.search(str)
-
-    snippet = quote7_re.search(str)
-    while snippet:
-        (i,j) = (snippet.start()+2, snippet.end())
-        str = str[0:i] + snippet.group(1).translate(opentrans) + str[j:]
-        snippet = quote7_re.search(str)
-
-    snippet = quote8_re.search(str)
-    while snippet:
-        (i,j) = (snippet.start()+1, snippet.end()-1)
-        str = str[0:i] + snippet.group(1).translate(opentrans) + str[j:]
-        snippet = quote8_re.search(str)
+    str = translate(str, quote1_re, opentrans)
+    str = translate(str, quote2_re, opentrans)
+    str = translate(str, quote3_re, closetrans)
+    str = translate(str, quote4_re, closetrans)
+    str = translate(str, quote5_re, closetrans)
+    str = translate(str, quote6_re, closetrans)
+    str = translate(str, quote8_re, opentrans)
 
     for pair in subs:
         str = str.replace(pair[0], pair[1])
     return str
 
+dblquote0_re = re.compile(r'[^\w]("+)[\w\']+("+)[^\w]')     # a single word in quotes
+dblquote1_re = re.compile(r'[ \(\[]("+)[\w‘\']')     # SPACE|PAREN " word => “
+dblquote2_re = re.compile(r': +[\'‘]*("+)[^\.!?)]')     # colon SPACE " ... => “
+dblquote3_re = re.compile(r'[,;][’\']*("+)[’\']*[ \)]')     # comma/semicolon " SPACE|PAREN => ”
+dblquote4_re = re.compile(r'[\.!\?][’\']*("+)')     # period/bang/question " => ”
+dblquote5_re = re.compile(r'\w[’\']*("+) *\n')        # word " EOL => ”
+dblquote6_re = re.compile(r'\w[\w ][’”]*("+\?)')       # " question => ” question
+dblquote8_re = re.compile(r'\n *("+)[\w\'‘]')   # " word at start of line => “
+dblopentrans = str.maketrans('"', '“')
+dblclosetrans = str.maketrans('"', '”')
+# dblsubs is a list of tuples to be used for string substitutions.
+dblsubs = [
+# Convert open quote marks
+	('"“', '““'),
+	('“"', '““'),
+# Convert closing quote marks
+	('"”', "””"),
+	('”"', "””"),
+]
+
+# Changes straight double quotes to curly quotes where context suggests with very high confidence.
+def promoteDoubleQuotes(str):
+    pos = 0
+    snippet = dblquote0_re.search(str, pos)
+    while snippet:
+        if snippet.group(1) == snippet.group(2) and len(snippet.group(1)) == 1:
+            (i,j) = (snippet.start(1), snippet.end(2))
+            str = str[0:i] + snippet.group(1).translate(dblopentrans) + str[i+1:j-1] + snippet.group(2).translate(dblclosetrans) + str[j:]
+        pos = snippet.end()
+        snippet = dblquote0_re.search(str, pos)
+
+    str = translate(str, dblquote1_re, dblopentrans)
+    str = translate(str, dblquote2_re, dblopentrans)
+    str = translate(str, dblquote3_re, dblclosetrans)
+    str = translate(str, dblquote4_re, dblclosetrans)
+    str = translate(str, dblquote5_re, dblclosetrans)
+    str = translate(str, dblquote6_re, dblclosetrans)
+    str = translate(str, dblquote8_re, dblopentrans)
+
+    for pair in dblsubs:
+        str = str.replace(pair[0], pair[1])
+    return str
+
+# Translates quotes in the string wherever the expression matches.
+# Uses trans as the translation table.
+def translate(str, rexp, trans):
+    snippet = rexp.search(str)
+    while snippet:
+        (i,j) = (snippet.start(1), snippet.end(1))
+        str = str[0:i] + snippet.group(1).translate(trans) + str[j:]
+        snippet = rexp.search(str)
+    return str
+
 # if __name__ == "__main__":
-#     teststr = '\n"The '
+#     teststr = 'They said: "boat '
 #     print(f"promoteQuotes({teststr}) => ({promoteQuotes(teststr)})")
