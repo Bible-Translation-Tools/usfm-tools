@@ -34,10 +34,11 @@ import pytest
         ('thus: " \n', 'thus: “ \n'),
         (';"")', ';””)'),     # comma/semicolon quotes SPACE|PAREN
         ("apple,'\n", "apple,'\n"),
-        ("apple,' ", "apple,’ "),
+        ("apple,' ", "apple,' "),
+        ("apple,']", "apple,’]"),
         ('end of phrase,\'next phrase', 'end of phrase,\'next phrase'),
         ('end of phrase, \'next phrase', 'end of phrase, ‘next phrase'),
-        ('end of phrase,\' ', 'end of phrase,’ '),
+        ('end of phrase,\' ', 'end of phrase,\' '),
         ('end of phrase,\')', 'end of phrase,’)'),
         ('Jackson."', 'Jackson.”'),     # period, quotes
         ('" Jackson."', '" Jackson.”'),

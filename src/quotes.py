@@ -22,7 +22,7 @@ import re
 quote0_re = re.compile(r'[^\w]([\'"]+)[\w]+([\'"]+)[^\w]')   # a single word in quotes
 quote1_re = re.compile(r'[ \(\[][“‘]*([\'"]+)\w')     # SPACE|PAREN quotes word => open quotes
 quote2_re = re.compile(r': +[“‘]*([\'"]+)[^\.!?)]')     # colon SPACE quotes ... => open quotes
-quote3_re = re.compile(r'[,;][’”]*([\'"]+)[ \)]')     # comma/semicolon quotes SPACE|PAREN => close quotes
+quote3_re = re.compile(r'[,;][’”]*([\'"]+)[\)\]]')     # comma/semicolon quotes PAREN => close quotes
 quote4_re = re.compile(r'[\.!\?][’”]*([\'"]+)')     # period/bang/question quotes => close quotes
 quote5_re = re.compile(r'\w[’”]*([\'"]+) *\n')        # word quotes EOL
 quote6_re = re.compile(r'\w[\w ][’”]*([\'"]+\?)')       # quotes question => close quotes question
@@ -57,7 +57,7 @@ def promoteQuotes(str):
 dblquote0_re = re.compile(r'[^\w]("+)[\w\']+("+)[^\w]')     # a single word in quotes
 dblquote1_re = re.compile(r'[ \(\[]("+)[\w‘\']')     # SPACE|PAREN " word => “
 dblquote2_re = re.compile(r': +[\'‘]*("+)[^\.!?)]')     # colon SPACE " ... => “
-dblquote3_re = re.compile(r'[,;][’\']*("+)[’\']*[ \)]')     # comma/semicolon " SPACE|PAREN => ”
+dblquote3_re = re.compile(r'[,;][’\']*("+)[’\']*[\)\]]')     # comma/semicolon " PAREN => ”
 dblquote4_re = re.compile(r'[\.!\?][’\']*("+)')     # period/bang/question " => ”
 dblquote5_re = re.compile(r'\w[’\']*("+) *\n')        # word " EOL => ”
 dblquote6_re = re.compile(r'\w[\w ][’”]*("+\?)')       # " question => ” question

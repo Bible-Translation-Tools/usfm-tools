@@ -1,5 +1,4 @@
-# pytest unit tests for usfm-tools/src functions
-# New and very incomplete as of June 2024.
+# pytest unit tests for promoteDoubleQuotes() functions in quotes.py
 
 import os
 import sys
@@ -32,11 +31,12 @@ import pytest
         (': "(', ': “('),
         (';"")', ';””)'),     # comma/semicolon quotes SPACE|PAREN
         ("apple,'\n", "apple,'\n"),
-        ('apple," ', "apple,” "),
+        ('apple," ', "apple,\" "),
+        ('apple,"]', "apple,”]"),
         (':  "boat', ':  “boat'),
         ('end of phrase,"next phrase', 'end of phrase,"next phrase'),
         ('end of phrase, "next phrase', 'end of phrase, “next phrase'),
-        ('end of phrase," ', 'end of phrase,” '),
+        ('end of phrase," ', 'end of phrase," '),
         ('end of phrase,")', 'end of phrase,”)'),
         ('Jackson."', 'Jackson.”'),     # period, quotes
         ('" Jackson."', '" Jackson.”'),
