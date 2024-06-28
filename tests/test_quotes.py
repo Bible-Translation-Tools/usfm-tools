@@ -52,6 +52,62 @@ import pytest
         ('\n"start of line', '\n“start of line'),   # quotes word at start of line
         ('\n "start of line', '\n “start of line'),
         ('\n" start of line', '\n" start of line'),
+        (' \'The Teacher says, "My time is at hand. I will keep the Passover at your house with my disciples."\'"\n',
+         ' ‘The Teacher says, “My time is at hand. I will keep the Passover at your house with my disciples.”’”\n'),
+        ('''\v 17 Now on the first day of unleavened bread the disciples came to Jesus and said, "Where do you want us to prepare for you to eat the Passover meal?"
+\p
+\v 18 He said, "Go into the city to a certain man and say to him, 'The Teacher says, "My time is at hand. I will keep the Passover at your house with my disciples."'"
+\v 19 The disciples did as Jesus directed them, and they prepared the Passover meal.
+
+\s5
+\p
+\v 20 When evening came, he sat down to eat with the twelve disciples.
+\v 21 As they were eating, he said, "Truly I say to you that one of you will betray me."
+\p
+\v 22 They were very sorrowful, and each one began to ask him, "Surely not I, Lord?"
+
+\s5
+\p
+\v 23 He answered, "The one who dips his hand with me in the dish is the one who will betray me.
+\v 24 The Son of Man will go, just as it is written about him. But woe to that man by whom the Son of Man is betrayed! It would be better for that man if he had not been born."
+\p
+\v 25 Judas, who would betray him said, "Is it I, Rabbi?"
+\p He said to him, "You have said it yourself."
+
+\s5
+\p
+\v 26 As they were eating, Jesus took bread, blessed it, and broke it. He gave it to the disciples and said, "Take, eat. This is my body."
+
+\s5
+',
+''',
+'''\v 17 Now on the first day of unleavened bread the disciples came to Jesus and said, “Where do you want us to prepare for you to eat the Passover meal?”
+\p
+\v 18 He said, “Go into the city to a certain man and say to him, ‘The Teacher says, “My time is at hand. I will keep the Passover at your house with my disciples.”’”
+\v 19 The disciples did as Jesus directed them, and they prepared the Passover meal.
+
+\s5
+\p
+\v 20 When evening came, he sat down to eat with the twelve disciples.
+\v 21 As they were eating, he said, “Truly I say to you that one of you will betray me.”
+\p
+\v 22 They were very sorrowful, and each one began to ask him, “Surely not I, Lord?”
+
+\s5
+\p
+\v 23 He answered, “The one who dips his hand with me in the dish is the one who will betray me.
+\v 24 The Son of Man will go, just as it is written about him. But woe to that man by whom the Son of Man is betrayed! It would be better for that man if he had not been born.”
+\p
+\v 25 Judas, who would betray him said, “Is it I, Rabbi?”
+\p He said to him, “You have said it yourself.”
+
+\s5
+\p
+\v 26 As they were eating, Jesus took bread, blessed it, and broke it. He gave it to the disciples and said, “Take, eat. This is my body.”
+
+\s5
+',
+'''),
     ])
 def test_promoteQuotes(str, result):
     import quotes

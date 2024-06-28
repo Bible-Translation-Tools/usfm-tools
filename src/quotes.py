@@ -19,7 +19,7 @@ subs = [
 ]
 
 import re
-quote0_re = re.compile(r'[^\w]([\'"]+)[\w]+([\'"]+)[^\w]')   # a single word in quotes
+quote0_re = re.compile(r'[^\w]([\'"]+)\w+([\'"]+)[^\w]')   # a single word in quotes
 quote1_re = re.compile(r'[ \(\[][“‘]*([\'"]+)\w')     # SPACE|PAREN quotes word => open quotes
 quote2_re = re.compile(r': +[“‘]*([\'"]+)[^\.!?)]')     # colon SPACE quotes ... => open quotes
 quote3_re = re.compile(r'[,;][’”]*([\'"]+)[\)\]]')     # comma/semicolon quotes PAREN => close quotes
@@ -54,7 +54,7 @@ def promoteQuotes(str):
         str = str.replace(pair[0], pair[1])
     return str
 
-dblquote0_re = re.compile(r'[^\w]("+)[\w\']+("+)[^\w]')     # a single word in quotes
+dblquote0_re = re.compile(r'[^\w]("+)\w+("+)[^\w]')     # a single word in quotes
 dblquote1_re = re.compile(r'[ \(\[]("+)[\w‘\']')     # SPACE|PAREN " word => “
 dblquote2_re = re.compile(r': +[\'‘]*("+)[^\.!?)]')     # colon SPACE " ... => “
 dblquote3_re = re.compile(r'[,;][’\']*("+)[’\']*[\)\]]')     # comma/semicolon " PAREN => ”
@@ -69,9 +69,17 @@ dblsubs = [
 # Convert open quote marks
 	('"“', '““'),
 	('“"', '““'),
+	('‘"', '‘“'),
+	('"‘', '“‘'),
+    ('“\'"', '“\'“'),
+    ('"\'“', '“\'“'),
 # Convert closing quote marks
 	('"”', "””"),
 	('”"', "””"),
+	('’"', '’”'),
+	('"’', '”’'),
+    ('”\'"', '”\'”'),
+    ('"\'”', '”\'”'),
 ]
 
 # Changes straight double quotes to curly quotes where context suggests with very high confidence.
@@ -108,5 +116,6 @@ def translate(str, rexp, trans):
     return str
 
 # if __name__ == "__main__":
-#     teststr = 'They said: "boat '
-#     print(f"promoteQuotes({teststr}) => ({promoteQuotes(teststr)})")
+#     teststr = '\'The Teacher says, "My time is at hand. I will keep the Passover at your house with my disciples."\'"\n'
+#     output = promoteDoubleQuotes(teststr) 
+#     print(f"promoteDoubleQuotes({teststr}) => {output}")
