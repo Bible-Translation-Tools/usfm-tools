@@ -27,7 +27,7 @@ class ToolsConfigManager:
             self.config.read(self.configpath, encoding='utf-8')
 
     def _make_default_config(self):
-        for section in ['MarkParagraphs','Plaintext2Usfm','RenameParatextFiles','RevertChanges',
+        for section in ['MarkParagraphs','Plaintext2Usfm','Ptx2Usfm','RenameParatextFiles','RevertChanges',
                         'Txt2USFM','Usfm2Usx','UsfmCleanup','VerifyManifest','VerifyUSFM',
                         'Word2text']:
             self.config.add_section(section)
@@ -54,6 +54,7 @@ class ToolsConfigManager:
         with io.open(self.configpath, "tw", encoding='utf-8', newline='\n') as file:
             self.config.write(file)
 
+    # Returns a default dict for the specified section.
     def default_section(self, sectionname):
         match sectionname:
             case 'MarkParagraphs':
@@ -67,8 +68,10 @@ class ToolsConfigManager:
                 sec = {'source_dir': "",
                        'filename': "",
                        'target_dir': ""}
-            case 'RenameParatextFiles':
-                sec = {}
+            case 'Paratext2Usfm':
+                sec = {'paratext_dir': "",
+                       'target_dir': "",
+                       'filename': ""}
             case 'RevertChanges':
                 sec = {'source_dir': "",
                        'backupExt': "",
@@ -107,14 +110,14 @@ class ToolsConfigManager:
             case 'VerifyManifest':
                 sec = {'source_dir': "",
                        'expectascii': False,
-                        'bibletype': True }
+                       'bibletype': True }
             case 'VerifyUSFM':
                 sec = {'source_dir': "",    # location of usfm files to be checked
                        'filename': "",
                        'compare_dir': "",   # the source language folder, for comparisons
                        'language_code': "",
                        'standard_chapter_title': "",
-                       'usfm_version': "2.0",
+                    #    'usfm_version': "2.0",
                        'suppress1': False,
                        'suppress2': False,
                        'suppress3': False,

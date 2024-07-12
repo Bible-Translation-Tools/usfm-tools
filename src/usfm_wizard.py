@@ -19,6 +19,7 @@ import g_txt2USFM
 import g_verifyUSFM
 import g_UsfmCleanup
 import g_MarkParagraphs
+import g_paratext2usfm
 import g_plaintext2usfm
 import g_verifyManifest
 import g_usfm2usx
@@ -28,13 +29,14 @@ from verifyUSFM import main
 from inventory_chapter_labels import main
 from usfm_cleanup import main
 from mark_paragraphs import main
+from paratext2usfm import main
 from plaintext2usfm import main
 from revertChanges import main
 from usfm2usx import main
 from verifyManifest import main
 from word2text import main
 
-app_version = "1.2.3"
+app_version = "1.2.4"
 
 class UsfmWizard(tkinter.Tk):
     def __init__(self):
@@ -63,7 +65,7 @@ class UsfmWizard(tkinter.Tk):
     def _build_steps(self, mainframe):
         self.steps = {}
         for S in (g_selectProcess, g_txt2USFM, g_verifyUSFM, g_UsfmCleanup, g_MarkParagraphs,
-                  g_verifyManifest, g_plaintext2usfm, g_usfm2usx, g_word2text):
+                  g_verifyManifest, g_plaintext2usfm, g_usfm2usx, g_word2text, g_paratext2usfm):
             stepclass = getattr(sys.modules[S.__name__], S.stepname)
             step = stepclass(mainframe, mainapp=self)   # create an instance of the class
             self.steps[step.name()] = step
@@ -119,6 +121,8 @@ class UsfmWizard(tkinter.Tk):
             case 'Word2text':
                 gotostep = 'SelectProcess'
             case 'Txt2USFM':
+                gotostep = 'SelectProcess'
+            case 'Paratext2Usfm':
                 gotostep = 'SelectProcess'
             case 'Plaintext2Usfm':
                 if self.process == 'Plaintext2Usfm':
