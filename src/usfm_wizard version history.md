@@ -1,5 +1,9 @@
 # UsfmWizard Version history
 
+## 1.2.4
+* Add paratext / usfm file conversion.
+* Improve quote mark conversions. Unit test verification.
+
 ## 1.2.3
 * Bug fixes.
 * verifyUsfm - fewer false positives of possible issues.

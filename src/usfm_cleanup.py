@@ -16,7 +16,6 @@ import shutil
 import sys
 import substitutions
 import quotes
-import doublequotes
 import parseUsfm
 import sentences
 import usfmWriter
@@ -202,10 +201,10 @@ def convert_wholefile(path):
             alltext = fix_punctuation(alltext)
         if enable[1]:
             alltext = add_spaces(alltext)
-        if enable[4]:
+        if enable[4]:   # convert single and double quotes
             alltext = quotes.promoteQuotes(alltext)
         elif enable[3]:
-            alltext = doublequotes.promoteQuotes(alltext)
+            alltext = quotes.promoteDoubleQuotes(alltext)
     if alltext != origtext:
         with io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n') as output:
             output.write(alltext)

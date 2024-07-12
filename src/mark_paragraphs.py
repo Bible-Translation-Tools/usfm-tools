@@ -433,9 +433,9 @@ def scanS(type):
     section['located'] = True
     state.sections_model.append(section)
 
-# If there is a paragraph mark not assigned to a verse yet,
-# report it because it apparently occurs in the middle of a verse.
-def scanText(value):
+# Removes the last paragraph mark from the list if it is not already located to
+# a specific verse, because it apparently occurs in the middle of a verse.
+def scanText():
     if len(state.paragraphs_model) > 0:
         pp = state.paragraphs_model[-1]
         if not pp['located']:
@@ -462,7 +462,7 @@ def scan(token):
     elif token.isV():
         scanV(token.value)
     elif token.isTEXT():
-        scanText(token.value)
+        scanText()
     elif isParagraph(token) or isPoetry(token):
         scanPQ(token.type)
     elif isSection(token):
