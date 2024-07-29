@@ -1230,6 +1230,7 @@ def main(app=None):
     global suppress
     global gui
     global wordlist
+    # global usfm_version
 
     wordlist = dict()
     gui = app
@@ -1242,8 +1243,8 @@ def main(app=None):
         std_titles = [ config.get('standard_chapter_title', fallback = '') ]
         if std_titles == ['']:
             std_titles = []
-        uv = config.get('usfm_version', fallback = "2")
-        usfm_version = int(uv[0])
+        # uv = config.get('usfm_version', fallback = "2")
+        # usfm_version = int(uv[0])
 
         global state
         state = State()
