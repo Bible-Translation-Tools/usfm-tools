@@ -78,7 +78,7 @@ def openIssuesFile():
     return issuesFile
 
 #  Move paragraph marker before section marker to follow the section marker
-movepq_re = re.compile(r'\n(\\[pqm][i1-9]*?)\n+(\\s[1-9 ].*?)\n', flags=re.UNICODE+re.DOTALL)
+movepq_re = re.compile(r'\n(\\[pqm][i1-9]? *)\n+(\\s[1-9]? .*?)\n', flags=re.DOTALL)
 
 # Moves standalone \p \m and \q markers which occur just before an \s# marker
 #    to the next line after the \s# marker.
@@ -93,14 +93,16 @@ def usfm_move_pq(str):
     return newstr
 
 #losepq_re = re.compile(r'\n(\\[pqm][i1-9]?)\n+(\\[pqm][i1-9 ]?.*?)\n', flags=re.UNICODE+re.DOTALL)
-losepq_re = re.compile(r'\n\\[pqm][i1-9]? *\n+(\\[^v].*?\n)', flags=re.UNICODE)
+#losepq_re = re.compile(r'\n\\[pqm][i1-9]? *\n+(\\[^v].*?\n)', flags=re.UNICODE)
+losepq_re = re.compile(r'\\[pqm][i1-9]? *\n*(\\[^v])')
 
 # Remove standalone paragraph markers not followed by verse marker.
+# Other markers that follow a paragraph marker invalidate the paragraph marker.
 def usfm_remove_pq(str):
     newstr = ""
     found = losepq_re.search(str)
     while found:
-        newstr += str[:found.start()] + "\n" + found.group(1)
+        newstr += str[:found.start()] + found.group(1)
         str = str[found.end():]
         found = losepq_re.search(str)
     newstr += str
