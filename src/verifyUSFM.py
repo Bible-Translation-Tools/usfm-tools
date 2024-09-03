@@ -376,7 +376,7 @@ def long_substring(s1, s2):
 # Keeps track of how many errors of each type.
 def reportError(msg, errorId=0, summarize_only=False):
     if not summarize_only:
-        reportToGui('<<ScriptMessage>>', msg)
+        reportToGui('<<Error>>', msg)
         write(msg, sys.stderr)
         openIssuesFile().write(msg + "\n")
 
@@ -404,7 +404,7 @@ def reportToGui(event, msg):
     if gui:
         with gui.progress_lock:
             gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
-        gui.event_generate(event, when="tail")
+        gui.event_generate(event, msg, when="tail")
 
 # This little function streams the specified message and handles UnicodeEncodeError
 # exceptions, which are common in Indian language texts. 2/5/24.
@@ -1158,6 +1158,8 @@ def percentTitlecase(words):
         for word in words:
             if word.istitle():
                 n += 1
+    if n ==0 or len(words) == 0:
+        return 0
     return n / len(words)
 
 conflict_re = re.compile(r'<+ HEAD', re.UNICODE)   # conflict resolution tag
@@ -1273,7 +1275,7 @@ def main(app=None):
         reportStatus("\nDone.")
         sys.stdout.flush()
     if gui:
-        gui.event_generate('<<ScriptEnd>>', when="tail")
+        gui.event_generate('<<ScriptEnd>>','', when="tail")
 
 if __name__ == "__main__":
     main()
