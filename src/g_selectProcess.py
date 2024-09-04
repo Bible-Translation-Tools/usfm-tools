@@ -44,15 +44,21 @@ class Select_Frame(g_step.Step_Frame):
                                       command=self._onRbChange, value='Plaintext2Usfm')
         process3_rb.grid(row=6, column=1, sticky=W)
 
-        process4_rb = ttk.Radiobutton(self, text='Convert USFM to USX', variable=self.process,
-                                      command=self._onRbChange, value='Usfm2Usx')
-        process4_rb.grid(row=7, column=1, sticky=W)
-        process4_Tip = Hovertip(process4_rb, hover_delay=500,
-             text="Produce a BTTW-compatible resource container from USFM.")
+        process6_rb = ttk.Radiobutton(self, text='Convert USX to USFM', variable=self.process,
+                                      command=self._onRbChange, value='Usx2Usfm')
+        process6_rb.grid(row=7, column=1, sticky=W)
+        process6_Tip = Hovertip(process6_rb, hover_delay=500,
+             text="Convert Unified Scripture XML files to USFM")
 
-        process5_rb = ttk.Radiobutton(self, text='Convert Paratext SFM to usfm', variable=self.process,
+        process4_rb = ttk.Radiobutton(self, text='Convert USFM to “resource container”', variable=self.process,
+                                      command=self._onRbChange, value='Usfm2Usx')
+        process4_rb.grid(row=8, column=1,  sticky=W)
+        process4_Tip = Hovertip(process4_rb, hover_delay=500,
+             text="Produce a BTTW-compatible resource container with .usx and auxiliary files, from USFM.")
+
+        process5_rb = ttk.Radiobutton(self, text='Convert Paratext SFM', variable=self.process,
                                       command=self._onRbChange, value='Paratext2Usfm')
-        process5_rb.grid(row=8, column=1, sticky=W)
+        process5_rb.grid(row=9, column=1, sticky=W)
         process5_Tip = Hovertip(process5_rb, hover_delay=500,
              text="Convert Paratext .SFM files to .usfm")
         self.columnconfigure(1, minsize=505)
@@ -111,12 +117,17 @@ To be converted, the text files must meet these conditions:\n\
 The process creates one USFM file per book, with \
 standardized names, like 41-MAT.usfm. \
 The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
+            case 'Usx2Usfm':
+                self.message_area.insert('end',
+"""This process converts Unified Scripture XML (USX) files into USFM. \
+For information about USX, visit https://ubsicap.github.io/usx.""")
             case 'Usfm2Usx':
                 self.message_area.insert('end',
-"This process produces .usx and auxiliary files from USFM source text. \
+"""This process produces the pseusdo-USX files and auxiliary files that BTT-Writer uses,
+from USFM source files. \
 This creates a “resource container” which BTT-Writer can then use as a new source text.\n\n\
 Chunk boundaries are based on \s5 markers in the USFM files. \
-The input file(s) should be verified, correct USFM. Therefore, the first step of this process is to validate the USFM files.")
+The input file(s) should be verified, correct USFM. Therefore, the first step of this process is to validate the USFM files.""")
             case 'Paratext2Usfm':
                 self.message_area.insert('end',
 """This process copies .SFM files from a Paratext project folder into our target folder \
@@ -137,5 +148,4 @@ Settings.xml file, with changes to reflect the new file names.""")
         pass
 
     def _set_button_status(self):
-        # okay = self.process.get() in {'Txt2USFM', 'Word2text', 'Plaintext2Usfm', 'Usfm2Usx'}
         self.controller.enablebutton(5, True)

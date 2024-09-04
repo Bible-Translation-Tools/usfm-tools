@@ -28,7 +28,7 @@ class ToolsConfigManager:
 
     def _make_default_config(self):
         for section in ['MarkParagraphs','Plaintext2Usfm','Ptx2Usfm','RenameParatextFiles','RevertChanges',
-                        'Txt2USFM','Usfm2Usx','UsfmCleanup','VerifyManifest','VerifyUSFM',
+                        'Txt2USFM','Usfm2Usx','UsfmCleanup','Usx2Usfm','VerifyManifest','VerifyUSFM',
                         'Word2text']:
             self.config.add_section(section)
             self.config[section] = self.default_section(section)
@@ -63,6 +63,7 @@ class ToolsConfigManager:
                     'filename': "",
                     'copy_nb': False,
                     'removeS5markers': True,
+                    's5_only': False,
                     'sentence_sensitive': True }
             case 'Plaintext2Usfm':
                 sec = {'source_dir': "",
@@ -107,6 +108,11 @@ class ToolsConfigManager:
                        'pub_date': "",
                        'license': "",
                        'version': "" }
+            case 'Usx2Usfm':
+                sec = {'usx_dir': "",
+                       'filename': "",
+                       'usfm_dir': "",
+                       'notes': False }
             case 'VerifyManifest':
                 sec = {'source_dir': "",
                        'expectascii': False,
