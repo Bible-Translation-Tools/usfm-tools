@@ -131,7 +131,7 @@ title_re = re.compile(r'\\(h|mt|mt1|toc1|toc2) (.+)')
 
 # Returns a set of titles found in the first N lines of the specified usfm file.
 def getBookTitles(path):
-    N = 8
+    N = 16
     titles = set()
     with io.open(path, "tr", encoding='utf-8-sig') as file:
         for i in range(N):
