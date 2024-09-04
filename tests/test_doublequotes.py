@@ -38,6 +38,7 @@ import pytest
         ('end of phrase, "next phrase', 'end of phrase, “next phrase'),
         ('end of phrase," ', 'end of phrase," '),
         ('end of phrase,")', 'end of phrase,”)'),
+        ('weumi, "Allahre', 'weumi, “Allahre'),
         ('Jackson."', 'Jackson.”'),     # period, quotes
         ('" Jackson."', '" Jackson.”'),
         ('!"', '!”'),
