@@ -79,7 +79,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         
         source_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        source_dir_entry = ttk.Entry(self, width=42, textvariable=self.source_dir)
+        source_dir_entry = ttk.Entry(self, width=41, textvariable=self.source_dir)
         source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
         src_dir_find.grid(row=4, column=4, sticky=W)
@@ -93,10 +93,10 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         file_find.grid(row=5, column=3, sticky=W, padx=12)
         compare_dir_label = ttk.Label(self, text="Source text folder:", width=20)
         compare_dir_label.grid(row=6, column=1, sticky=W, pady=2)
-        compare_dir_entry = ttk.Entry(self, width=42, textvariable=self.compare_dir)
+        compare_dir_entry = ttk.Entry(self, width=41, textvariable=self.compare_dir)
         compare_dir_entry.grid(row=6, column=2, columnspan=3, sticky=W)
         cmp_Tip = Hovertip(compare_dir_entry, hover_delay=500,
-             text="(Optional) The source text used for this translation")
+             text="The source text used for this translation. (Optional - for finding untranslated verses)")
         cmp_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindCmpDir)
         cmp_dir_find.grid(row=6, column=4, sticky=W)
 
