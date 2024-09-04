@@ -121,12 +121,12 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         enable6_Tip = Hovertip(enable6_checkbox, hover_delay=500,
              text="Remove \s5 markers (recommended for all text except GLs).")
 
-        enable7_checkbox = ttk.Checkbutton(self, text='Section titles', variable=self.enable[7],
-                                             onvalue=True, offvalue=False)
-        enable7_checkbox.grid(row=12, column=3, sticky=W)
-        enable7_Tip = Hovertip(enable7_checkbox, hover_delay=500,
-             text="Mark obvious section titles with \s. (not implemented yet)")
-        enable7_checkbox.state(['disabled'])
+        # enable7_checkbox = ttk.Checkbutton(self, text='Section titles', variable=self.enable[7],
+        #                                      onvalue=True, offvalue=False)
+        # enable7_checkbox.grid(row=12, column=3, sticky=W)
+        # enable7_Tip = Hovertip(enable7_checkbox, hover_delay=500,
+        #      text="Mark obvious section titles with \s. (not implemented yet)")
+        # enable7_checkbox.state(['disabled'])
 
         self.enable8_checkbox = ttk.Checkbutton(self, text='Chapter labels', variable=self.enable[8],
                                              onvalue=True, offvalue=False)
