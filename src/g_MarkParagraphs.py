@@ -45,6 +45,9 @@ class MarkParagraphs(g_step.Step):
         self.mainapp.execute_script(self.script, 1)
         self.frame.clear_messages()
 
+    def onNext(self):
+        super().onNext('source_dir')
+
     # Called by the mainapp.
     def onScriptEnd(self, status):
         if status:
@@ -55,7 +58,7 @@ class MarkParagraphs(g_step.Step):
             if time.time() - os.path.getmtime(issuespath) < 10:     # issues.txt is recent
                 nIssues = 1
             else:
-                msg = "No issues reported. This is a good time to reverify the USFM files."
+                msg = "No issues reported."
                 self.frame.show_progress(msg)
         self.enablebutton(2, True)
         self.enablebutton(3, True)
@@ -71,6 +74,9 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         self.filename = StringVar()
         self.copy_nb = BooleanVar(value = False)
         self.remove_s5 = BooleanVar(value = True)
+        self.remove_s5.trace_add("write", self._onChanges5)
+        self.s5_only = BooleanVar(value = False)
+        self.s5_only.trace_add("write", self._onChanges5)
         self.sentence_sensitive = BooleanVar(value = True)
         for var in (self.model_dir, self.source_dir, self.filename):
             var.trace_add("write", self._onChangeEntry)
@@ -111,17 +117,29 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         copy_nb_checkbox.grid(row=7, column=1, sticky=W)
         copy_nb_Tip = Hovertip(copy_nb_checkbox, hover_delay=500,
              text=r"Copy \m, \nb and \b markers from model text? (Not usually recommended)")
-        remove_s5_checkbox = ttk.Checkbutton(self, text='Eliminate \s5', variable=self.remove_s5,
+        
+        self.remove_s5_checkbox = ttk.Checkbutton(self, text='Eliminate \s5', variable=self.remove_s5,
                                              onvalue=True, offvalue=False)
-        remove_s5_checkbox.grid(row=7, column=2, sticky=W)
-        remove_s5_Tip = Hovertip(remove_s5_checkbox, hover_delay=500,
+        self.remove_s5_checkbox.grid(row=7, column=2, sticky=W)
+        remove_s5_Tip = Hovertip(self.remove_s5_checkbox, hover_delay=500,
              text="Always recommended except for GL source texts")
+
+        self.s5_only_checkbox = ttk.Checkbutton(self, text='\\s5 only',
+                                                      variable=self.s5_only, onvalue=True, offvalue=False)
+        self.s5_only_checkbox.grid(row=7, column=3, sticky=W)
+        s5_only_Tip = Hovertip(self.s5_only_checkbox, hover_delay=500,
+             text="Mark chunks only, not paragraphs.")
 
         sentence_sensitive_checkbox = ttk.Checkbutton(self, text='Sentence sensitive',
                                                       variable=self.sentence_sensitive, onvalue=True, offvalue=False)
-        sentence_sensitive_checkbox.grid(row=7, column=3, sticky=W)
+        sentence_sensitive_checkbox.grid(row=7, column=4, sticky=W)
         sentence_sensitive_Tip = Hovertip(sentence_sensitive_checkbox, hover_delay=500,
-             text="Only insert \p marks *between punctuated sentences. (Recommended)")
+             text="Only insert marks *between punctuated sentences.")
+
+        self.clear_show("This process can copy chunk markers, and paragraph and poetry markers from \
+a model text to the file(s) that you specify. \
+If the paragraphs are sufficiently marked in your text already, either check the '\\s5 only' checkbox, \
+or don't run this process.")
 
         self.model_dir_entry.focus()
 
@@ -132,6 +150,7 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         self.filename.set(values.get('filename', fallback=""))
         self.copy_nb.set(values.get('copy_nb', fallback=False))
         self.remove_s5.set(values.get('removes5markers', fallback=True))
+        self.s5_only.set(values.get('s5_only', fallback=False))
         self.sentence_sensitive.set(values.get('sentence_sensitive', fallback=True))
 
         # Create buttons
@@ -153,12 +172,21 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
             self.message_area.see('end')
         self.message_area['state'] = DISABLED   # prevents insertions to message area
 
+    def _onChanges5(self, *args):
+        if remove := self.remove_s5.get():
+            self.s5_only.set(False)
+        self.s5_only_checkbox.state(['disabled'] if remove else ['!disabled'])
+        if chunks_only := self.s5_only.get():
+            self.remove_s5.set(False)
+        self.remove_s5_checkbox.state(['disabled'] if chunks_only else ['!disabled'])
+
     def _save_values(self):
         self.values['source_dir'] = self.source_dir.get()
         self.values['model_dir'] = self.model_dir.get()
         self.values['filename'] = self.filename.get()
         self.values['copy_nb'] = str(self.copy_nb.get())
         self.values['removeS5markers'] = str(self.remove_s5.get())
+        self.values['s5_only'] = str(self.s5_only.get())
         self.values['sentence_sensitive'] = str(self.sentence_sensitive.get())
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
