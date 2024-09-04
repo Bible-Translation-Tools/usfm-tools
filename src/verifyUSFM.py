@@ -147,7 +147,7 @@ class State:
         self.nChapterLabels += 1
         return title    # without chapter number, but spacing unchanged
 
-    def addNB(self):
+    def addUncountedParagraph(self):
         self.needPP = False
         self.textOkayHere = True
         self.prevItemCategory = self.currItemCategory
@@ -388,7 +388,7 @@ def reportError(msg, errorId=0, summarize_only=False):
         else:
             newmsg = msg
             newcount = 1
-        issues[errorId] = (newmsg, newcount)
+        issues[errorId] = (newmsg, newcount, " not reported individually" if summarize_only else "")
 
 # Sends a progress message to the GUI, and to stdout.
 def reportProgress(msg):
@@ -422,7 +422,7 @@ def reportIssues():
     issuesfile.write("\nSUMMARY:\n")
     for issue in sorted(issues.items(), key=lambda kv: kv[1][1], reverse=True):
         total += issue[1][1]
-        issuesfile.write(f"{issue[1][0]}...:  {issue[1][1]} occurrence(s).\n")
+        issuesfile.write(f"{issue[1][0]}...:  {issue[1][1]} occurrence(s){issue[1][2]}.\n")
     issuesfile.write(f"\n{total} issues found.")
 
 # Writes the word list to a file.
@@ -438,7 +438,7 @@ def dumpWords():
                 line = line + "    " + entry[1][1]
             file.write(line + '\n')
 
-trans = str.maketrans('', '', "'’\"-_()")
+trans = str.maketrans('', '', "'’\"-_()–&")
 
 # Returns True if s is a mixed case word.
 def isMixed(word):
@@ -517,7 +517,7 @@ def load_source(fname):
             scanSourceFile(sourcepath)
 
 # Compares current verse to the source text
-# Returns Jaccard Similarity value, and number of wordsof length > 2 in common.
+# Returns Jaccard Similarity value, and number of words of length > 2 in common.
 def similarToSource():
     similarity = 0
     n = 0
@@ -531,7 +531,7 @@ def similarToSource():
 
 # Report missing text or all ASCII text, in previous verse
 def previousVerseCheck():
-    if not isOptional(state.reference) and state.getTextLength() < 10 and state.verse != 0:
+    if not isOptional(state.reference) and state.getTextLength() < 11 and state.verse != 0:
         if state.getTextLength() == 0:
             reportError("Empty verse: " + state.reference, 1)
         elif not isShortVerse(state.reference):
@@ -631,6 +631,12 @@ def takeCL(label):
         if title not in std_titles:
             reportError(f"Non-standard chapter label at {state.reference}: {label}", 42)
 
+def takeD():
+    if not suppress[4]:
+        reportSectionPrecedentErrors('d')
+    reportParagraphMarkerErrors('d')
+    state.addUncountedParagraph()
+
 # Handles all the footnote and endnote token types
 def takeFootnote(token):
     if token.isF_S() or token.isRQS():
@@ -674,7 +680,10 @@ def takeP(type):
             reportError(f"Punctuation missing at end of paragraph: {state.reference}", 26, suppress[11])
         elif state.reference != "ACT 22":
             reportError(f"Punctuation missing at end of paragraph before {state.reference}", 26.1, suppress[11])
-    state.addParagraph() if type != 'nb' else state.addNB()
+    if type in {'nb'}:
+        state.addUncountedParagraph()
+    else:
+        state.addParagraph()
 
 def takeQ(type):
     reportParagraphMarkerErrors(type)
@@ -685,14 +694,17 @@ def takeS5():
     state.addS5()
     takeSection('s5')
 
+def reportSectionPrecedentErrors(tag):
+    if state.currItemCategory == PP:
+        reportError(f"Warning: useless paragraph (p,m,nb) marker before \\{tag} marker at: {state.reference}", 27)
+    elif state.currItemCategory == QQ:
+        reportError(f"Warning: useless \q before \\{tag} marker at: {state.reference}", 28)
+    elif state.currItemCategory == B:
+        reportError(f"\\b may not be used before or after section heading. {state.reference}", 29)
+
 def takeSection(tag):
-    if not suppress[4]:
-        if state.currItemCategory == PP:
-            reportError(f"Warning: useless paragraph (p,m,nb) marker before \\{tag} marker at: {state.reference}", 27)
-        elif state.currItemCategory == QQ:
-            reportError(f"Warning: useless \q before \\{tag} marker at: {state.reference}", 28)
-        elif state.currItemCategory == B:
-            reportError(f"\\b may not be used before or after section heading. {state.reference}", 29)
+    if tag != 's5' and not suppress[4]:
+        reportSectionPrecedentErrors(tag)
     state.addSection()
 
 def takeTitle(token):
@@ -1008,7 +1020,7 @@ def isOptional(ref, previous=False):
 'ACT 24:7', 'ACT 28:29', 'ROM 16:24', 'REV 12:18' }
 
 def isShortVerse(ref):
-    return ref in { 'LEV 11:15', 'DEU 5:19', \
+    return ref in { 'LEV 11:15', 'EXO 20:13','EXO 20:14','EXO 20:15', 'DEU 5:17','DEU 5:18','DEU 5:19', \
 'JOB 3:2', 'JOB 9:1', 'JOB 12:1', 'JOB 16:1', 'JOB 19:1', 'JOB 21:1', 'JOB 27:1', 'JOB 29:1', 'LUK 20:30' }
 
 def isPoetry(token):
@@ -1066,12 +1078,14 @@ def take(token):
         takeFootnote(token)
     elif token.isS5():
         takeS5()
-    elif token.isS() or token.isMR() or token.isMS() or token.isD() or token.isSP():
+    elif token.isS() or token.isMR() or token.isMS() or token.isSP():
         takeSection(token.type)
     elif token.isQA():
         state.addAcrosticHeading()
     elif isPoetry(token):
         takeQ(token.type)
+    elif token.isD():
+        takeD()
     elif token.isB():
         takeB()
     elif isTitleToken(token):
@@ -1152,13 +1166,15 @@ def verifyWholeFile(contents, path):
 # Returns the fraction of words which are title case.
 # But returns 0 if the first word is not title case.
 def percentTitlecase(words):
-    percent = 0
     n = 0
     if words and words[0].istitle():
         for word in words:
             if word.istitle():
                 n += 1
-    return n / len(words)
+    if words:
+        return n / len(words)
+    else:
+        return 0
 
 conflict_re = re.compile(r'<+ HEAD', re.UNICODE)   # conflict resolution tag
 
