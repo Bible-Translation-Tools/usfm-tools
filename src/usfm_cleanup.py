@@ -110,7 +110,7 @@ def usfm_remove_pq(str):
 
 s5_re = re.compile(r'\n\\s5 *?\n', flags=re.UNICODE+re.DOTALL)
 
-# Removes \s5 markers
+# Removes lines that contain only an \s5 marker (w possible trailing spaces)
 def usfm_remove_s5(str):
     newstr = ""
     found = s5_re.search(str)
@@ -282,8 +282,37 @@ def change_floating_quotes(line):
             break
     return (changed, line)
 
+# Returns the fraction of words in the string which are title case.
+# But returns 0 if the first word is not title case.
+def percentTitlecase(str):
+    percent = 1 if str.istitle() else 0
+    if percent != 1:
+        n = 0
+        words = str.split()
+        if words and words[0].istitle():
+            for word in words:
+                if word.istitle():
+                    n += 1
+            percent = n / len(words)
+    return percent
+
+pphrase_re = re.compile(r'(\([\w\- ]+\))')
+# Returns a number indicating position of the first parenthesized heading in the line
+# 0 means no heading found
+def has_parenthesized_heading(line):
+    n = posn = 0
+    for possible_hd in pphrase_re.finditer(line):
+        n += 1
+        str = possible_hd.group(1).strip("()")
+        if str.isupper() or percentTitlecase(str) >= 0.5:
+            posn = n
+            break
+    return posn
+
 verse_re = re.compile(r'\\v +(0-9)+')
 textstart_re = re.compile(r' *[^\\<\n]')
+# pheading_re = re.compile(r'(\([\w- ]+\))')
+
 # Returns True if the specified line is unmarked text.
 def mark_sections(line):
     if not hasattr(mark_sections, "prevline"):
@@ -297,10 +326,23 @@ def mark_sections(line):
 
     changed = False
     if textstart_re.match(line):    # line starts with text
-        if mark_sections.verse == "0" or not prevline:
+        if mark_sections.verse == "0" or not mark_sections.prevline: # start of chapter or preceded by blank line
             line = "\\s " + line.lstrip()
             changed = True
-    prevline = line
+    elif not line.startswith("\\s"):
+        n = has_parenthesized_heading(line)
+        if n > 0:
+            hd = list(pphrase_re.finditer(line.strip()))[n-1]
+            heading = hd.group(1).strip("()")
+            if hd.start() == 0:
+                line = "\\s " + heading + "\n\\p\n" + line[hd.end():]
+                changed = True
+            elif hd.end() == len(line.strip()):
+                line = line[0:hd.start()] + "\n\\s " + heading + "\n"
+                changed = True
+            else:   # Can't handle heading in the middle of a line
+                pass
+    mark_sections.prevline = line
     return (changed, line)
 
 # Rewrites the file line by line, making changes to individual lines
