@@ -250,6 +250,11 @@ k_e     = usfmEndToken("k")
 # Peripherals
 periph = usfmTokenValue("periph", phrase)
 
+# Other paragraph types
+pm = usfmToken("pm")
+pmo = usfmToken("pmo")
+pmc = usfmToken("pmc")
+pmr = usfmToken("pmr")
 
 element =  MatchFirst([ide, id,
                        usfmV, h,
@@ -334,6 +339,7 @@ element =  MatchFirst([ide, id,
                        textBlock,
                        escape,
                        periph,
+                       pm, pmo, pmc, pmr,
                        unknown])
 
 usfm    = OneOrMore(element)
@@ -566,6 +572,10 @@ class UsfmToken:
     def is_bk_s(self):  return False
     def is_bk_e(self):  return False
     def is_periph(self):return False
+    def is_pm(self):    return False
+    def is_pmo(self):    return False
+    def is_pmc(self):    return False
+    def is_pmr(self):    return False
 
 class UnknownToken(UsfmToken):
     def renderOn(self, printer):
@@ -1298,6 +1308,20 @@ class PeriphToken(UsfmToken):
     def renderOn(self, printer):  return printer.render_periph(self)
     def is_periph(self):          return True
 
+# Other paragraphs
+class PMToken(UsfmToken):
+    def renderOn(self, printer):  return printer.render_pm(self)
+    def is_pm(self):              return True
+class PMOToken(UsfmToken):
+    def renderOn(self, printer):  return printer.render_pmo(self)
+    def is_pmo(self):              return True
+class PMCToken(UsfmToken):
+    def renderOn(self, printer):  return printer.render_pmc(self)
+    def is_pmc(self):              return True
+class PMRToken(UsfmToken):
+    def renderOn(self, printer):  return printer.render_pmr(self)
+    def is_pmr(self):              return True
+
 options = {
     # Listing the most common tags first
     'v':    VToken,
@@ -1452,5 +1476,9 @@ options = {
     'bk':   BKStartToken, 'bk*':  BKEndToken,
     'text': TEXTToken,
     'periph': PeriphToken,
+    'pm':   PMToken,
+    'pmo':  PMOToken,
+    'pmc':  PMCToken,
+    'pmr':  PMRToken,
     'unknown': UnknownToken
 }
