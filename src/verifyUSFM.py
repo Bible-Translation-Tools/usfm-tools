@@ -16,6 +16,7 @@ suppress = [False]*12
 std_titles = None
 state = None
 gui = None
+listener = None
 
 lastToken = None
 aligned_usfm = False
@@ -379,6 +380,8 @@ def reportError(msg, errorId=0, summarize_only=False):
         reportToGui('<<ScriptMessage>>', msg)
         write(msg, sys.stderr)
         openIssuesFile().write(msg + "\n")
+    if listener:
+        listener.error(msg, errorId)
 
     if errorId > 0:
         global issues
@@ -394,6 +397,8 @@ def reportError(msg, errorId=0, summarize_only=False):
 def reportProgress(msg):
     reportToGui('<<ScriptProgress>>', msg)
     write(msg, sys.stdout)
+    if listener:
+        listener.progress(msg)
 
 # Sends a status message to the GUI, and to stdout.
 def reportStatus(msg):
