@@ -115,6 +115,7 @@ class UsxHandler(xml.sax.ContentHandler):
         self.elements = []
         self.styles = []
         self.pop = 0
+        self.chapter = "0"
 
     # Implements ContentHandler.startElement
     def startElement(self, name, attrs):
@@ -132,10 +133,20 @@ class UsxHandler(xml.sax.ContentHandler):
                 handled = True
         elif name == "char" and style in {"add", "k", "nd", "pn", "qac", "qs", "qt", "sig", "sls", "tl", "wj"}:
             handled = True
-        elif name in {'chapter', 'verse'}:
+        elif name == "verse":
             if "sid" in attrs:
                 self.location = attrs['sid']
-                self.writer.writeUsfm(style, attrs['number'])
+            else:
+                self.location = f"{self.bookId} {self.chapter}:{attrs['number']}"
+            self.writer.writeUsfm(style, attrs['number'])
+            handled = True
+        elif name == "chapter":
+            self.chapter = attrs['number']
+            if "sid" in attrs:
+                self.location = attrs['sid']
+            else:
+                self.location = f"{self.bookId} {self.chapter}"
+            self.writer.writeUsfm(style, attrs['number'])
             handled = True
         elif name == 'usx':
             handled = True
