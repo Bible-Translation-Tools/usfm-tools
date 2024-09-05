@@ -36,6 +36,8 @@ class usfmWriter:
             if not self._newlined and s[0] == '\\':
                 s = "\n" + s
             elif not self._spaced and s[0] not in '.?!;:,)’”»›\n ':
+            # Indonesian TBI version of this condition:
+            # elif not self._spaced and s[0] not in '.?!;:,)’»›\n ':
                 s = " " + s
             self._file.write(s)
             self._spaced = (s[-1] == ' ')

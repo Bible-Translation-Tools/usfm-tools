@@ -833,6 +833,8 @@ def context(text, start, end):
 punctuation_re = re.compile(r'([.?!;:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)     # phrase ending punctuation that doesn't actually end
 # note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
 spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)    # space before phrase-ending mark
+# Indonesian TBI version of this expression:
+# spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’»›])', re.UNICODE)    # space before phrase-ending mark
 spacey2_re = re.compile(r'[\s][\[\]\(\'"«“‘’”»›][\s]', re.UNICODE)    # free floating marks
 spacey3_re = re.compile(r'[\(\'"«“‘’”»›][\s]', re.UNICODE)       # quote-space at beginning of verse
 spacey4_re = re.compile(r'[\s][\(\'"«“‘’”»›]$', re.UNICODE)       # quote-space at end of verse
