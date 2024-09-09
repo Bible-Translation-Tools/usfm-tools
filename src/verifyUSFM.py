@@ -80,7 +80,6 @@ class State:
         self.footnote_ends = 0
         self.endnote_starts = 0
         self.endnote_ends = 0
-        self.needVerseText = False
         self.reference = ""
         self.lastRef = ""
         self.startChunkRef = ""
@@ -163,12 +162,14 @@ class State:
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = PP
 
-    def addPoetry(self):
+    def addPoetry(self, value):
         self.nPoetry += 1
         self.nParagraphs += 1
         self.needQQ = False
         self.needPP = False
         self.textOkayHere = True
+        if value:
+            self.needVerseText = False
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = QQ
 
@@ -455,8 +456,8 @@ def isMixed(word):
             mixed = True
     return mixed
 
-# Scans the word list for anomalies.
-def scanWords():
+# Scans the word list for mixed case words.
+def reportMixedCase():
     mcwords = []
     limit = 20
     nSingleMixed = 0
@@ -673,7 +674,7 @@ def takeID(id):
 def reportParagraphMarkerErrors(type):
     if state.currItemCategory in {QQ,PP} and not suppress[4]:
         reportError("Warning: back to back paragraph/poetry markers near: " + state.reference, 24)
-    if state.needText() and not isOptional(state.reference):
+    if type == 'p' and state.needText() and not isOptional(state.reference):
         reportError("Paragraph marker after verse marker, or empty verse: " + state.reference, 25)
     if type == 'nb' and state.currItemCategory != C:
         reportError("\\nb marker should follow chapter marker: " + state.reference, 25.1)
@@ -690,9 +691,9 @@ def takeP(type):
     else:
         state.addParagraph()
 
-def takeQ(type):
+def takeQ(type, value):
     reportParagraphMarkerErrors(type)
-    state.addPoetry()
+    state.addPoetry(value)
 
 def takeS5():
     # longChunkCheck()
@@ -716,11 +717,11 @@ def takeTitle(token):
     if token.isTOC3():
         state.addToc3(token.value)
         global usfm_version
-        if usfm_version == 2:
-            if (len(token.value) != 3 or not token.value.isascii()):
-                reportError("Invalid toc3 value in " + state.reference, 64)
-            elif token.value.upper() != state.ID:
-                reportError(f"toc3 value ({token.value}) not the same as book ID in {state.reference}", 64.5)
+        # if usfm_version == 2:
+        #     if (len(token.value) != 3 or not token.value.isascii()):
+        #         reportError("Invalid toc3 value in " + state.reference, 64)
+        #     elif token.value.upper() != state.ID:
+        #         reportError(f"toc3 value ({token.value}) not the same as book ID in {state.reference}", 64.5)
     else:
         state.addTitle(token.value)
     if token.isMT() and token.value.isascii() and not suppress[9]:
@@ -1090,7 +1091,7 @@ def take(token):
     elif token.isQA():
         state.addAcrosticHeading()
     elif isPoetry(token):
-        takeQ(token.type)
+        takeQ(token.type, token.value)
     elif token.isD():
         takeD()
     elif token.isB():
@@ -1283,7 +1284,8 @@ def main(app=None):
                 reportError(f"No such file: {path}")
         else:
             verifyDir(workdir)
-        scanWords()
+        if not config.getboolean('suppress12', fallback = False):
+            reportMixedCase()
         dumpWords()
 
         global issuesFile
