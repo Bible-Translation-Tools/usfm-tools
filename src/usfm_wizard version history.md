@@ -1,5 +1,8 @@
 # UsfmWizard Version history
 
+## 1.3.1
+* Make check for mixed case words optional.
+
 ## 1.3 - 9/4/24
 * Add Usx-to-Usfm conversion process.
 * mark_paragraphs - optionally, copy \s5 markers from model text.
@@ -7,7 +10,7 @@
 * mark_paragraphs - ensure \p after \s
 * usfm_cleanup - mark parenthesized section titles with high confidence.
 * usfm_cleanup - other minor improvements.
-* Support newer USFM paragraph styles (mark_paragraphs and verifyUsfm).
+* Support \pm, \pmo, \pmc, and \pmr USFM markers
 
 ## 1.2.4
 * Add paratext / usfm file conversion.

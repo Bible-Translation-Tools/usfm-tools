@@ -57,7 +57,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.compare_dir = StringVar()
         for var in (self.source_dir, self.filename, self.compare_dir):
             var.trace_add("write", self._onChangeEntry)
-        self.suppress = [BooleanVar(value = False) for i in range(12)]
+        self.suppress = [BooleanVar(value = False) for i in range(13)]
         self.suppress[6].trace_add("write", self._onChangeQuotes)
         self.suppress[7].trace_add("write", self._onChangeQuotes)
         for col in [2,3,4]:
@@ -164,6 +164,10 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         suppress11_checkbox.grid(row=13, column=3, sticky=W)
         suppress11_Tip = Hovertip(suppress11_checkbox, hover_delay=500,
              text=r'Suppress "Punctuation missing at end of paragraph" warnings; report totals only')
+
+        suppress12_checkbox = ttk.Checkbutton(self, text=r'Mixed-case words', variable=self.suppress[12],
+                                             onvalue=True, offvalue=False)
+        suppress12_checkbox.grid(row=13, column=4, sticky=W)
 
         self.message_area['wrap'] = "none"
         xs = ttk.Scrollbar(self, orient = 'horizontal', command = self.message_area.xview)

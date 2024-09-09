@@ -134,7 +134,8 @@ class ToolsConfigManager:
                        'suppress8': False,
                        'suppress9': False,
                        'suppress10': False,
-                       'suppress11': False }
+                       'suppress11': False,
+                       'suppress12': False, }
             case 'Word2text':
                 sec = {'source_dir': "",
                        'filename': "",
