@@ -55,7 +55,7 @@ class MarkParagraphs(g_step.Step):
         nIssues = 0
         if self.script == "mark_paragraphs":
             issuespath = os.path.join(self.values['source_dir'], "issues.txt")
-            if time.time() - os.path.getmtime(issuespath) < 10:     # issues.txt is recent
+            if os.path.exists(issuespath) and time.time() - os.path.getmtime(issuespath) < 10:     # issues.txt is recent
                 nIssues = 1
             else:
                 msg = "No issues reported."
@@ -165,7 +165,7 @@ or don't run this process.")
         self._set_button_status()
 
     def onScriptEnd(self, nIssues):
-        issuespath = os.path.join(self.values['source_dir'], "issues.txt")
+        # issuespath = os.path.join(self.values['source_dir'], "issues.txt")
         if nIssues > 0:
             self.message_area.insert('end', "Now issues.txt contains the list of issues encountered in marking paragraphs.\n")
             self.message_area.insert('end', "Resolve as appropriate.\n")
