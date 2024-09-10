@@ -5,8 +5,8 @@ import re
 
 firstword_re = re.compile(r'([\w]+)')
 nextsent_re = re.compile(r'[.?!\u0964].*?([\w]+)')
-specialquoted_re = re.compile(r'[\?\!\u0964][\'"’”»\-——]')    # exception to sentence ending
-endsentence_re = re.compile(r'[.?!\u0964][^\w]*$')
+specialquoted_re = re.compile(r'[?!\u0964\u1362][\'"’”»\-——]')    # exception to sentence ending
+endsentence_re = re.compile(r'[.?!\u0964\u1362][^\w]*$')
 
 # Returns True if the specified text ends with sentence-ending punctuation:
 #    period, question mark, exclamation mark, or the Indian character । (\u0964)
