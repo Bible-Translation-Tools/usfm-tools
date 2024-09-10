@@ -200,11 +200,11 @@ def takeP(tag, value, nexttoken):
         state.addP(state.bridge+1)
         state.usfm.writeUsfm(tag, value)
 
-def takeQ(tag, value, nexttoken):
-    if nexttoken.isV():
-        mayInsertS5()
-    state.addQ()
-    state.usfm.writeUsfm(tag, value)
+# def takeQ(tag, value, nexttoken):
+#     if nexttoken.isV():
+#         mayInsertS5()
+#     state.addQ()
+#     state.usfm.writeUsfm(tag, value)
 
 def takeS5():
     if not state.s5Already() and not config.getboolean('removeS5markers', fallback=True):
@@ -270,7 +270,8 @@ def take(token, nexttoken):
     elif isParagraph(token, scanning=False):
         takeP(token.type, token.value, nexttoken)
     elif isPoetry(token):
-        takeQ(token.type, token.value, nexttoken)
+        # takeQ(token.type, token.value, nexttoken)
+        takeP(token.type, token.value, nexttoken)
     elif token.isS5():
         takeS5()
     elif isSection(token):
