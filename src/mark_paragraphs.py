@@ -36,11 +36,10 @@ class State:
 
     def reset_data(self, fname):
         self.fname = fname
-        self.chapter = 0
-        self.verse = 0
+        self.chapter = self.verse = 0
         self.bridge = 0
-        self.pChapter = 0
-        self.pVerse = 0
+        self.pChapter = self.pVerse = 0
+        self.s5chapter = self.s5verse = -1
         self.needPmarker = 0
         self.reference = fname
         self.paragraphs_model = []
@@ -76,9 +75,9 @@ class State:
 
     # Records the location of a paragraph marker found in the input text...
     # 8/9/24 ... or added by takeV() or takeText()
-    def addP(self):
+    def addP(self, nextverse):
         self.pChapter = self.chapter
-        self.pVerse = self.bridge + 1
+        self.pVerse = nextverse
         self.expectText = True
         self.needPmarker = 0
 
@@ -87,15 +86,21 @@ class State:
         self.needPmarker = 0
 
     # Sets expectText and needPmarker to ensure that \p will follow any section marker
-    # other than \s5.
+    # Do not use this method for \s5 markers.
     def addS(self, tag):
         self.midSentence = False    # fair assumption
         self.expectText = False
-        self.sChapter = self.chapter
-        self.sVerse = self.bridge
+        # self.sChapter = self.chapter
+        # self.sVerse = self.bridge
         self.sTag = tag
-        if tag != "s5":
-            self.needPmarker = self.bridge + 1
+        self.needPmarker = self.bridge + 1
+
+    def addS5(self):
+        self.midSentence = False
+        self.expectText = False
+        self.sTag = "s5"
+        self.s5chapter = self.chapter
+        self.s5verse = self.bridge
 
     def addText(self, endsSentence):
         self.expectText = False
@@ -121,12 +126,9 @@ class State:
         currVerse = self.verse if current else self.verse + 1
         return self.pVerse >= currVerse and self.pChapter == self.chapter
 
-    # Returns section tag if a section was already marked on the preceding verse.
-    def sAlready(self):
-        tag = None
-        if self.sVerse == self.bridge and self.sChapter == self.chapter:
-            tag = self.sTag
-        return tag
+    # Returns True if an \s5 was already marked on the preceding verse.
+    def s5Already(self):
+        return (self.s5verse == self.bridge and self.s5chapter == self.chapter)
 
     # Returns the paragraph mark that occurred in the model file at the current location.
     def pmarkInModel(self):
@@ -162,6 +164,15 @@ class State:
     def usfmClose(self):
         self.usfm.close()
 
+# Inserts \s5 mark if needed
+def mayInsertS5(newchapter=False):
+    if not state.s5Already():
+        if (newchapter and config.getboolean('s5_only')) or (state.smarkInModel() == "s5" and not config.getboolean("removes5markers")):
+            state.usfm.writeUsfm("s5")
+            state.addS5()
+            global nCopied
+            nCopied += 1
+
 # Write character style tags to the file with or without a newline as appropriate
 def takeStyle(key):
     state.usfm.writeUsfm(key, None)
@@ -181,19 +192,24 @@ def takeID(id):
     state.addID( id[0:3].upper() )
 
 # Copies paragraph marker to output unless output already has a paragraph there.
-def takeP(tag, value):
+# Insert \s5 first, if needed.
+def takeP(tag, value, nexttoken):
+    if nexttoken.isV():
+        mayInsertS5()
     if not state.pAlready(current=False):
-        state.addP()
+        state.addP(state.bridge+1)
         state.usfm.writeUsfm(tag, value)
 
-def takeQ(tag, value):
+def takeQ(tag, value, nexttoken):
+    if nexttoken.isV():
+        mayInsertS5()
     state.addQ()
     state.usfm.writeUsfm(tag, value)
 
 def takeS5():
-    if not state.sAlready() and not config.getboolean('removeS5markers', fallback=True):
+    if not state.s5Already() and not config.getboolean('removeS5markers', fallback=True):
         state.usfm.writeUsfm("s5", None)
-        state.addS("s5")
+        state.addS5()
     else:
         global nRemoved
         nRemoved += 1
@@ -206,19 +222,17 @@ vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 def takeV(v):
     global nCopied
-    if not config.getboolean("removes5markers") and state.smarkInModel() == "s5" and not state.sAlready():
-        state.usfm.writeUsfm("s5")
-        state.addS("s5")
-        nCopied += 1
+    mayInsertS5()
     state.addVerse(v)
     if not state.pAlready(current=True) and not config.getboolean('s5_only') and (not state.isMidSentence() or not config.getboolean('sentence_sensitive', fallback=True)):
         if pmark := state.pmarkInModel():
             state.usfm.writeUsfm(pmark)
-            state.addP()    # added 8/9/24
+            state.addP(state.verse)    # added 8/9/24
             nCopied += 1
     if not state.pAlready(current=True) and state.needP() == state.verse:  # occasioned by chapter or section heading
         state.usfm.writeUsfm("p")
-        state.addP()
+        state.addP(state.verse)
+        nCopied += 1
     state.usfm.writeUsfm("v", v)
 
 def takeText(t):
@@ -229,30 +243,34 @@ def takeText(t):
     if smark and smark != "s5":
         state.usfm.writeUsfm(smark, t)
         nCopied += 1
-        state.addP()           # PTXprint wants a paragraph or poetry mark after section heading
+        state.addP(state.bridge+1)           # PTXprint wants a paragraph or poetry mark after section heading
         state.usfm.writeUsfm("p")
     else:
         state.usfm.writeStr(t)
         state.addText( sentences.endsSentence(t) )
 
 # Output chapter
+# If we are copying \s5 markers, insert one before every chapter
 def takeC(c):
+    global nCopied
+    if config.getboolean('s5_only'):
+        mayInsertS5(True)
     state.addChapter(c)
     state.usfm.writeUsfm("c", c)
 
 # Handles the specified token from the input file.
 # Inserts paragraph and section markers where needed from model.
-def take(token):
+def take(token, nexttoken):
     if token.isV():
         takeV(token.value)
     elif token.isTEXT():
         takeText(token.value)
     elif token.isC():
         takeC(token.value)
-    elif isParagraph(token):
-        takeP(token.type, token.value)
+    elif isParagraph(token, scanning=False):
+        takeP(token.type, token.value, nexttoken)
     elif isPoetry(token):
-        takeQ(token.type, token.value)
+        takeQ(token.type, token.value, nexttoken)
     elif token.isS5():
         takeS5()
     elif isSection(token):
@@ -279,10 +297,10 @@ def isCharacterStyle(token):
     return token.isBDS() or token.isBDE() or token.isITS() or token.isITE() or token.isBDITS() or token.isBDITE() \
 or token.isADDS() or token.isADDE() or token.isPNS() or token.isPNE()
 
-def isParagraph(token):
+def isParagraph(token, scanning):
     pmark = token.isP() or token.isM() or token.isPI() or token.isPC() or token.isNB() or token.isB() \
         or token.is_ip() or token.is_iot() or token.is_io() or token.is_io2()
-    if (token.isNB() or token.isB() or token.isM()) and not config.getboolean('copy_nb', fallback=False):
+    if scanning and (token.isNB() or token.isB() or token.isM()) and not config.getboolean('copy_nb', fallback=False):
         pmark = False
     return pmark
 
@@ -299,7 +317,7 @@ backslash_re = re.compile(r'\\\s')
 jammed_re = re.compile(r'(\\v +[-0-9]+[^-\s0-9])', re.UNICODE)
 usfmcode_re = re.compile(r'(\\[^a-z\+])', re.UNICODE)
 
-def isParseable(str, fname):
+def isParseable(str, usfmpath, fname):
     parseable = True
     if backslash_re.search(str):
         reportError(f"{fname} contains stranded backslash(es) followed by space or newline")
@@ -308,6 +326,9 @@ def isParseable(str, fname):
         parseable = True   # let it convert because the bad spots are easier to locate in the converted USFM
     if badcode := usfmcode_re.search(str):
         reportError(f"{fname} contains foreign usfm code(s): {badcode.group(1)}")
+        parseable = False
+    if os.path.getsize(usfmpath) < 1000:
+        reportError(f"{usfmpath} is incomplete, too small")
         parseable = False
     return parseable
 
@@ -324,13 +345,16 @@ def convertFile(usfmpath, fname):
         str = input.read(-1)
 
     sys.stdout.flush()
-    success = isParseable(str, fname)
+    success = isParseable(str, usfmpath, fname)
     if success:
         reportProgress(f"Converting {fname}")
         sys.stdout.flush()
         tokens = parseUsfm.parseString(str)
-        for token in tokens:
-            take(token)
+        token = tokens[0]   # safe because isParseable should reject empty files
+        for nexttoken in tokens[1:]:
+            take(token, nexttoken)
+            token = nexttoken
+        take(token, token)
         state.usfmClose()
         if nCopied > startn or nRemoved > startnRemoved:
             renameUsfmFiles(usfmpath)
@@ -500,7 +524,7 @@ def scan(token):
         scanV(token.value)
     elif token.isTEXT():
         scanText()
-    elif isParagraph(token) or isPoetry(token):
+    elif isParagraph(token, scanning=True) or isPoetry(token):
         scanPQ(token.type)
     elif isSection(token):
         scanS(token.type)
@@ -515,7 +539,7 @@ def scanModelFile(modelpath, fname):
         str = input.read(-1)
         input.close()
         sys.stdout.flush()
-        success = isParseable(str, os.path.basename(modelpath))
+        success = isParseable(str, modelpath, os.path.basename(modelpath))
         if success:
             reportProgress(f"Parsing model file: {fname}")
             sys.stdout.flush()
