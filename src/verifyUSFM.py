@@ -73,6 +73,7 @@ class State:
         self.needVerseText = False
         self.textLength = 0
         self.versetext = ""
+        self.asciiVerse = True
         self.textOkayHere = False
         self.sentenceEnd = True
         self.quotedSentenceEnd = False
@@ -429,7 +430,7 @@ def reportIssues():
     for issue in sorted(issues.items(), key=lambda kv: kv[1][1], reverse=True):
         total += issue[1][1]
         issuesfile.write(f"{issue[1][0]}...:  {issue[1][1]} occurrence(s){issue[1][2]}.\n")
-    issuesfile.write(f"\n{total} issues found.")
+    issuesfile.write(f"\n{total} issues found.\n")
 
 # Writes the word list to a file.
 def dumpWords():
