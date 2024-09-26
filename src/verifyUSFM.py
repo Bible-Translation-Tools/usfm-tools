@@ -474,7 +474,7 @@ def reportMixedCase():
                 mcwords.append(entry[0])
     if 0 < len(mcwords) < limit:
         start = "Other mixed" if nSingleMixed > 0 else "Mixed"
-        reportError(f"{start} case words: {mcwords}", 0.2)
+        reportError(f"{start} case words occur more than once each: {mcwords}", 0.2)
     elif len(mcwords) >= limit:
         reportError("Too many mixed case words; reporting cancelled", 0.3)
 
@@ -565,7 +565,7 @@ def verifyBookTitle():
         if title and title != en_name:
             title_ok = True
     if not title_ok:
-        reportError("No non-English book title for " + en_name, 5)
+        reportError("Book title matches English: " + en_name, 5)
 
 # Reports inconsistent chapter titling
 def verifyChapterTitles():
@@ -579,13 +579,13 @@ def verifyChapterTitles():
 # This method is called just before the next chapter begins.
 def verifyVerseCount():
     if state.chapter > 0 and state.verse != nVerses(state.ID, state.chapter):
-        # Acts may have 40 o4 41 verses, normally 41.
+        # Acts may have 40 or 41 verses, normally 41.
         # 2 Cor. may have 13 or 14 verses, normally 14.
         # 3 John may have 14 or 15 verses, normally 14.
         # Revelation 12 may have 17 or 18 verses, normally 17.
         if state.reference != 'REV 12:18' and state.reference != '3JN 1:15' and state.reference != '2CO 13:13' \
             and state.reference != 'ACT 19:40':
-            reportError(f"Chapter normally has {nVerses(state.ID, state.chapter)} verses: {state.reference}", 8)
+            reportError(f"Chapter usually has {nVerses(state.ID, state.chapter)} verses: {state.reference}", 8)
 
 def verifyFootnotes():
     if state.footnote_starts != state.footnote_ends:
