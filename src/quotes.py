@@ -27,6 +27,7 @@ quote4_re = re.compile(r'[\.!\?][’”]*([\'"]+)')     # period/bang/question q
 quote5_re = re.compile(r'\w[’”]*([\'"]+) *\n')        # word quotes EOL
 quote6_re = re.compile(r'\w[\w ][’”]*([\'"]+\?)')       # quotes question => close quotes question
 quote8_re = re.compile(r'\n *([\'"]+)\w')   # quotes word at start of line
+snglquote9_re = re.compile(r'‘[^“‘\'’”\n\\]+[^\s“‘\'’”\n\\](\')[^\w]')  # quote at end of word if there is a matching open quote on the same line
 opentrans = str.maketrans('\'"', "‘“")
 closetrans = str.maketrans('\'"', '’”')
 
@@ -49,7 +50,8 @@ def promoteQuotes(str):
     str = translate(str, quote5_re, closetrans)
     str = translate(str, quote6_re, closetrans)
     str = translate(str, quote8_re, opentrans)
-
+    str = translate(str, snglquote9_re, closetrans)
+    str = translate(str, dblquote9_re, closetrans)
     for pair in subs:
         str = str.replace(pair[0], pair[1])
     return str
@@ -62,6 +64,7 @@ dblquote4_re = re.compile(r'[\.!\?][’\']*("+)')     # period/bang/question " =
 dblquote5_re = re.compile(r'\w[’\']*("+) *\n')        # word " EOL => ”
 dblquote6_re = re.compile(r'\w[\w ][’”]*("+\?)')       # " question => ” question
 dblquote8_re = re.compile(r'\n *("+)[\w\'‘]')   # " word at start of line => “
+dblquote9_re = re.compile(r'“[^“‘\'’”\n\\]+[^\s“‘\'’”\n\\](")[^\w]')  # quote at end of word if there is a matching open quote on the same line
 dblopentrans = str.maketrans('"', '“')
 dblclosetrans = str.maketrans('"', '”')
 # dblsubs is a list of tuples to be used for string substitutions.
@@ -100,6 +103,7 @@ def promoteDoubleQuotes(str):
     str = translate(str, dblquote5_re, dblclosetrans)
     str = translate(str, dblquote6_re, dblclosetrans)
     str = translate(str, dblquote8_re, dblopentrans)
+    str = translate(str, dblquote9_re, dblclosetrans)
 
     for pair in dblsubs:
         str = str.replace(pair[0], pair[1])
