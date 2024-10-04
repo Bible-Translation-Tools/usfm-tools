@@ -1,14 +1,25 @@
 # -*- coding: utf-8 -*-
 # Script for verifying proper USFM.
-# Reports errors to stderr and issues.txt.
-# Uses these config values:
+# Reports errors to the GUI, stderr, and issues.txt.
+# Uses these config values, set via ConfigManager:
 #   source_dir - location of files to be checked.
 #       This is an unfortunate name, because source_dir contains the translated text, not the source text.
 #   compare_dir - location of files containing the source text,
 #       against which the translated text may be compared.
-#   file  (optional)
+#   filename  (optional, checks all files if omitted)
 #   standard_chapter_title (optional)
-#   suppress1 thru suppress11 (optional)
+#   suppress[1]  - Suppress all warnings about numbers. (possible verse number in verse, space in number, number prefix/suffix, etc.)
+#   suppress[2]  - Suppress warnings about missing paragraph marker before verse 1. (needed by PTX-Print)
+#   suppress[3]  - Suppress most warnings about punctuation
+#   suppress[4]  - Suppress warnings about invalid placement of paragraph/poetry markers
+#   suppress[5]  - Suppress checks for verse counts
+#   suppress[6]  - Suppress warnings about straight double and single quotes
+#   suppress[7]  - Suppress warnings about straight single quotes  (report straight double quotes only)
+#   suppress[8]  - Suppress warnings about UPPER CASE BOOK TITLES
+#   suppress[9]  - Suppress warnings about ASCII content
+#   suppress[10] - Suppress "First word not capitalized" warnings; report totals only
+#   suppress[11] - Suppress "Punctuation missing at end of paragraph" warnings; report totals only'
+#   suppress[12] - Suppress warnings about Mixed-case words.
 # Detects whether files are aligned USFM.
 
 config = None
