@@ -10,6 +10,15 @@ import pytest
 
 @pytest.mark.parametrize('str, result',
     [
+        ('“phrase partially quoted" ', '“phrase partially quoted” '),
+        ('‘phrase partially quoted" ', '‘phrase partially quoted" '),
+        ('‘phrase partially quoted\' ', '‘phrase partially quoted’ '),
+        ('‘phrase partially quoted\'embedded ', '‘phrase partially quoted\'embedded '),
+        ('‘phrase “partially quoted\' ', '‘phrase “partially quoted\' '),
+        ('“phrase “partially quoted" ', '“phrase “partially quoted” '),
+        ('“phrase "partially quoted" ', '“phrase “partially quoted” '),
+        ('“phrase \'partially quoted" ', '“phrase ‘partially quoted" '),
+
         (' \'word\' ', ' ‘word’ '),    # single word in quotes
         (' "word")',  ' “word”)'),
         ('X"word"', 'X"word"'),
