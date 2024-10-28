@@ -2,6 +2,8 @@
 
 ## 1.3.1
 * Make check for mixed case words optional.
+* usfm_cleanup - ensure space before left paren
+* usfm_cleanup - make section title recognition optional.
 
 ## 1.3 - 9/4/24
 * Add Usx-to-Usfm conversion process.
