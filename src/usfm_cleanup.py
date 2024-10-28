@@ -305,15 +305,17 @@ def has_parenthesized_heading(line):
         n += 1
         str = possible_hd.group(1).strip("()")
         if str.isupper() or percentTitlecase(str) >= 0.5:
+        # if str.isupper() or (" " in str and percentTitlecase(str) >= 0.5): # exclude single-word non-headings in parens
             posn = n
             break
     return posn
 
 verse_re = re.compile(r'\\v +(0-9)+')
 textstart_re = re.compile(r' *[^\\<\n]')
-# pheading_re = re.compile(r'(\([\w- ]+\))')
 
-# Returns True if the specified line is unmarked text.
+# If the specified line is a section heading, returns (True, line), the line being modified.
+# Line modification consists of prepending "\s " and possibly inserting newline before/after heading.
+# Otherwise, returns (False, line), the line being unchanged.
 def mark_sections(line):
     if not hasattr(mark_sections, "prevline"):
         mark_sections.prevline = "xx"
@@ -352,11 +354,13 @@ def convert_by_line(path):
         lines = input.readlines()
     output = io.open(path, "tw", encoding='utf-8', newline='\n')
     changedfile = False
+    changed3 = False
 
     for line in lines:
         (changed1, line) = change_quote_medial(line)
         (changed2, line) = change_floating_quotes(line)
-        (changed3, line) = mark_sections(line)
+        if enable[7]:
+            (changed3, line) = mark_sections(line)
         if changed1 or changed2 or changed3:
             changedfile = True
         output.write(line)
