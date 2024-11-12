@@ -46,11 +46,12 @@ def makeUsfmFilename(bookId):
         reportError(f"Invalid book ID: {bookId}")
     return fname
 
-format1_re = re.compile(r'[0-6][0-9]-?([\dA-Z]{3})')
+format1_re = re.compile(r'0?[0-6][0-9]-?([123AC-EG-JL-PR-TZ][A-Z][A-Z])')
 
-def bookidfromPtxfile(fname):
+# Returns the apparent book ID from the specified file name.
+def bookidfromFilename(fname):
     bookid = ""
-    found = format1_re.match(fname)
+    found = format1_re.match(fname.upper())
     if found:
         bookid = found.group(1)
     return bookid
@@ -65,7 +66,7 @@ def copyfile(path, newpath):
 
 def convertFile(path:Path, target_dir):
     count = 0
-    bookid = bookidfromPtxfile(path.name)
+    bookid = bookidfromFilename(path.name)
     fname = makeUsfmFilename(bookid)
     if fname:
         newpath = os.path.join(target_dir, fname)
