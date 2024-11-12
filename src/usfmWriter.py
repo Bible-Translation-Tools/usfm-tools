@@ -54,6 +54,8 @@ class usfmWriter:
         self._newlined = False
         if value:
             self.writeStr(value)
+            if key == 'v':
+                self.writeStr(" ")  # ensure correct verse marker even when next char is phrase-ending
 
     # Inserts the specified number of line breaks (defualt 1) into the file.
     def newline(self, n=1):
