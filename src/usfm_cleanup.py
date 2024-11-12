@@ -145,12 +145,13 @@ def fix_booktitles(str):
     str = fix_booktitles_x(str, re.compile(r'(\\mt1? )([^\n]+\n)'))
     return str
 
-spacey3_re = re.compile(r'\\v [0-9]+ ([\(\'"«“‘])[\s]', re.UNICODE)    # verse starts with free floating quote mark
-jammedparen_re = re.compile(r'[^\s]\(')
+spacey3_re = re.compile(r'\\v [0-9]+ ([\(\[\'"«“‘])[\s]', re.UNICODE)    # verse starts with free floating punctuation
+jammedparen_re = re.compile(r'[^\s][\(\[]')
 
-# Replaces substrings from substitutions module
-# Reduces double periods to single periods
-# Removes space after quote or left paren at beginning of verse.
+# 1. Replaces substrings from substitutions module
+# 2. Reduces double periods to single.
+# 3. Fixes free floating punctuation after verse marker.
+# 4. Adds space before left paren/bracket where needed.
 def fix_punctuation(str):
     for pair in substitutions.subs:
         str = str.replace(pair[0], pair[1])
@@ -163,14 +164,17 @@ def fix_punctuation(str):
     if bad := spacey3_re.search(str):
         pos = bad.end()
         str = str[:pos-1] + str[pos:]
-    if bad := jammedparen_re.search(str):
+    bad = jammedparen_re.search(str)
+    while bad:
         pos = bad.start() + 1
         str = str[:pos] + ' ' + str[pos:]
+        bad = jammedparen_re.search(str)
     return str
 
 # spacing_list is a list of compiled expressions where a space needs to be inserted
-spacing_list = [ re.compile(r'[\.,;:”][A-Za-z]'),
-                 re.compile(r'[^\s][\(\[]') ]
+# after the first matched character.
+spacing_list = [ re.compile(r'[\.,;:”)\]][\w]'),
+                 re.compile(r'[^\s][(\[“]') ]
 
 # Adds spaces where needed. spacing_list controls what happens.
 # spacing_list may need to be customized for every language.
