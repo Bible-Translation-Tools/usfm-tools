@@ -10,6 +10,22 @@ import pytest
 
 @pytest.mark.parametrize('str, newstr',
     [
+        ('.The house.about.', '. The house. about.'),
+        ('!The house.about.', '!The house. about.'),
+        ('quoted.”The house', 'quoted.” The house'),
+        ('quoted.“The house;', 'quoted. “The house;'),
+        ('quoted:12 disciples,11 men”', 'quoted: 12 disciples, 11 men”'),
+        ('sentence.[The house;', 'sentence. [The house;'),
+        ('word(?)', 'word (?)'),
+        ('?”While,june;kiln^lamb(men)names]oh[,peace“que::road..such.thin:', '?” While, june; kiln^lamb (men) names] oh [, peace “que:: road.. such. thin:'),
+        ('eol:\nNew', 'eol:\nNew'),
+    ])
+def test_add_spaces(str, newstr):
+    import usfm_cleanup
+    assert usfm_cleanup.add_spaces(str) == newstr
+
+@pytest.mark.parametrize('str, newstr',
+    [
         ('\\p\n\\s Heading', '\\p\n\\s Heading'),
         ('\\p \\s Heading', '\\p \\s Heading'),
         ('\n\\p\n\\s Heading\n', '\n\\s Heading\n\\p\n'),
@@ -91,10 +107,17 @@ def test_fix_booktitles(str, newstr):
 @pytest.mark.parametrize('str, newstr',
     [
         ('first,, second', 'first, second'),
+        ('first(second', 'first (second'),
+        ('first(second[third', 'first (second [third'),
+        ("beats..", "beats."),
+        ('\\v 13 \' first(second', '\\v 13 \'first (second'),
+        ('\\v 13 « first(second', '\\v 13 «first (second'),
+        ('first,, second', 'first, second'),
     ])
-# Replaces substrings from substitutions module
-# Reduces double periods to single periods
-# Removes space after quote or left paren at beginning of verse.
+# 1. Replaces substrings from substitutions module
+# 2. Reduces double periods to single.
+# 3. Fixes free floating punctuation after verse marker.
+# 4. Adds space before left paren/bracket where needed.
 def test_fix_punctuation(str, newstr):
     import usfm_cleanup
     assert usfm_cleanup.fix_punctuation(str) == newstr
