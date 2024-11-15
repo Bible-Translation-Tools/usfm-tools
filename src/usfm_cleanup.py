@@ -173,18 +173,19 @@ def fix_punctuation(str):
 
 # spacing_list is a list of compiled expressions where a space needs to be inserted
 # after the first matched character.
-spacing_list = [ re.compile(r'[\.,;:”)\]][\w]'),
-                 re.compile(r'[^\s][(\[“]') ]
+spacing_list = [ re.compile(r'[\.,;:)\]][\w]'),
+                 re.compile(r'[^\s][(\[]')  ]
 
 # Adds spaces where needed. spacing_list controls what happens.
 # spacing_list may need to be customized for every language.
 def add_spaces(str):
     for sub_re in spacing_list:
-        found = sub_re.search(str)
+        found = sub_re.search(str, 0)
         while found:
             pos = found.start() + 1
-            str = str[:pos] + ' ' + str[pos:]
-            found = sub_re.search(str)
+            if str[pos-1] not in ".," or not str[pos].isdigit() or (pos>1 and not str[pos-2].isdigit()):
+                str = str[:pos] + ' ' + str[pos:]
+            found = sub_re.search(str, pos+1)
     return str
 
 # Rewrites file and returns True if any changes are made.
@@ -243,14 +244,24 @@ def find_mate(quote, pos, line):
         matepos = -1
     return matepos
 
-quotemedial_re = re.compile(r'[\w][\.\?!;\:,](["\'«“‘’”»])[\w]', re.UNICODE)    # adjacent punctuation where second char is a quote mark
+q1_re = re.compile(r'[\w][\.\?!;\:,](["\'«“‘’”»])[\w]')    # adjacent punctuation where second char is a quote mark
+q2_re = re.compile(r'[\w][\.\?!;\:,](["«“‘’”»])[\w]')
+q3_re = re.compile(r'[\w][\.\?!;\:,]([«“‘’”»])[\w]')
 
 # Finds sequences of phrase-ending punctuation followed by a quote,
 #   adjacent to word-forming characters on both sides.
-# Inserts space before or after the quotes, as appropriate.
-def change_quote_medial(line):
+# Locates matching quote in the same line.
+# Inserts space before or after the quote, as appropriate.
+def change_quote_medial(line, all, double):
     pos = 0
     changed = False
+    if all:   # all straight quotes can be considered quotation marks
+        quotemedial_re = q1_re
+    elif double:    # only straight double quotes can be considered quotation marks
+        quotemedial_re = q2_re
+    else:   # not safe to insert spaces around straight quotes
+        quotemedial_re = q3_re
+
     while bad := quotemedial_re.search(line):
         pos = bad.start() + 2
         matepos = find_mate(bad.group(1), pos, line)
@@ -361,7 +372,7 @@ def convert_by_line(path):
     changed3 = False
 
     for line in lines:
-        (changed1, line) = change_quote_medial(line)
+        (changed1, line) = change_quote_medial(line, enable[4], enable[3])
         (changed2, line) = change_floating_quotes(line)
         if enable[7]:
             (changed3, line) = mark_sections(line)
