@@ -9,6 +9,10 @@
 
 subs = [
     # Temporary subs
+    ("¹", "1"),
+    ("²", "2"),
+    ("³", "3"),
+    ("⁴", "4"),
     #("Ye sus", "Yesus"),
     #("Yes us", "Yesus"),
     #("Yesu s", "Yesus"),
@@ -103,11 +107,11 @@ subs = [
 	("! \"\n", "!\"\n"),
 	(" »", "»"),
 	(". ”", ".”"),
-	(". ’", ".’"),
+	(". ’", ".’"),  # comment out where ’ can be a word-forming character used at the beginning of words
 	("! ”", "!”"),
-	("! ’", "!’"),
+	("! ’", "!’"),  # comment out where ’ can be a word-forming character used at the beginning of words
 	("? ”", "?”"),
-	("? ’", "?’"),
+	("? ’", "?’"),  # comment out where ’ can be a word-forming character used at the beginning of words
 
     ("( ", "("),
     (" )", ")"),
