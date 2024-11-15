@@ -12,13 +12,16 @@ import pytest
     [
         ('.The house.about.', '. The house. about.'),
         ('!The house.about.', '!The house. about.'),
-        ('quoted.”The house', 'quoted.” The house'),
-        ('quoted.“The house;', 'quoted. “The house;'),
+        ('quoted.”The house', 'quoted.”The house'),     # change_quote_medial() handles this
+        ('quoted.“The house;', 'quoted.“The house;'),  # change_quote_medial() handles this
         ('quoted:12 disciples,11 men”', 'quoted: 12 disciples, 11 men”'),
         ('sentence.[The house;', 'sentence. [The house;'),
         ('word(?)', 'word (?)'),
-        ('?”While,june;kiln^lamb(men)names]oh[,peace“que::road..such.thin:', '?” While, june; kiln^lamb (men) names] oh [, peace “que:: road.. such. thin:'),
+        ('?”While,june;kiln^lamb(men)names]oh[,peace“que::road..such.thin:', '?”While, june; kiln^lamb (men) names] oh [, peace“que:: road.. such. thin:'),
         ('eol:\nNew', 'eol:\nNew'),
+        ('7:000', '7: 000'),
+        ('7,000', '7,000'),
+        ('eos,s,t', 'eos, s, t'),
     ])
 def test_add_spaces(str, newstr):
     import usfm_cleanup
@@ -140,3 +143,20 @@ def test_fix_punctuation(str, newstr):
 def test_has_parenthesized_heading(str, posn):
     import usfm_cleanup
     assert usfm_cleanup.has_parenthesized_heading(str) == posn
+
+@pytest.mark.parametrize('str, all, double, newstr',
+    [
+        ('first,second', True, True, 'first,second'),
+        ('first,"second', True, True, 'first,"second'),
+        ("o'jole oddo,'Me", True, True, "o'jole oddo,' Me"),
+        ("o'jole oddo,'Me", False, True, "o'jole oddo,'Me"),
+        ("o'jole oddo,'Me", False, False, "o'jole oddo,'Me"),
+        ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", True, True, "oddo, 'Me ri rossosu i'jâkikâle ~bwo, "),
+        ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", False, True, "oddo,'Me ri rossosu i'jâkikâle ~bwo, "),
+        ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", False, False, "oddo,'Me ri rossosu i'jâkikâle ~bwo, "),
+   ])
+def test_change_quote_medial(str, all, double, newstr):
+    import usfm_cleanup
+    assert usfm_cleanup.change_quote_medial(str, all, double)[1] == newstr
+
+    
