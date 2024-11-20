@@ -57,6 +57,7 @@ PP = 1      # paragraph or quote
 QQ = 2      # poetry
 B = 3       # \b for blank line; no titles, text, or verse markers may immediately follow
 C = 4       # \c
+S = 5
 OTHER = 9
 
 # Manages the verify state for a single usfm file.
@@ -187,7 +188,7 @@ class State:
 
     def addSection(self):
         self.prevItemCategory = self.currItemCategory
-        self.currItemCategory = OTHER
+        self.currItemCategory = S
 
     # Records the start of a new chunk
     def addS5(self):
@@ -626,6 +627,8 @@ def takeC(c):
     if c != "1":
         previousVerseCheck()
         # longChunkCheck()
+    if state.currItemCategory == S:
+        reportError(f"Section heading at end of chapter: {state.reference}", 13.2)
     state.addChapter(c)
     if state.chapter < 1 or state.chapter > nChapters(state.ID):
         reportError(f"Invalid chapter number ({c}) is found after {state.lastRef}", 13.1)
@@ -723,6 +726,8 @@ def reportSectionPrecedentErrors(tag):
 def takeSection(tag):
     if tag != 's5' and not suppress[4]:
         reportSectionPrecedentErrors(tag)
+    if state.currItemCategory == S:
+        reportError(f"Back to back section markers after {state.reference}", 29.5)
     state.addSection()
 
 def takeTitle(token):
@@ -785,6 +790,8 @@ def takeV(vstr):
         if state.needQQ:
             reportError("Need \\q or \\p after acrostic heading before: " + state.reference, 38)
             state.resetPoetry()
+        if state.prevItemCategory == S:
+            reportError(f"Section heading should be followed by paragraph marker at {state.reference}", 38.5)
         if state.verse < state.lastVerse and state.addError(state.lastRef):
             reportError("Verse out of order: " + state.reference + " after " + state.lastRef, 39)
             state.addError(state.reference)
@@ -848,11 +855,13 @@ def context(text, start, end):
     return text[start:end] if end > start else text[start:]
 
 #adjacent_re = re.compile(r'([\.\?!;\:,][\.\?!;\:,])', re.UNICODE)
-punctuation_re = re.compile(r'([.?!;:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)     # phrase ending punctuation that doesn't actually end
+punctuation_re = re.compile(r'([.?!;:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)   # phrase ending punctuation that doesn't actually end the phrase
 # note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
 spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)    # space before phrase-ending mark
 # Indonesian TBI version of this expression:
 # spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’»›])', re.UNICODE)    # space before phrase-ending mark
+# Kuku REG version of this expression:
+# spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)”»›])', re.UNICODE)    # space before phrase-ending mark
 spacey2_re = re.compile(r'[\s][\[\]\(\'"«“‘’”»›][\s]', re.UNICODE)    # free floating marks
 spacey3_re = re.compile(r'[\(\'"«“‘’”»›][\s]', re.UNICODE)       # quote-space at beginning of verse
 spacey4_re = re.compile(r'[\s][\(\'"«“‘’”»›]$', re.UNICODE)       # quote-space at end of verse
@@ -1204,7 +1213,7 @@ def reportOrphans(lines, path):
     for line in lines:
         lineno += 1
         if line and line[0] != '\\' and not conflict_re.match(line):
-            if not prevline or line.istitle() or line.isupper() or percentTitlecase(line.split()) > 0.5:
+            if line.istitle() or line.isupper() or percentTitlecase(line.split()) > 0.5:
                 reportError("Possible section title at line " + str(lineno) + " in " + path, 76)
         prevline = line
 
