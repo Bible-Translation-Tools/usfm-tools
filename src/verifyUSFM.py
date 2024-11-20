@@ -628,7 +628,7 @@ def takeC(c):
         previousVerseCheck()
         # longChunkCheck()
     if state.currItemCategory == S:
-        reportError(f"Section heading at end of chapter: {state.reference}", 13.2)
+        reportError(f"Chapter concludes with a section heading: {state.reference}", 13.2)
     state.addChapter(c)
     if state.chapter < 1 or state.chapter > nChapters(state.ID):
         reportError(f"Invalid chapter number ({c}) is found after {state.lastRef}", 13.1)
