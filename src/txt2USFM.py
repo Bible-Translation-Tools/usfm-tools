@@ -512,28 +512,30 @@ def appendToProjects(bookId, bookTitle):
     projects.append(project)
 
 def dumpProjects(target_dir):
-    projects.sort(key=operator.itemgetter('sort'))
-
     path = makeManifestPath(target_dir)
-    manifest = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
-    manifest.write("projects:\n")
-    for p in projects:
-        manifest.write("  -\n")
-        if not "'" in p['title']:
-            manifest.write("    title: '" + p['title'] + "'\n")
-        else:
-            manifest.write('    title: "' + p['title'] + '"\n')
-        manifest.write("    versification: ufw\n")
-        manifest.write("    identifier: '" + p['id'] + "'\n")
-        manifest.write("    sort: " + str(p['sort']) + "\n")
-        manifest.write("    path: '" + p['path'] + "'\n")
-        manifest.write("    categories: " + p['category'] + "\n")
-    manifest.close()
+    if len(projects) > 1 or not os.path.exists(path):
+        manifest = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
+        manifest.write("projects:\n")
+        projects.sort(key=operator.itemgetter('sort'))
+        for p in projects:
+            manifest.write("  -\n")
+            if not "'" in p['title']:
+                manifest.write("    title: '" + p['title'] + "'\n")
+            else:
+                manifest.write('    title: "' + p['title'] + '"\n')
+            manifest.write("    versification: ufw\n")
+            manifest.write("    identifier: '" + p['id'] + "'\n")
+            manifest.write("    sort: " + str(p['sort']) + "\n")
+            manifest.write("    path: '" + p['path'] + "'\n")
+            manifest.write("    categories: " + p['category'] + "\n")
+        manifest.close()
 
 def shortname(longpath):
     source_dir = config['source_dir']
     shortname = longpath
-    if shortname.startswith(source_dir):
+    if shortname == source_dir:
+        shortname = os.path.basename(longpath)
+    elif shortname.startswith(source_dir):
         shortname = os.path.relpath(shortname, source_dir)
     return shortname
 
@@ -574,26 +576,27 @@ def writeHeader(usfmfile, bookId, bookTitle):
 # Eliminates duplicates from contributors list and sorts them.
 # Outputs both the contributors and source resources to contributors.txt.
 def dumpContributors(target_dir):
-    global contributors
-    contribs = list(set(contributors))
-    contribs.sort()
-
     path = os.path.join(target_dir, "contributors.txt")
-    f = io.open(path, 'tw', encoding='utf-8', newline='\n')
-    f.write("This file lists unique contributor names and source language resources\n")
-    f.write("gleaned from all the converted repos.\n")
-    f.write("These sections may be copied verbatim into the dublin_core section of the manifest.yaml file.\n\n")
-    f.write("  contributor:\n")
-    for name in contribs:
-        if name:
-            f.write('    - "' + name + '"\n')
-    f.write("\n  source:\n")
-    for src in sources:
-        f.write( "    -\n")
-        f.write(f"      identifier: '{src['resource_id']}'\n")
-        f.write(f"      language: '{src['language_id']}'\n")
-        f.write(f"      version: '{src['version']}'\n")
-    f.close()
+    if len(projects) > 1 or not os.path.exists(path):
+        global contributors
+        contribs = list(set(contributors))
+        contribs.sort()
+
+        f = io.open(path, 'tw', encoding='utf-8', newline='\n')
+        f.write("This file lists unique contributor names and source language resources\n")
+        f.write("gleaned from all the converted repos.\n")
+        f.write("These sections may be copied verbatim into the dublin_core section of the manifest.yaml file.\n\n")
+        f.write("  contributor:\n")
+        for name in contribs:
+            if name:
+                f.write('    - "' + name + '"\n')
+        f.write("\n  source:\n")
+        for src in sources:
+            f.write( "    -\n")
+            f.write(f"      identifier: '{src['resource_id']}'\n")
+            f.write(f"      language: '{src['language_id']}'\n")
+            f.write(f"      version: '{src['version']}'\n")
+        f.close()
 
 # This method returns a list of chapter folders in the specified directory.
 # This list is returned in numeric order.
@@ -676,8 +679,6 @@ def convertBook(folder, bookId, bookTitle):
 
 # Converts the book or books contained in the specified folder
 def convert(dir, target_dir):
-    if os.path.isfile( makeManifestPath(target_dir) ):
-        os.remove( makeManifestPath(target_dir) )
     if isBookFolder(dir):
         convertFolder(dir)
     else:       # presumed to be a folder containing multiple books
@@ -692,6 +693,8 @@ def convert(dir, target_dir):
 def main(app = None):
     global gui
     gui = app
+    contributors.clear()
+    projects.clear()
     global config
     config = configmanager.ToolsConfigManager().get_section('Txt2USFM')   # configmanager version
     if config:
