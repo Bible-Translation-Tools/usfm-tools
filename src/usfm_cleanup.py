@@ -484,11 +484,12 @@ def convertFile(path):
     changed1 = convert_wholefile(path)
     changed2 = convert_by_line(path)
     if enable[7] and changed2:   # sections may have been added
-        changed3 = convert_wholefile(path)
+        convert_wholefile(path)
+    changed4 = False
     if enable[5] or enable[8]:   # capitalization or chapter titles
         changed4 = convert_by_token(path)
 
-    if changed1 or changed2 or changed3 or changed4:
+    if changed1 or changed2 or changed4:
         nChanged += 1
         reportStatus(f"Changed {shortname(path)}")
         sys.stdout.flush()
