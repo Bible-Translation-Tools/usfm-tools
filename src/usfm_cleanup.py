@@ -96,7 +96,7 @@ def usfm_move_pq(str):
 #losepq_re = re.compile(r'\n\\[pqm][i1-9]? *\n+(\\[^v].*?\n)', flags=re.UNICODE)
 losepq_re = re.compile(r'\\[pqm][i1-9]? *\n*(\\[^v])')
 
-# Remove standalone paragraph markers not followed by verse marker.
+# Remove paragraph markers not followed by verse marker.
 # Other markers that follow a paragraph marker invalidate the paragraph marker.
 def usfm_remove_pq(str):
     newstr = ""
@@ -475,23 +475,21 @@ def convertFile(path):
     global nChanged
     reportProgress(f"Checking {shortname(path)}")
 
-    prev_nChanged = nChanged
     tmppath = path + ".tmp"
     if os.path.exists(tmppath):
         os.remove(tmppath)
     os.rename(path, tmppath)    # to preserve time stamp
     shutil.copyfile(tmppath, path)
 
-    if convert_wholefile(path):
-        nChanged += 1
-    if convert_by_line(path):
-        nChanged += 1
+    changed1 = convert_wholefile(path)
+    changed2 = convert_by_line(path)
+    if enable[7] and changed2:   # sections may have been added
+        changed3 = convert_wholefile(path)
     if enable[5] or enable[8]:   # capitalization or chapter titles
-        if convert_by_token(path):
-            nChanged += 1
+        changed4 = convert_by_token(path)
 
-    if nChanged > prev_nChanged:
-        nChanged = prev_nChanged + 1
+    if changed1 or changed2 or changed3 or changed4:
+        nChanged += 1
         reportStatus(f"Changed {shortname(path)}")
         sys.stdout.flush()
         bakpath = path + ".orig"
