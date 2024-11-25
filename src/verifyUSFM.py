@@ -441,7 +441,10 @@ def reportIssues():
     issuesfile.write("\nSUMMARY:\n")
     for issue in sorted(issues.items(), key=lambda kv: kv[1][1], reverse=True):
         total += issue[1][1]
-        issuesfile.write(f"{issue[1][0]}...:  {issue[1][1]} occurrence(s){issue[1][2]}.\n")
+        if issue[1][1] == 1:
+            issuesfile.write(f"{issue[1][0]}:  1 occurrence.\n")
+        else:
+            issuesfile.write(f"{issue[1][0]}...:  {issue[1][1]} occurrences{issue[1][2]}.\n")
     issuesfile.write(f"\n{total} issues found.\n")
 
 # Writes the word list to a file.
@@ -628,7 +631,7 @@ def takeC(c):
         previousVerseCheck()
         # longChunkCheck()
     if state.currItemCategory == S:
-        reportError(f"Chapter concludes with a section heading: {state.reference}", 13.2)
+        reportError(f"Chapter ends with a section heading: {state.reference}", 13.2)
     state.addChapter(c)
     if state.chapter < 1 or state.chapter > nChapters(state.ID):
         reportError(f"Invalid chapter number ({c}) is found after {state.lastRef}", 13.1)
