@@ -657,6 +657,9 @@ def reportError(msg):
 
 # Processes each directory and its files one at a time
 if __name__ == "__main__":
+    projects.clear()
+    translators.clear()
+    source_versions.clear()
     config = configreader.get_config(sys.argv, 'usfm2rc')
     if config:
         source_dir = config['source_dir']
