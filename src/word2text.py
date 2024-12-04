@@ -60,6 +60,12 @@ def openIssuesFile():
         issues_file = io.open(path, "tw", buffering=2048, encoding='utf-8', newline='\n')
     return issues_file
 
+def closeIssuesFile():
+    global issues_file
+    if issues_file:
+        issues_file.close()
+        issues_file = None
+
 # Reports error if this bookId has already been seen.
 def check_dups(bookId, fname):
     global ids
@@ -100,7 +106,13 @@ def bookByNumber(num, name, bookIds):
             bookId = b2
     return bookId
 
-num_name_re = re.compile(r'([0-6][0-9]?)[ \-\.]*([A-Za-z1-3][ A-Za-z][A-Za-z])')
+def roman2arabic(str):
+    str = str.replace("III ", "3 ")
+    str = str.replace("II ", "2 ")
+    str = str.replace("I ", "1 ")
+    return str
+
+num_name_re = re.compile(r'([0-6][0-9]?)[ \-\.]*([A-Za-z1-3]I*[ A-Za-z][A-Za-z]+)')
 
 # Attempts to determine the Bible book from the file name.
 # Returns upper case bookId, or empty string on failure.
@@ -113,14 +125,16 @@ def getBookId(filename):
     if len(fname) == 3 and fname.upper() in bookIds:
         bookId = fname.upper()
     else:
+        fnameA = roman2arabic(fname)
         for id in bookIds:
-            if books[id]['en_name'] in fname.title():
+            if books[id]['en_name'] in fnameA.title():
                 bookId = id
                 break
     if not bookId:
         if num_name := num_name_re.match(fname):
             num2 = int(num_name.group(1))
-            name3 = num_name.group(2).upper()
+            name = num_name.group(2)
+            name3 = name[0:3].upper()
             if name3 in books:
                 bookId = name3
             elif 3 < num2 < 68:
@@ -169,7 +183,7 @@ def convertFolder(folder):
         path = os.path.join(folder, entry)
         if os.path.isdir(path) and entry[0] != '.':
             convertFolder(path)
-        elif os.path.isfile(path) and entry.endswith(".docx"):
+        elif os.path.isfile(path) and entry.endswith(".docx") and entry[0] != '~':
             bookId = getBookId(entry)
             if bookId:
                 check_dups(bookId, entry)
@@ -180,8 +194,6 @@ def main(app = None):
     gui = app
     global ids
     ids = {}
-    global issues_file
-    issues_file = None
     global config
     config = configmanager.ToolsConfigManager().get_section('Word2text')
     if config:
@@ -202,6 +214,7 @@ def main(app = None):
         else:
             convertFolder(source_dir)
 
+    closeIssuesFile()
     reportStatus("\nDone.")
     sys.stdout.flush()
     if gui:
