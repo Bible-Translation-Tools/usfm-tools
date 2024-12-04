@@ -187,7 +187,8 @@ def takeChapter(cstr, nchap):
     schap = str(nchap)
     state.usfm_file.writeUsfm("c", schap)
     if len(cstr) > len(schap):
-        state.usfm_file.writeUsfm("cl", cstr[len(schap):])
+        # cl = cstr[len(schap):] if cstr.startswith(schap) else cstr
+        state.usfm_file.writeUsfm("cl", cstr)
     state.addChapter(nchap)
 
 vrange_re = re.compile(r'([0-9])+-([0-9]+)')
@@ -411,11 +412,11 @@ def hasnumber(s, n):
             pos += 1
     return pos
 
-# Returns a string with all non-numeric characters changed to a space,
+# Returns a string with all non-numeric characters changed to a space.
 def isolateNumbers(s):
     t = ""
     for i in range(0,len(s)):
-        if s[i] in "0123456789,.":
+        if s[i] in "0123456789":
             t += s[i]
         else:
             t += ' '
@@ -465,6 +466,12 @@ def openIssuesFile():
                 os.rename(path, bakpath)
         issues_file = io.open(path, "tw", buffering=2048, encoding='utf-8', newline='\n')
     return issues_file
+
+def closeIssuesFile():
+    global issues_file
+    if issues_file:
+        issues_file.close()
+        issues_file = None
 
 num_name_re = re.compile(r'([0-6][0-9]?)[ \-\.]*([A-Za-z1-3][A-Za-z][A-Za-z])')
 
@@ -589,6 +596,7 @@ def convertFolder(folder):
 def main(app = None):
     global gui
     gui = app
+    projects.clear()
     global config
     config = configmanager.ToolsConfigManager().get_section('Plaintext2Usfm')
     if config:
@@ -615,6 +623,7 @@ def main(app = None):
             if projects:
                 dumpProjects( os.path.join(target_dir, "projects.yaml") )
 
+    closeIssuesFile()
     reportStatus("\nDone.")
     sys.stdout.flush()
     if gui:
