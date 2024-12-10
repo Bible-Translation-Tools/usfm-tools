@@ -66,6 +66,7 @@ class State:
         self.ID = id
         self.data = ""
         self.title = ""
+        self.titletags = []
         self.chapter = 0
         self.verse = 0
         self.missing_chapters = []
@@ -85,6 +86,7 @@ class State:
     def addTitle(self, titletext, lineno, usfmtag=None):
         if usfmtag:
             self.usfm_file.writeUsfm(usfmtag, titletext)
+            self.titletags.append(usfmtag)
             if not self.title:
                 self.title = titletext.title()  # convert to title case
         elif len(titletext) <= 40:
@@ -539,10 +541,9 @@ def makeUsfmFilename(bookId):
 # Write the usfm header field that follow \id and \ide.
 def writeHeader():
     global wroteHeader
-    state.usfm_file.writeUsfm("h", state.title)
-    state.usfm_file.writeUsfm("mt", state.title)
-    state.usfm_file.writeUsfm("toc1", state.title)
-    state.usfm_file.writeUsfm("toc2", state.title)
+    for tag in ['h', 'mt', 'toc1', 'toc2']:
+        if tag not in state.titletags:
+            state.usfm_file.writeUsfm(tag, state.title)
     state.usfm_file.writeUsfm("toc3", state.ID.lower())
     state.usfm_file.newline(2)
     wroteHeader = True
