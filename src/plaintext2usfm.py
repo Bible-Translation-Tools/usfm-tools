@@ -95,8 +95,6 @@ class State:
             self.addRemark(titletext)
         self.lastEntity = TITLE
         self.neednext = {CHAPTER, TITLE}
-        if lineno > 7:
-            self.neednext = {CHAPTER}
         self.priority = CHAPTER
 
     def addChapter(self, nchap):
@@ -257,14 +255,14 @@ def takeMarkedText(tag, remainder, lineno):
         takeV(remainder, lineno)
     elif tag == 'c':
         takeC(remainder, lineno)
-    elif tag in {'h', 'mt'}:
+    elif tag in {'h', 'mt', 'mt1'}:
         takeTitle(remainder, lineno, tag)
     elif tag in {'s', 's1'}:
         takeSection(remainder, lineno)
     else:
         state.usfm_file.writeUsfm(tag, remainder)
 
-tag_re = re.compile(r'\\([a-z]+)')
+tag_re = re.compile(r'\\([a-z]+[1-4]?)')
 # titletag_re = re.compile(r'\\(h|mt) (.*)')
 
 # Processes a single line of input.
@@ -316,7 +314,7 @@ def take(s, lineno):
     elif state.priority == CHAPTER:
         if hasnumber(s, state.chapter+1) >= 0 and len(s) < 25:    # may have to allow longer s
             takeChapter(s, state.chapter+1)
-        elif TITLE in state.neednext:   # haven't reached chapter 1 or line 7 yet 
+        elif TITLE in state.neednext:   # haven't reached chapter 1 yet
             state.addTitle(s, lineno)
         elif VERSE in state.neednext:
             (pretext, vv, remainder) = getvv(s, state.verse+1)
