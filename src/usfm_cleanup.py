@@ -183,7 +183,7 @@ def add_spaces(str):
         found = sub_re.search(str, 0)
         while found:
             pos = found.start() + 1
-            if str[pos-1] not in ".," or not str[pos].isdigit() or (pos>1 and not str[pos-2].isdigit()):
+            if str[pos-1] not in ".,:" or not str[pos].isdigit() or (pos>1 and not str[pos-2].isdigit()):
                 str = str[:pos] + ' ' + str[pos:]
             found = sub_re.search(str, pos+1)
     return str
