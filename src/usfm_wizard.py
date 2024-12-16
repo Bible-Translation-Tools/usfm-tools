@@ -56,7 +56,8 @@ class UsfmWizard(tkinter.Tk):
         self._build_steps(mainframe)
 
         self.process = 'SelectProcess'
-        self.activate_step_byname('SelectProcess')
+        self.stepstack = [self.steps['SelectProcess']]
+        self.activate_step(self.stepstack[-1])
         self.bind('<<ScriptMessage>>', self.onScriptMessage)
         self.bind('<<ScriptProgress>>', self.onScriptProgress)
         self.bind('<<ScriptEnd>>', self.onScriptEnd)
@@ -96,7 +97,7 @@ class UsfmWizard(tkinter.Tk):
             copystr = self.progress
             self.progress = ""
         if copystr:
-            self.current_step.onScriptMessage(copystr)
+            self.stepstack[-1].onScriptMessage(copystr)
 
     def onScriptProgress(self, event):
         self.onScriptMessage(event)
@@ -108,58 +109,21 @@ class UsfmWizard(tkinter.Tk):
         with self.progress_lock:
             copystr = self.progress
             self.progress = ""
-        self.current_step.onScriptEnd(copystr)
+        self.stepstack[-1].onScriptEnd(copystr)
         self.titleframe.stop_progress()
 
     def set_process(self, selection):
         self.process = selection
 
-    # Returns the name of the step in the current process that should be
-    # executed when the user presses the Back button.
-    def prevstepname(self):
-        gotostep = None
-        match self.current_step.name():
-            case 'MarkParagraphs':
-                if self.process == 'Usx2Usfm':
-                    gotostep = 'VerifyUSFM'
-                else:
-                    gotostep = 'UsfmCleanup'
-            case 'Word2text':
-                gotostep = 'SelectProcess'
-            case 'Txt2USFM':
-                gotostep = 'SelectProcess'
-            case 'Paratext2Usfm':
-                gotostep = 'SelectProcess'
-            case 'Plaintext2Usfm':
-                if self.process == 'Plaintext2Usfm':
-                    gotostep = 'SelectProcess'
-                else:
-                    gotostep = 'Word2text'
-            case 'UsfmCleanup':
-                gotostep = 'VerifyUSFM'
-            case 'Txt2USFM':
-                gotostep = 'SelectProcess'
-            case 'Usfm2Usx':
-                gotostep = 'VerifyUSFM'
-            case 'Usx2Usfm':
-                gotostep = 'SelectProcess'
-            case 'VerifyManifest':
-                gotostep = 'MarkParagraphs'
-            case 'VerifyUSFM':
-                if self.process in {'Txt2USFM', 'Plaintext2Usfm', 'Usx2Usfm'}:
-                    gotostep = self.process
-                else:
-                    gotostep = 'SelectProcess'
-        return gotostep
-    
     # Activates the previous step
     def step_back(self):
-        self.activate_step_byname(self.prevstepname())
+        self.stepstack.pop()
+        self.activate_step( self.stepstack[-1] )
 
     # Returns the name of the next step in the current process
     def nextstepname(self):
         gotostep = None
-        match self.current_step.name():
+        match self.stepstack[-1].name():
             case 'MarkParagraphs':
                 gotostep = 'VerifyManifest'
             case 'SelectProcess':
@@ -188,21 +152,18 @@ class UsfmWizard(tkinter.Tk):
 
     # Activates the next step, based the current process and what step we just finished.
     def step_next(self, copyparms=None):
-        self.activate_step_byname(self.nextstepname(), copyparms)
-
-    def activate_step_byname(self, stepname, copyparms=None):
-        if stepname:
-            self.activate_step(self.steps[stepname], copyparms)
+        nextstep = self.steps[self.nextstepname()]
+        self.stepstack.append(nextstep)
+        self.activate_step(nextstep, copyparms)
 
     def activate_step(self, step, copyparms=None):
-        self.current_step = step
-        self.titleframe.step_label['text'] = self.current_step.title()
+        self.titleframe.step_label['text'] = step.title()
         section = self.config.get_section(step.name())
         if copyparms:
             for parm in copyparms:
                 section[parm] = copyparms[parm]
             self.config.write_section(step.name(), section)
-        self.current_step.show(section)
+        self.stepstack[-1].show(section)
 
     # Called by one of the GUI modules.
     # Saves the specified values in the config file.
