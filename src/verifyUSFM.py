@@ -979,7 +979,7 @@ def takeText(t, footnote=False):
             reportError("  preceding Token was \\" + lastToken.type, 0)
         else:
             reportError("  no preceding Token", 0)
-    if state.textOkay() and state.verse == 0:
+    if state.textOkay() and state.verse == 0 and state.chapter > 0:
         reportError(f"Unmarked text before {state.reference + ':1'}", 54.1)
     if "<" in t and not ">" in t:
         if "<< HEAD" in t:
@@ -1060,14 +1060,17 @@ def isPoetry(token):
            token.isQR() or token.isQC()
 
 def isIntro(token):
-    return token.is_is() or token.is_ip() or token.is_iot() or token.is_io() or token.is_im()
+    return token.is_is() or token.is_ip() or token.is_ipi() or token.is_iot() or token.is_io() or \
+           token.is_im() or token.is_imt()
 
 def isSpecialText(token):
     return token.isWJS() or token.isADDS() or token.isNDS() or token.isPNS() or token.isQTS() or token.is_k_s()
 
+# Returns True if the specified token is followed by a separate text token
 def isTextCarryingToken(token):
-    return token.isB() or token.isM() or isSpecialText(token) or token.isD() or token.isSP() or \
+    return token.isB() or token.isM() or isSpecialText(token) or \
            isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
+            # or token.isD() or token.isSP()    these tokens have their own text attached as a value
 
 def isTitleToken(token):
     return token.isH() or token.isTOC1() or token.isTOC2() or token.isTOC3() or token.isMT() or token.is_imt()
