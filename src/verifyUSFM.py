@@ -959,7 +959,7 @@ def reportNumbers(t, footnote):
         if len(unsegmented.group(0)) > 4:
             reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61)
     if fmt := numberformat_re.search(t):
-        reportError(f"Space in number {fmt.group(0)} at {state.reference}", 61.1)
+        reportError(f"Space between digits {fmt.group(0)} at {state.reference}", 61.1)
     elif leadzero := leadingzero_re.search(t):
         reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61.2)
 
