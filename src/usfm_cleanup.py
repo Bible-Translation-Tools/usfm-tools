@@ -77,8 +77,21 @@ def openIssuesFile():
             issuesFile.write(f"Issues detected by usfmCleanup, {date.today()}, {source_dir}\n-------------------\n")
     return issuesFile
 
+addp_re = re.compile(r'(\\s[1-5]? .*?\n)(\n*\\v )')
+
+# Add \p between section heading and verse marker, where missing.
+def usfm_add_p(str):
+    newstr = ""
+    found = addp_re.search(str)
+    while found:
+        newstr += str[0:found.start()] + found.group(1) + "\\p\n" + found.group(2)
+        str = str[found.end():]
+        found = addp_re.search(str)
+    newstr += str
+    return newstr
+
 #  Move paragraph marker before section marker to follow the section marker
-movepq_re = re.compile(r'\n(\\[pqm][i1-9]? *)\n+(\\s[1-9]? .*?)\n', flags=re.DOTALL)
+movepq_re = re.compile(r'\n(\\[pqm][i1-4]? *)\n+(\\s[1-5]? .*?)\n', flags=re.DOTALL)
 
 # Moves standalone \p \m and \q markers which occur just before an \s# marker
 #    to the next line after the \s# marker.
@@ -202,6 +215,7 @@ def convert_wholefile(path):
         alltext = usfm_remove_s5(alltext)
     alltext = usfm_move_pq(alltext)
     alltext = usfm_remove_pq(alltext)
+    alltext = usfm_add_p(alltext)
     alltext = fix_booktitles(alltext)
     if not aligned_usfm:
         if enable[2]:
