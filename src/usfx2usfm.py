@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-# This script parses a single USFX files to generate a set of USFM text files.
+# This script parses a single USFX file (containing many books)
+# to generate a set of USFM text files.
 # Uses xml.sax.
 
 # Global variables
-usfm_path = r'C:\DCS\Gallego\usfx\NT.xml'
-target_dir = r'C:\DCS\Gallego\usfm.NT'
-id_extra = "Reina-Valera 1909"
+usfm_path = r'C:\DCS\English\WorldEnglishBible.usfx\Genesis_usfx.xml'
+target_dir = r'C:\DCS\English\WorldEnglishBible.usfm'
+id_extra = "WEB"
 
 import xml.sax
 import io
@@ -13,6 +14,7 @@ import re
 import sys
 import os
 import usfm_verses
+import cProfile
 
 class UsfxErrorHandler(xml.sax.ErrorHandler):
     def error(e):
@@ -22,7 +24,7 @@ class UsfxErrorHandler(xml.sax.ErrorHandler):
     def warning(e):
         print(e)
         sys.stderr.write("Warning reported by parser")
-    
+
 class UsfxHandler(xml.sax.ContentHandler):
     # Implements ContentHandler.startDocument
     def startDocument(self):
@@ -49,7 +51,7 @@ class UsfxHandler(xml.sax.ContentHandler):
             UsfxHandler.chap = attrs['id']
         elif name == "v":
             UsfxHandler.verse = attrs['id']
-            
+
     # Implements ContentHandler.endElement
     def endElement(self, name):
         if name == "book":
@@ -80,7 +82,7 @@ class UsfxHandler(xml.sax.ContentHandler):
             UsfxHandler.content = content.strip()
             if UsfxHandler.name in {"w","add","v"}:
                 UsfxHandler.writeText(self)
-            
+
     # Create and open the usfm file for the book specified in attrs.
     # Remember the book id.
     def openOutput(self, attrs):
@@ -98,12 +100,12 @@ class UsfxHandler(xml.sax.ContentHandler):
         if id_extra:
             idfield += " - " + id_extra
         UsfxHandler.output.write("\\id " + idfield + "\n\\ide UTF-8")
-        
+
     # Write the \h field in the usfm file.
     def writeH(self):
         if UsfxHandler.content:
             UsfxHandler.output.write("\n\\h " + UsfxHandler.content)
-            
+
     def writeToc(self):
         if UsfxHandler.content and UsfxHandler.toclevel:
             UsfxHandler.output.write("\n\\toc" + UsfxHandler.toclevel + " " + UsfxHandler.content)
@@ -165,7 +167,9 @@ if __name__ == "__main__":
 
     if os.path.isfile(usfm_path):
         source_dir = os.path.dirname(usfm_path)
-        convertFile(usfm_path)
+        cmd = f"convertFile(usfm_path)"
+        cProfile.run(cmd)
+        # convertFile(usfm_path)
         sys.stdout.write("Done.\n")
         sys.stdout.write("About once every 20 chapters this program may insert a space in the middle of a word. See UsfxHandler.writeText() comments for a workaround.\n")
     else:
