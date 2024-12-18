@@ -929,7 +929,7 @@ chapverse_re = re.compile(r'(\d+)([:\-])(\d+)')
 
 def reportNumbers(t, footnote):
     verseflag = False
-    if not footnote:
+    if state.chapter > 0 and not footnote:
         if t.startswith(str(state.verse) + " "):
             reportError("Verse number in text (probable): " + state.reference, 59)
             verseflag = True
@@ -950,10 +950,10 @@ def reportNumbers(t, footnote):
         reportError(f"Embedded number in word: {embed.group(0)} at {state.reference}", 60)
     elif not verseflag:
         if suffixed := numbersuffix_re.search(t):
-            if not footnote:
+            if state.chapter > 0 and not footnote:
                 reportError(f"Invalid number suffix: {suffixed.group(0)} at {state.reference}", 60.2)
         if prefixed := numberprefix_re.search(t):
-            if not footnote or (prefixed.group(0)[0] not in {':','-'}):
+            if (state.chapter > 0 and not footnote) or (prefixed.group(0)[0] not in {':','-'}):
                 reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.reference}", 60.1)
     if unsegmented := unsegmented_re.search(t):
         if len(unsegmented.group(0)) > 4:
