@@ -60,7 +60,6 @@ def reportToGui(msg, event):
 def cleanupChunk(path, chap, verserange):
     vn_start = int(verserange[0])
     vn_end = int(verserange[-1])
-    # path = os.path.join(chapterpath, filename)
     input = io.open(path, "tr", encoding='utf-8-sig')
     origtext = input.read()
     input.close()
@@ -280,23 +279,20 @@ def combineLines(lines):
             section += " " + line
     return section
 
-cvExpr = re.compile(r'\\[cv] [0-9]+')
-chapter_re = re.compile(r'\n\\c +([0-9]+)[ \n]*', re.UNICODE)
-# labeledChapter_re = re.compile(r'(\\c +[\d]{1,3}) +(.+?)$', re.UNICODE+re.MULTILINE)
+cvExpr = re.compile(r'\\[cv] +[0-9]+')
 
-# Adds section marker, chapter label, and paragraph marker as needed.
+# Adds chunk marker before first completed \c or \v marker.
+# Returns modified section.
+def mark_chunk(section):
+    if marker := cvExpr.search(section):
+        section = section[0:marker.start()] + '\\s5\n' + section[marker.start():]
+    return section
+
+chapter_re = re.compile(r'\n\\c +([0-9]+)[ \n]*', re.UNICODE)
+
+# Adds chapter label and paragraph marker as needed.
 # Returns modified section.
 def augmentChapter(section, chapterTitle):
-    mark_chunks = config.getboolean('mark_chunks', fallback=False)
-    if mark_chunks:
-        # section = addSectionMarker(section)
-        if marker := cvExpr.search(section):
-            section = section[0:marker.start()] + '\\s5\n' + section[marker.start():]
-
-#    chap = labeledChapter_re.search(section)
-#    if chap:
-#        section = section[:chap.start()] + chap.group(1) + "\n\\cl " + chap.group(2) + "\n\\p" + section[chap.end():]
-#    else:
     chap = chapter_re.search(section)
     if chap:
         if chapterTitle.strip() != chap.group(1):
@@ -348,50 +344,50 @@ def stripInitialMarkers(text):
     return text
 
 # Returns True if the string contains all the verse numbers in verserange and there are no \v tags
-def fitsInorPattern(str, verserange):
-    fits = not ("\\v" in str)
-    if fits:
-        for v in verserange:
-            if not v in str:
-                fits = False
-                break
-    return fits
+# def fitsInorPattern(str, verserange):
+#     fits = not ("\\v" in str)
+#     if fits:
+#         for v in verserange:
+#             if not v in str:
+#                 fits = False
+#                 break
+#     return fits
 
 # This method is only called for the Inor language.
 # Fixes very common error in Inor translations where the verse markers are listed at the beginning of the
 # chunk but are empty, immediately followed by the first verse, followed by the next verse number and
 # verse, followed by the next verse number and verse, and so on.
-def fixInorMarkers(text, verserange):
-    saveChapterMarker = ""
-    if c := chapMarker_re.search(text):
-        saveChapterMarker = text[c.start():c.end()]
-    str = stripInitialMarkers(text)
-    if not str.startswith(verserange[0]):
-        str = verserange[0] + " " + str
-    if fitsInorPattern(str, verserange):
-        for v in verserange:
-            pos = str.find(v)
-            if pos == 0:
-                str = "\\v " + str[pos:]
-            else:
-                str = str[0:pos] + "\n\\v " + str[pos:]
-        if saveChapterMarker:
-            str = saveChapterMarker + "\n" + str
+# def fixInorMarkers(text, verserange):
+#     saveChapterMarker = ""
+#     if c := chapMarker_re.search(text):
+#         saveChapterMarker = text[c.start():c.end()]
+#     str = stripInitialMarkers(text)
+#     if not str.startswith(verserange[0]):
+#         str = verserange[0] + " " + str
+#     if fitsInorPattern(str, verserange):
+#         for v in verserange:
+#             pos = str.find(v)
+#             if pos == 0:
+#                 str = "\\v " + str[pos:]
+#             else:
+#                 str = str[0:pos] + "\n\\v " + str[pos:]
+#         if saveChapterMarker:
+#             str = saveChapterMarker + "\n" + str
 
-        # Ensure space after verse markers
-        found = sub3_re.search(str)
-        while found:
-            pos = found.end()-1
-            if str[pos] == '.':
-                pos += 1
-            str = str[0:found.end()-1] + " " + str[pos:]
-            found = sub3_re.search(str, pos+1)
-    else:
-        str = text
-    return str
+#         # Ensure space after verse markers
+#         found = sub3_re.search(str)
+#         while found:
+#             pos = found.end()-1
+#             if str[pos] == '.':
+#                 pos += 1
+#             str = str[0:found.end()-1] + " " + str[pos:]
+#             found = sub3_re.search(str, pos+1)
+#     else:
+#         str = text
+#     return str
 
 # Reads all the lines from the specified file and converts the text to a single
-# USFM section by adding chapter label, section marker, and paragraph marker where needed.
+# USFM section by adding chapter label, chunk marker, and paragraph marker where needed.
 # Starts each usfm marker on a new line.
 # Fixes white space, such as converting tabs to spaces and removing trailing spaces.
 def convertFile(txtPath, chapterTitle):
@@ -399,9 +395,9 @@ def convertFile(txtPath, chapterTitle):
     lines = input.readlines()
     input.close()
     section = "\n" + combineLines(lines)    # fixes white space
+    if config.getboolean('mark_chunks', fallback=False):
+        section = mark_chunk(section)
     section = augmentChapter(section, chapterTitle)
-    # section = fixPunctuationSpacing(section)
-    # section = fixChapterMarkers(section)
     return section
 
 # Returns True if the specified directory is one with text files to be converted
@@ -427,7 +423,7 @@ def source_eq(src1, src2):
             break
     return eq
 
-# Adds the specified source to the global sources list if it is unique.
+# Adds the specified source object to the global list if it is unique.
 def addSource(source):
     global sources
     unique = True
@@ -650,10 +646,9 @@ def getChapterTitle(chapterpath):
         titlefile.close()
     return title
 
-# This method is called to convert the chapters in the current folder to USFM
+# Converts all the text files in the specified folder to USFM.
 def convertBook(folder, bookId, bookTitle):
-    msg = f"CONVERTING {shortname(folder)}"
-    reportProgress(msg)
+    reportProgress(f"CONVERTING {shortname(folder)}")
     sys.stdout.flush()
 
     target_dir = config['target_dir']
@@ -667,14 +662,12 @@ def convertBook(folder, bookId, bookTitle):
         chapterpath = os.path.join(folder, chap)
         chapterTitle = getChapterTitle(chapterpath)
         chunks = listChunks(chapterpath)
-        i = 0
-        while i < len(chunks):
+        for i in range(len(chunks)):
             filename = chunks[i] + ".txt"
             txtPath = os.path.join(chapterpath, filename)
             cleanupChunk(txtPath, chap, makeVerseRange(chunks, i, bookId, int(chap)))
             section = convertFile(txtPath, chapterTitle) + '\n'
             usfmFile.write(section)
-            i += 1
     usfmFile.close()
 
 # Converts the book or books contained in the specified folder
