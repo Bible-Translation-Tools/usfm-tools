@@ -19,7 +19,7 @@ import pytest
         ('word(?)', 'word (?)'),
         ('?”While,june;kiln^lamb(men)names]oh[,peace“que::road..such.thin:', '?”While, june; kiln^lamb (men) names] oh [, peace“que:: road.. such. thin:'),
         ('eol:\nNew', 'eol:\nNew'),
-        ('7:000', '7: 000'),
+        ('7:000', '7:000'),
         ('7,000', '7,000'),
         ('eos,s,t', 'eos, s, t'),
     ])
@@ -159,4 +159,38 @@ def test_change_quote_medial(str, all, double, newstr):
     import usfm_cleanup
     assert usfm_cleanup.change_quote_medial(str, all, double)[1] == newstr
 
-    
+@pytest.mark.parametrize('str, newstr',
+    [
+        ('blah\\s Heading\n\n\n\\v 1', 'blah\\s Heading\n\\p\n\n\n\\v 1'),
+        ('\n\\s Heading\n\\v 15 asdflkjadf', '\n\\s Heading\n\\p\n\\v 15 asdflkjadf'),
+        ('\\s Heading\n\\p\n\\v 2 asdf', '\\s Heading\n\\p\n\\v 2 asdf'),
+        ('\\s Heading\n\n\\p\n\\v 3 asdf', '\\s Heading\n\n\\p\n\\v 3 asdf'),
+        ('\\s Heading\n\\p\n\n\\v 4 asdf', '\\s Heading\n\\p\n\n\\v 4 asdf'),
+        ('\\s Heading\n\\p\n\n\\v 5 asdf\n\\s Heading 2\n\\v 6 asdf', '\\s Heading\n\\p\n\n\\v 5 asdf\n\\s Heading 2\n\\p\n\\v 6 asdf'),
+    ])
+# usfm_add_p add \p between section heading and verse marker, where missing.
+def test_usfm_add_p(str, newstr):
+    import usfm_cleanup
+    assert usfm_cleanup.usfm_add_p(str) == newstr
+
+
+
+@pytest.mark.parametrize('line, new_line',
+    [
+        ('blah\\s Heading\n\n\n\\v 1', ''),
+        # ('\n\\s Heading\n\\v 15 asdflkjadf', '\n\\s Heading\n\\p\n\\v 15 asdflkjadf'),
+        # ('\\s Heading\n\\p\n\\v 2 asdf', '\\s Heading\n\\p\n\\v 2 asdf'),
+        # ('\\s Heading\n\n\\p\n\\v 3 asdf', '\\s Heading\n\n\\p\n\\v 3 asdf'),
+        # ('\\s Heading\n\\p\n\n\\v 4 asdf', '\\s Heading\n\\p\n\n\\v 4 asdf'),
+        # ('\\s Heading\n\\p\n\n\\v 5 asdf\n\\s Heading 2\n\\v 6 asdf', '\\s Heading\n\\p\n\n\\v 5 asdf\n\\s Heading 2\n\\p\n\\v 6 asdf'),
+    ])
+def test_mark_sections(line, new_line):
+    import usfm_cleanup
+    if not new_line or new_line == line:
+        new_line = line
+        changed = False
+    else:
+        changed = True
+    (c,s) = usfm_cleanup.mark_sections(line)
+    assert s == new_line
+    assert c == changed
