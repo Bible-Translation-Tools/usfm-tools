@@ -40,7 +40,7 @@ class Txt2USFM(g_step.Step):
             status = f"The conversion is done.\nAdvance to USFM verification and cleanup."
         self.frame.show_progress(status)
         self.frame.onScriptEnd()
-                
+
 class Text2USFM_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
@@ -77,11 +77,12 @@ class Text2USFM_Frame(g_step.Step_Frame):
         target_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindTargetDir)
         target_dir_find.grid(row=5, column=4, sticky=W)
 
-        headings_checkbox = ttk.Checkbutton(self, text=r'Has section headings', variable=self.headings,
+        # text=r'Has section headings'
+        headings_checkbox = ttk.Checkbutton(self, text=r'(For future use) ', variable=self.headings,
                                              onvalue=True, offvalue=False)
         headings_checkbox.grid(row=6, column=1, sticky=W)
         headings_Tip = Hovertip(headings_checkbox, hover_delay=500,
-             text=r"Does the translation include section headings?")
+             text=r"(FOR FUTURE USE) Does the translation include section headings?")
 
         language_code_entry.focus()
 
