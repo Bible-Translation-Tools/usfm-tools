@@ -48,6 +48,7 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.language_code = StringVar()
         self.source_dir = StringVar()
         self.target_dir = StringVar()
+        self.headings = BooleanVar(value = False)
         for var in (self.language_code, self.source_dir, self.target_dir):
             var.trace_add("write", self._onChangeEntry)
         for col in [2,3]:
@@ -76,6 +77,12 @@ class Text2USFM_Frame(g_step.Step_Frame):
         target_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindTargetDir)
         target_dir_find.grid(row=5, column=4, sticky=W)
 
+        headings_checkbox = ttk.Checkbutton(self, text=r'Has section headings', variable=self.headings,
+                                             onvalue=True, offvalue=False)
+        headings_checkbox.grid(row=6, column=1, sticky=W)
+        headings_Tip = Hovertip(headings_checkbox, hover_delay=500,
+             text=r"Does the translation include section headings?")
+
         language_code_entry.focus()
 
     # Called when the frame is first activated. Populate the initial values.
@@ -84,7 +91,8 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.language_code.set(values['language_code'])
         self.source_dir.set(values['source_dir'])
         self.target_dir.set(values['target_dir'])
-        
+        self.headings.set(values.get('section_headings', fallback = False))
+
         # Create buttons
         self.controller.showbutton(1, "<<<", cmd=self._onBack)
         self.controller.showbutton(2, "CONVERT", tip="Run the conversion script now.", cmd=self._onExecute)
@@ -99,6 +107,7 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.values['language_code'] = self.language_code.get()
         self.values['source_dir'] = self.source_dir.get()
         self.values['target_dir'] = self.target_dir.get()
+        self.values['section_headings'] = str(self.headings.get())
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
 

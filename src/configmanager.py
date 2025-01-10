@@ -83,7 +83,8 @@ class ToolsConfigManager:
                 sec = {'source_dir': "",
                        'target_dir': "",
                        'mark_chunks': False,
-                       'language_code': "" }
+                       'language_code': "",
+                       'section_headings': False }
             case 'UsfmCleanup':
                 sec = {'source_dir': "",
                     'filename': "",
