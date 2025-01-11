@@ -121,3 +121,18 @@ import pytest
 def test_promoteQuotes(str, result):
     import quotes
     assert quotes.promoteQuotes(str) == result
+
+@pytest.mark.parametrize('str, expected',
+    [
+        ('“phrase partially quoted" ', 0),
+        ('asdf\'', 4),
+        ('qwert"', 5),
+        ('\n‘"', 1),
+        ('....,;asdf-no quotes!', -1),
+        ('', -1),
+        ('finally’”', 7),
+        ('”’’’’’’', 0),
+    ])
+def test_quotepos(str, expected):
+    import quotes
+    assert quotes.quotepos(str) == expected
