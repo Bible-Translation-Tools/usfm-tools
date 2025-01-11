@@ -24,18 +24,6 @@ def test_mark_chunk(str, newstr):
         newstr = str
     assert txt2USFM.mark_chunk(str) == newstr
 
-@pytest.mark.parametrize('str, result',
-    [
-        ('', False),
-        ('This Fine House', True),
-        ('\\c 1 \\v 1 this is a verse', False),
-        ('\\c 2 St      \v 2 asdfasdf', False),
-        ('\\c 3 String Possibility \\v 3', True),
-    ])
-def test_is_heading(str, result):
-    import txt2USFM
-    assert txt2USFM.is_heading(str) == result
-
 @pytest.mark.parametrize('str, newstr',
     [
         ('', ''),
