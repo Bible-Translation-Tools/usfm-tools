@@ -10,6 +10,8 @@
 
 import configmanager
 from pathlib import Path
+import sentences
+import section_titles
 import usfm_verses
 import re
 import operator
@@ -52,12 +54,12 @@ def reportToGui(msg, event):
         gui.event_generate(event, when="tail")
 
 
+# Does preliminary cleanup on the text file, prior to conversion.
 # Calls ensureMarkers() to put in missing chapter and verse markers.
-# Inserts chapter title where appropriate.
 # verserange is a list of verse number strings that should exist in the file.
 # On exit, the named file contains the improved chunk.
 # On exit, XX.txt-orig. contains the original chunk, if different.
-def cleanupChunk(path, chap, verserange):
+def cleanupTextFile(path, chap, verserange):
     vn_start = int(verserange[0])
     vn_end = int(verserange[-1])
     input = io.open(path, "tr", encoding='utf-8-sig')
@@ -288,7 +290,71 @@ def mark_chunk(section):
         section = section[0:marker.start()] + '\\s5\n' + section[marker.start():]
     return section
 
-chapter_re = re.compile(r'\n\\c +([0-9]+)[ \n]*', re.UNICODE)
+chapter_re = re.compile(r'\\c +([0-9]+)[ \n]*', re.UNICODE)
+
+# Searches for likely section heading at the beginning of a section,
+# before the first verse marker.
+# Inserts \s before unmarked section heading, if found.
+def mark_section_heading_bos(section):
+    chap = chapter_re.search(section)
+    cendpos = chap.end() if chap else 0
+    vpos = section.find("\\v")
+    if vpos < 0:
+        vpos = len(section)
+    if cendpos > vpos:
+        cendpos = 0
+    if not "\\s" in section[cendpos:vpos] and section_titles.is_heading(section[cendpos:vpos]):
+        section = section[0:cendpos] + "\\s " + section[cendpos:].lstrip()
+    return section
+
+anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
+
+# Searches for likely section heading at end of line, after last usfm marker.
+# Inserts \s before unmarked section heading, if found.
+def mark_section_heading_eos(section):
+    marker = None
+    bslist = [bs.start() for bs in anyMarker_re.finditer(section)]
+    for pos in reversed(bslist):
+        if marker := anyMarker_re.match(section[pos:]):
+            break
+    lmpos = pos + marker.end() if marker else 0
+    lmpos += len(section[lmpos:]) - len(section[lmpos:].lstrip())
+    sentence_starts = [pos + lmpos for pos in sentences.nextstartpos(section[lmpos:])]
+    if len(sentence_starts) > (1 if marker else 0):
+        startpos = sentence_starts[-1]
+        if section_titles.is_heading(section[startpos:]):    # last "sentence" in the line
+            section = section[0:startpos] + "\\s " + section[startpos:]
+    return section
+
+lbi_re = re.compile(r'^[^\\\n]+$', re.MULTILINE)
+
+# Marks likely section heading on a line by itself.
+def mark_section_heading_lbi(section):
+    lbi = lbi_re.search(section)
+    while lbi:
+        candidate = lbi.group(0)
+        if section_titles.is_heading(candidate):
+            startpos = lbi.start() + (len(candidate) - len(candidate.lstrip(' ')))
+            section = section[0:startpos].rstrip(' ') + "\\s " + candidate.strip() + section[lbi.end():].lstrip(' ')
+            break
+        lbi = lbi_re.search(section, lbi.end())
+    return section
+
+# Inserts \s before any section heading that can be identified.
+# Currently searches for headings only:
+#   before the first \v marker
+#   after the last sentence after the last usfm marker
+#   on lines with no usfm markers
+# Marks at most one section heading.
+# Returns the section, modified or not.
+def mark_section_headings(section):
+    orig_section = section
+    section = mark_section_heading_bos(section)
+    if section == orig_section:
+        section = mark_section_heading_eos(section)
+    if section == orig_section:
+        section = mark_section_heading_lbi(section)
+    return section
 
 # Adds chapter label and paragraph marker as needed.
 # Returns modified section.
@@ -391,10 +457,12 @@ def stripInitialMarkers(text):
 # Starts each usfm marker on a new line.
 # Fixes white space, such as converting tabs to spaces and removing trailing spaces.
 def convertFile(txtPath, chapterTitle):
-    input = io.open(txtPath, "tr", 1, encoding='utf-8-sig')
-    lines = input.readlines()
-    input.close()
+    with io.open(txtPath, "tr", 1, encoding='utf-8-sig') as input:
+        lines = input.readlines()
     section = "\n" + combineLines(lines)    # fixes white space
+    # Mark-sections-headings feature to be activated soon.
+    # if config.getboolean('section_headings', fallback=False):
+    #     section = mark_section_headings(section)
     if config.getboolean('mark_chunks', fallback=False):
         section = mark_chunk(section)
     section = augmentChapter(section, chapterTitle)
@@ -413,7 +481,7 @@ def isBookFolder(path):
     return os.path.isdir(chapterPath)
 
 relevantKeys = ['language_id', 'resource_id', 'version']
-                
+
 # Returns True if the two sources represent the same resouce.
 def source_eq(src1, src2):
     eq = True
@@ -665,7 +733,7 @@ def convertBook(folder, bookId, bookTitle):
         for i in range(len(chunks)):
             filename = chunks[i] + ".txt"
             txtPath = os.path.join(chapterpath, filename)
-            cleanupChunk(txtPath, chap, makeVerseRange(chunks, i, bookId, int(chap)))
+            cleanupTextFile(txtPath, chap, makeVerseRange(chunks, i, bookId, int(chap)))
             section = convertFile(txtPath, chapterTitle) + '\n'
             usfmFile.write(section)
     usfmFile.close()
