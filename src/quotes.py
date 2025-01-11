@@ -27,7 +27,7 @@ quote4_re = re.compile(r'[\.!\?][’”]*([\'"]+)')     # period/bang/question q
 quote5_re = re.compile(r'\w[’”]*([\'"]+) *\n')        # word quotes EOL
 quote6_re = re.compile(r'\w[\w ][’”]*([\'"]+\?)')       # quotes question => close quotes question
 quote8_re = re.compile(r'\n *([\'"]+)\w')   # quotes word at start of line
-snglquote9_re = re.compile(r'‘[^“‘\'’”\n\\]+[^\s“‘\'’”\n\\](\')[^\w]')  # quote at end of word if there is a matching open quote on the same line
+snglquote9_re = re.compile(r'‘[^“‘\'’”\n\\]+[^\s“‘\'’”\n\\](\')[^\w]')  # single quote at end of word if there is a matching open quote on the same line
 opentrans = str.maketrans('\'"', "‘“")
 closetrans = str.maketrans('\'"', '’”')
 
@@ -119,7 +119,9 @@ def translate(str, rexp, trans):
         snippet = rexp.search(str)
     return str
 
-# if __name__ == "__main__":
-#     teststr = '\'The Teacher says, "My time is at hand. I will keep the Passover at your house with my disciples."\'"\n'
-#     output = promoteDoubleQuotes(teststr) 
-#     print(f"promoteDoubleQuotes({teststr}) => {output}")
+quotes_re = re.compile(r'[“‘\'"’”]')
+
+# Returns the character position of the first quote in the string, or -1 if none.
+def quotepos(str):
+    quote = quotes_re.search(str)
+    return quote.start() if quote else -1
