@@ -1232,6 +1232,10 @@ def verifyFile(path):
     with io.open(path, "r", encoding="utf-8-sig") as input:
         contents = input.read(-1)
 
+    if len(contents) > 5 and contents[:5] == '\x00\x00\x00\x00\x00':
+        reportError("File is most likely null " + shortname(path), 82)
+        return
+
     if wjwj_re.search(contents):
         reportError("Empty \\wj \\wj* pair(s) in " + shortname(path), 77)
     if backslasheol_re.search(contents):
