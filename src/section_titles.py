@@ -37,20 +37,6 @@ def percentTitlecase(str):
 
 pphrase_re = re.compile(r'\(([\w\- ]+)\)')
 
-# Returns a number indicating position of the first parenthesized heading in the line
-# 0 means no heading found
-# 2 means the heading is found in the 2nd parenthesized phrase
-# def has_parenthesized_heading(line):
-#     n = posn = 0
-#     for possible_hd in pphrase_re.finditer(line):
-#         n += 1
-#         str = possible_hd.group(0).strip("() ")
-#         if str.isupper() or percentTitlecase(str) >= 0.5:
-#         # if str.isupper() or (" " in str and percentTitlecase(str) >= 0.5): # exclude single-word non-headings in parens
-#             posn = n
-#             break
-#     return posn
-
 # Returns substring of line that is a parenthesized heading.
 # Returns None if no parenthesized heading is found.
 def find_parenthesized_heading(line):
@@ -77,7 +63,7 @@ def is_heading(str, threshold=0.51):
         confirmed = str.isupper()
     if possible and not confirmed and expect_titlecase:
         confirmed = (percentTitlecase(str) >= threshold)
-    if possible and expect_parens:
+    if possible and not confirmed and expect_parens:
         threshold = 0.5
         confirmed = str[0] == '(' and str[-1] == ')' and (str.isupper() or percentTitlecase(str[1:-1]) >= threshold)
     return confirmed
