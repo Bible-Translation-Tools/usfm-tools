@@ -125,25 +125,6 @@ def test_fix_punctuation(str, newstr):
     import usfm_cleanup
     assert usfm_cleanup.fix_punctuation(str) == newstr
 
-@pytest.mark.parametrize('str, posn',
-    [
-        ('\\v plain verse', 0),
-        ('', 0),
-        ('\\v 1 verse then (Heading Title Case)', 1),
-        ('\\v 1 verse then (Heading not title)', 0),
-        ('\\v 1 verse then (heading Not Title)', 0),
-        ('\\v 1 verse then (Heading Title Case) continue verse', 1),
-        ('(Heading half Title case) then some text', 1),
-        ('some text then (Heading Title Case Minus Close Paren', 0),
-        ('some text then (First heading) (Second Heading)', 1),
-        ('some text then (first heading) (Second heading)', 2),
-        ('(first heading) (Second heading) (Third Heading)', 2),
-        ('\\v 15 Meakore me einya honainyele iteainyembe. (Nim-Kam Mekae Rei maite Yeuboke)', 1),
-    ])
-def test_has_parenthesized_heading(str, posn):
-    import usfm_cleanup
-    assert usfm_cleanup.has_parenthesized_heading(str) == posn
-
 @pytest.mark.parametrize('str, all, double, newstr',
     [
         ('first,second', True, True, 'first,second'),
@@ -177,12 +158,19 @@ def test_usfm_add_p(str, newstr):
 
 @pytest.mark.parametrize('line, new_line',
     [
-        ('blah\\s Heading\n\n\n\\v 1', ''),
-        # ('\n\\s Heading\n\\v 15 asdflkjadf', '\n\\s Heading\n\\p\n\\v 15 asdflkjadf'),
-        # ('\\s Heading\n\\p\n\\v 2 asdf', '\\s Heading\n\\p\n\\v 2 asdf'),
-        # ('\\s Heading\n\n\\p\n\\v 3 asdf', '\\s Heading\n\n\\p\n\\v 3 asdf'),
-        # ('\\s Heading\n\\p\n\n\\v 4 asdf', '\\s Heading\n\\p\n\n\\v 4 asdf'),
-        # ('\\s Heading\n\\p\n\n\\v 5 asdf\n\\s Heading 2\n\\v 6 asdf', '\\s Heading\n\\p\n\n\\v 5 asdf\n\\s Heading 2\n\\p\n\\v 6 asdf'),
+       # the order of these tests is important because mark_sections() is context sensitive
+    ('text at start of line', '\\s text at start of line'),
+    ('   space at start of line   ', '\\s space at start of line   '),
+    ('\\c 1 \\v 1 asdf', ''),
+    ('text at start of line', 'text at start of line'),
+    ('\\c 2', ''),
+    ('text at start of line', '\\s text at start of line'),
+    ('  ', '  '),
+    ('', ''),
+    ('blah\\s Heading\n\n\n\\v 1', ''),
+    ('end of verse (Probable Heading)', 'end of verse \n\\s Probable Heading\n\\p\n'),
+    ('end of verse. (not a heading) ', ''),
+    ('\\s Heading\n\\p\n\\v 2 asdf', ''),
     ])
 def test_mark_sections(line, new_line):
     import usfm_cleanup

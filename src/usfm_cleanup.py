@@ -18,6 +18,7 @@ import substitutions
 import quotes
 import parseUsfm
 import sentences
+import section_titles
 import usfmWriter
 from datetime import date
 
@@ -325,22 +326,8 @@ def percentTitlecase(str):
             percent = n / len(words)
     return percent
 
-pphrase_re = re.compile(r'(\([\w\- ]+\))')
-# Returns a number indicating position of the first parenthesized heading in the line
-# 0 means no heading found
-def has_parenthesized_heading(line):
-    n = posn = 0
-    for possible_hd in pphrase_re.finditer(line):
-        n += 1
-        str = possible_hd.group(1).strip("()")
-        if str.isupper() or percentTitlecase(str) >= 0.5:
-        # if str.isupper() or (" " in str and percentTitlecase(str) >= 0.5): # exclude single-word non-headings in parens
-            posn = n
-            break
-    return posn
-
-verse_re = re.compile(r'\\v +(0-9)+')
-textstart_re = re.compile(r' *[^\\<\n]')
+verse_re = re.compile(r'\\v +([0-9]+)')
+textstart_re = re.compile(r' *[^ \\<\n]')
 
 # If the specified line is a section heading, returns (True, line), the line being modified.
 # Line modification consists of prepending "\s " and possibly inserting newline before/after heading.
@@ -356,23 +343,19 @@ def mark_sections(line):
         mark_sections.verse = v.group(1)
 
     changed = False
-    if textstart_re.match(line):    # line starts with text
-        if mark_sections.verse == "0" or not mark_sections.prevline: # start of chapter or preceded by blank line
-            line = "\\s " + line.lstrip()
-            changed = True
-    elif not line.startswith("\\s"):
-        n = has_parenthesized_heading(line)
-        if n > 0:
-            hd = list(pphrase_re.finditer(line.strip()))[n-1]
-            heading = hd.group(1).strip("()")
-            if hd.start() == 0:
-                line = "\\s " + heading + "\n\\p\n" + line[hd.end():]
+    if not "\\s" in line:
+        if textstart_re.match(line):    # line starts with text
+            if mark_sections.verse == "0" or mark_sections.prevline.strip() == '': # start of chapter or preceded by blank line
+                line = "\\s " + line.lstrip()
                 changed = True
-            elif hd.end() == len(line.strip()):
-                line = line[0:hd.start()] + "\n\\s " + heading + "\n"
+        if not changed:
+            if pheading := section_titles.find_parenthesized_heading(line):
+                startpos = line.find(pheading)
+                endpos = startpos + len(pheading)
+                assert startpos >= 0 and endpos <= len(line)
+                line = line[0:startpos] + "\n\\s " + pheading.strip('() ') + "\n\\p\n" + line[endpos:]
                 changed = True
-            else:   # Can't handle heading in the middle of a line
-                pass
+
     mark_sections.prevline = line
     return (changed, line)
 
