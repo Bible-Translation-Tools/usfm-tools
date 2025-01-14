@@ -1232,16 +1232,16 @@ def verifyFile(path):
     with io.open(path, "r", encoding="utf-8-sig") as input:
         contents = input.read(-1)
 
-    if len(contents) > 5 and contents[:5] == '\x00\x00\x00\x00\x00':
-        reportError("File is most likely null " + shortname(path), 82)
-        return
-
     if wjwj_re.search(contents):
         reportError("Empty \\wj \\wj* pair(s) in " + shortname(path), 77)
     if backslasheol_re.search(contents):
         reportError("Stranded backslash(es) at end of line(s) in " + shortname(path), 78)
     if '\x00' in contents:
         reportError("Null bytes found in " + shortname(path), 79)
+        if contents.count('\x00') == len(contents):
+            reportError("File is entirely null bytes: " + shortname(path), 79.1)
+            return
+
     aligned_usfm = ("lemma=" in contents or "x-occurrences" in contents)
     if aligned_usfm:
         contents = usfm_utils.unalign_usfm(contents)
