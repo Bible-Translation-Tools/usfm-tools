@@ -27,7 +27,7 @@ class Select_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
 
-        self.process = StringVar()        
+        self.process = StringVar()
         subheadingFont = font.Font(size=10, slant='italic')     # normal size is 9
         suppressions_label = ttk.Label(self, text="What do you want to do today?", font=subheadingFont)
         suppressions_label.grid(row=3, column=1, columnspan=2, sticky=W, pady=(4,2))
@@ -135,7 +135,7 @@ while renaming the files according to our naming convention. \
 It also ensures that line endings are LF, and also copies the \
 Settings.xml file, with changes to reflect the new file names.""")
             case _:
-                self.message_area.insert('end', f"Internal error: process {self.process.get()} is not handled.")
+                self.message_area.insert('end', f"Please select process above.")
         self.message_area.see('1.0')
         self.message_area['state'] = DISABLED   # prevents editing of message area
 
