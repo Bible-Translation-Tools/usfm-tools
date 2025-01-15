@@ -327,7 +327,7 @@ def percentTitlecase(str):
     return percent
 
 verse_re = re.compile(r'\\v +([0-9]+)')
-textstart_re = re.compile(r' *[^ \\<\n]')
+textstart_re = re.compile(r' *[^ \\<\n(]')
 
 # If the specified line is a section heading, returns (True, line), the line being modified.
 # Line modification consists of prepending "\s " and possibly inserting newline before/after heading.
@@ -353,7 +353,7 @@ def mark_sections(line):
                 startpos = line.find(pheading)
                 endpos = startpos + len(pheading)
                 assert startpos >= 0 and endpos <= len(line)
-                line = line[0:startpos] + "\n\\s " + pheading.strip('() ') + "\n\\p\n" + line[endpos:]
+                line = line[0:startpos] + "\n\\s " + pheading.strip('() \n') + "\n\\p\n" + line[endpos:]
                 changed = True
 
     mark_sections.prevline = line
