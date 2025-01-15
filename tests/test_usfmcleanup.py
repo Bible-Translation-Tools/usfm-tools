@@ -162,7 +162,7 @@ def test_usfm_add_p(str, newstr):
     ('text at start of line', '\\s text at start of line'),
     ('   space at start of line   ', '\\s space at start of line   '),
     ('\\c 1 \\v 1 asdf', ''),
-    ('text at start of line', 'text at start of line'),
+    ('Text at start of line', ''),
     ('\\c 2', ''),
     ('text at start of line', '\\s text at start of line'),
     ('  ', '  '),
@@ -171,6 +171,9 @@ def test_usfm_add_p(str, newstr):
     ('end of verse (Probable Heading)', 'end of verse \n\\s Probable Heading\n\\p\n'),
     ('end of verse. (not a heading) ', ''),
     ('\\s Heading\n\\p\n\\v 2 asdf', ''),
+    ('(\nNewline Starts Heading)', '\n\\s Newline Starts Heading\n\\p\n'),
+    ('(\nStarts And End Heading With Newline\n)', '\n\\s Starts And End Heading With Newline\n\\p\n'),
+    ('(Newline \n Mid Not Heading)', ''),
     ])
 def test_mark_sections(line, new_line):
     import usfm_cleanup

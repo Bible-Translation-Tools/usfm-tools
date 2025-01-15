@@ -123,6 +123,7 @@ def test_mark_section_heading_lbi(str, newstr):
         ('\\c 6 Strong Possibility    ', '\\c 6 \\s Strong Possibility    '),
         ('\\c 7 Weak possibility', ''),
         ('   \\v 8 No Possibility', ''),
+        ('\\c 9\nWord One\nWord Two\n\\v 9 asdf', '\\c 9\n\\s Word One\nWord Two\n\\v 9 asdf'),
         ('Before Chapter\n\\c 9 \\v 9 verse. After Verse', 'Before Chapter\n\\c 9 \\v 9 verse. \\s After Verse'),
         ('  Strong Possibility   \\v 9 No Possibility \\c 9', '\\s Strong Possibility   \\v 9 No Possibility \\c 9'),
         ('  Don''t Want This To Be a Heading  \\c 1', ''),
