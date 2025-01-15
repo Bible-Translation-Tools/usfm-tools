@@ -35,7 +35,7 @@ def percentTitlecase(str):
             percent = n / len(words)
     return percent
 
-pphrase_re = re.compile(r'\(([\w\- ]+)\)')
+pphrase_re = re.compile(r'\([\s]*([\w\- ]+)[\s]*\)')
 
 # Returns substring of line that is a parenthesized heading.
 # Returns None if no parenthesized heading is found.
@@ -43,7 +43,7 @@ def find_parenthesized_heading(line):
     pheading = None
     for possible_hd in pphrase_re.finditer(line):
         possible_heading = possible_hd.group(0)
-        if is_heading(possible_heading.strip('()'), threshold = 0.5):
+        if is_heading(possible_heading.strip('() \n'), threshold = 0.5):
             pheading = possible_heading
             break
     return pheading
@@ -55,7 +55,7 @@ anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
 # No more than one sentence.
 def is_heading(str, threshold=0.51):
     confirmed = False
-    str = str.strip(' ')
+    str = str.strip(' \n')
     # Initial qualification
     possible = (len(str) > 3 and not anyMarker_re.search(str) and sentences.sentenceCount(str) == 1) and\
                 not '\n' in str and quotes.quotepos(str) == -1
