@@ -66,6 +66,7 @@ class State:
         self.reference = ""
         self.errorRefs = set()
         self.sourcetext = {}
+        self.canContinue = True
         self.initBook()
 
     def initBook(self):
@@ -1096,7 +1097,8 @@ def take(token):
             verifyVerseCount()  # for the preceding chapter
         if not state.ID:
             reportError("Missing book ID: " + state.reference + " Cannot check this file.", 62.1)
-            sys.exit(-1)
+            state.canContinue = False
+            return
         if token.value == "1":
             verifyBookTitle()
         takeC(token.value)
@@ -1243,6 +1245,8 @@ def verifyFile(path):
     aligned_usfm = ("lemma=" in contents or "x-occurrences" in contents)
     if aligned_usfm:
         contents = usfm_utils.unalign_usfm(contents)
+    
+    state.canContinue = True
 
     if len(contents) < 100:
         reportError("Incomplete file: " + shortname(path), 80)
@@ -1254,6 +1258,10 @@ def verifyFile(path):
         verifyWholeFile(contents, shortname(path))  # placed after parseUsfm so that its error messages come after the long parsing time pause
         for token in tokens:
             take(token)
+            if not state.canContinue:
+                state.addID("")
+                sys.stderr.flush()
+                return
         if (usfm_version == 2 or aligned_usfm) and not state.toc3:
             reportError("No \\toc3 tag in " + shortname(path), 81)
         previousVerseCheck()       # checks last verse in the file
