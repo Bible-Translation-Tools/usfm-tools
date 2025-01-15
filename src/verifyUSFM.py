@@ -42,7 +42,6 @@ from pathlib import Path
 import sys
 import parseUsfm
 import io
-import operator
 import footnoted_verses
 import usfm_verses
 import re
@@ -50,7 +49,6 @@ import unicodedata
 import usfm_utils
 import sentences
 from datetime import date
-import yaml
 
 # Item categories
 PP = 1      # paragraph or quote
@@ -493,7 +491,7 @@ def reportMixedCase():
     elif len(mcwords) >= limit:
         reportError("Too many mixed case words; reporting cancelled", 0.3)
 
-# Returns sort key for the specified item. 
+# Returns sort key for the specified item.
 def wordkey(item):
     word = item[0].lstrip("'")
     # word2 = item[0].lstrip("' .,:;!?+-[]{}()<>\"“‘’”*/")
