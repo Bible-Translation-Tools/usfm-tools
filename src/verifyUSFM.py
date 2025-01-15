@@ -1236,6 +1236,10 @@ def verifyFile(path):
         reportError("Stranded backslash(es) at end of line(s) in " + shortname(path), 78)
     if '\x00' in contents:
         reportError("Null bytes found in " + shortname(path), 79)
+        if contents.count('\x00') == len(contents):
+            reportError("File is entirely null bytes: " + shortname(path), 79.1)
+            return
+
     aligned_usfm = ("lemma=" in contents or "x-occurrences" in contents)
     if aligned_usfm:
         contents = usfm_utils.unalign_usfm(contents)
