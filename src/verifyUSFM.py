@@ -42,7 +42,6 @@ from pathlib import Path
 import sys
 import parseUsfm
 import io
-import operator
 import footnoted_verses
 import usfm_verses
 import re
@@ -50,7 +49,6 @@ import unicodedata
 import usfm_utils
 import sentences
 from datetime import date
-import yaml
 
 # Item categories
 PP = 1      # paragraph or quote
