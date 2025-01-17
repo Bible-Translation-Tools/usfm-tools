@@ -492,7 +492,7 @@ def reportMixedCase():
     elif len(mcwords) >= limit:
         reportError("Too many mixed case words; reporting cancelled", 0.3)
 
-# Returns sort key for the specified item.
+# Returns sort key for the specified item. 
 def wordkey(item):
     word = item[0].lstrip("'")
     # word2 = item[0].lstrip("' .,:;!?+-[]{}()<>\"“‘’”*/")
@@ -611,9 +611,12 @@ def verifyFootnotes():
 def verifyNotEmpty(filename):
     if not state.ID or state.chapter == 0:
         if not state.ID in {'FRT','BAK'}:
-            reportError("File may be empty, or open in another program: " + filename, 11)
+            reportError("File may be empty, or open in another program: " + str(filename), 11)
 
 def verifyChapterCount():
+    # if this book isn't in our list of verse counts then don't check (prevents a key error)
+    if not state.ID in usfm_verses.verseCounts:
+        return
     if state.ID and state.chapter != nChapters(state.ID):
         reportError("There should be " + str(nChapters(state.ID)) + " chapters in " + state.ID + " but " + str(state.chapter) + " chapters are found.", 12)
 
@@ -678,6 +681,9 @@ def takeFootnote(token):
     else:
         if not state.inFootnote():
             reportError(f"Footnote marker ({token.type}) not between \\f ... \\f* pair at {state.reference}", 21)
+    # Prevent a problem with trying to take text where there is none
+    if len(token.value) == 0:
+        return
     takeText(token.value, footnote=True)
 
 def takeID(id):
@@ -1169,6 +1175,9 @@ def verifyChapterAndVerseMarkers(text, path):
         reportError("Missing space after verse number: " + s + " in " + path, 74)
 
 def verifyParagraphCount():
+    # Prevent a divide by 0 error and continue scanning
+    if state.chapter == 0:
+        return
     if state.nParagraphs / state.chapter <= 2.5 and state.nPoetry / state.chapter <= 15:
         reportError(f"Low paragraph count ({state.nParagraphs + state.nPoetry}) for {state.ID}", 73.5)
 
@@ -1230,7 +1239,11 @@ backslasheol_re = re.compile(r'\\ *\n')
 def verifyFile(path):
     global aligned_usfm
     with io.open(path, "r", encoding="utf-8-sig") as input:
-        contents = input.read(-1)
+        try:
+            contents = input.read(-1)
+        except UnicodeDecodeError:
+            reportError("File appears to not be UTF-8: " + shortname(path), 79.2 )
+            return
 
     if wjwj_re.search(contents):
         reportError("Empty \\wj \\wj* pair(s) in " + shortname(path), 77)
