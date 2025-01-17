@@ -339,9 +339,13 @@ def decimal_value(s):
             break
     return value
 
-# Returns the number of chapters that the specified book should contain
+# Returns the number of chapters that the specified book should contain.
+# Returns 0 if the book id is invalid.
 def nChapters(id):
-    return usfm_verses.verseCounts[id]['chapters']
+    n = 0
+    if id in usfm_verses.verseCounts:
+        n = usfm_verses.verseCounts[id]['chapters']
+    return n
 
 # Returns the number of verses that the specified chapter should contain
 def nVerses(id, chap):
@@ -492,7 +496,7 @@ def reportMixedCase():
     elif len(mcwords) >= limit:
         reportError("Too many mixed case words; reporting cancelled", 0.3)
 
-# Returns sort key for the specified item. 
+# Returns sort key for the specified item.
 def wordkey(item):
     word = item[0].lstrip("'")
     # word2 = item[0].lstrip("' .,:;!?+-[]{}()<>\"“‘’”*/")
@@ -614,11 +618,9 @@ def verifyNotEmpty(filename):
             reportError("File may be empty, or open in another program: " + str(filename), 11)
 
 def verifyChapterCount():
-    # if this book isn't in our list of verse counts then don't check (prevents a key error)
-    if not state.ID in usfm_verses.verseCounts:
-        return
-    if state.ID and state.chapter != nChapters(state.ID):
-        reportError("There should be " + str(nChapters(state.ID)) + " chapters in " + state.ID + " but " + str(state.chapter) + " chapters are found.", 12)
+    nExpected = nChapters(state.ID)
+    if nExpected > 0 and state.ID and state.chapter != nExpected:
+        reportError("There should be " + str(nExpected) + " chapters in " + state.ID + " but " + str(state.chapter) + " chapters are found.", 12)
 
 # \b is used to indicate additional white space between paragraphs.
 # No text or verse marker should follow this marker
@@ -1258,7 +1260,7 @@ def verifyFile(path):
     aligned_usfm = ("lemma=" in contents or "x-occurrences" in contents)
     if aligned_usfm:
         contents = usfm_utils.unalign_usfm(contents)
-    
+
     state.canContinue = True
 
     if len(contents) < 100:
