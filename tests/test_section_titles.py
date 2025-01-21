@@ -33,7 +33,12 @@ import pytest
      ('\\c 3 String Possibility \\v 3', False), # Headings cannot include usfm markers
      ('Title MiXed lower', False),              # @todo we may honor capitalized, mixed case words later
      ('before a title. Then A Title', False),
+     ("How Paul's word", False),        # Quotes in words make them non-title case
+     ("How Paul's Word", True),
+     ("Paul's First Word Possessive", False),   # would like this to be True
      ('First A Title. Then not a title', False),
+     ('This is a Ten Word Candidate with Seven Capitalized Words', True),
+     ('This is a Ten Word Candidate with Seven Capitalized Wordsssssss', False),
     ])
 def test_is_heading(str, expected):
     import section_titles
