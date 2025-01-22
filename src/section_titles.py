@@ -53,6 +53,11 @@ def percentTitlecase(str):
             percent = n / len(words)
     return percent
 
+# Returns True if the first and last word in the string are title case.
+def firstAndLastTitlecase(str):
+    words = str.split()
+    return (words[0].istitle() and words[-1].istitle()) if words else False
+
 # Returns that portion of the specified line that is most likely a heading,
 # based characteristics of the text between the start and end characters.
 # Typically a parenthesized heading.
@@ -117,4 +122,6 @@ def titlecase_threshold(str):
         adj += 0.01 * (len(str) - 40)
     if str.startswith('(') and str.endswith(')'):
         adj -= 0.03
+    if firstAndLastTitlecase(str):
+        adj -= 0.01
     return adj

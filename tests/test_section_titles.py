@@ -39,6 +39,8 @@ import pytest
      ('First A Title. Then not a title', False),
      ('This is a Ten Word Candidate with Seven Capitalized Words', True),
      ('This is a Ten Word Candidate with Seven Capitalized Wordsssssss', False),
+     ('First and last Words', True),
+     ('First and Third words', False),
     ])
 def test_is_heading(str, expected):
     import section_titles
