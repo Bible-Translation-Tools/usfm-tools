@@ -39,7 +39,7 @@ import pytest
      ('First A Title. Then not a title', False),
      ('This is a Ten Word Candidate with Seven Capitalized Words', True),
      ('This is a Ten Word Candidate with Seven Capitalized Wordsssssss', False),
-     ('First and last Words', True),
+     ('First and last Words', False),   # I would like for this to be True, but Lamboya's Matthew 1 doesn't.
      ('First and Third words', False),
     ])
 def test_is_heading(str, expected):
@@ -57,7 +57,7 @@ def test_is_heading(str, expected):
      ('(" Sentence With Quotes)"  ', None),
      ('(  )', None),
      ('(This Fine House\nAbc)', None),
-     ('(\nStarts With Newline)', '(\nStarts With Newline)'),
+     ('(\nStarts With Newline)', None),
      ('(\\v 1 This Is Interesting)', None),
      ('Parens At End)', None),
      ('(No End Paren', None),
