@@ -38,17 +38,26 @@ def consider_parens(consider=True):
     global expect_parens
     expect_parens = consider
 
+# Differs from str.istitle() in how apostrophes are treated.
+# istitle("Paul's") returns False.
+# isCapitalized("Paul's") returns True.
+def isCapitalized(word):
+    result = word.istitle()
+    if not result:
+        result = word.replace("'", "").istitle()
+    return result
+
 # Returns the fraction of words in the string which are title case.
 # Words containing quotation marks are considered non-title case.
-# But returns 0 if the first word is not title case.
+# But returns 0 if the first word is not capitalized.
 def percentTitlecase(str):
     percent = 1 if str.istitle() else 0
     if percent != 1:
         n = 0
         words = str.split()
-        if words and words[0].istitle():
+        if words and isCapitalized(words[0]):
             for word in words:
-                if word.istitle():
+                if isCapitalized(word):
                     n += 1
             percent = n / len(words)
     return percent
@@ -84,7 +93,7 @@ def find_parenthesized_heading(line):
     pheading = None
     for possible_hd in pphrase_re.finditer(line):
         possible_heading = possible_hd.group(0)
-        if is_heading(possible_heading.strip('() \n')):
+        if is_heading(possible_heading.strip()):
             pheading = possible_heading
             break
     return pheading
@@ -118,6 +127,8 @@ def titlecase_threshold(str):
     quotepos = quotes.quotepos(str)
     if quotepos >= 0:
         adj = 0.66 if str[quotepos] in "'’" else 1.5
+    if ',' in str:
+        adj += 0.05
     if len(str) > 40:
         adj += 0.01 * (len(str) - 40)
     if str.startswith('(') and str.endswith(')'):
