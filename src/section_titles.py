@@ -54,9 +54,9 @@ def percentTitlecase(str):
     return percent
 
 # Returns True if the first and last word in the string are title case.
-def firstAndLastTitlecase(str):
-    words = str.split()
-    return (words[0].istitle() and words[-1].istitle()) if words else False
+# def firstAndLastTitlecase(str):
+    # words = str.split()
+    # return (words[0].istitle() and words[-1].istitle()) if words else False
 
 # Returns that portion of the specified line that is most likely a heading,
 # based characteristics of the text between the start and end characters.
@@ -92,7 +92,7 @@ def find_parenthesized_heading(line):
 anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
 
 # Returns True if the string looks like a section heading.
-# Any USFM markers or quote marks in the string disqualify it.
+# Any backslash markers or quote marks in the string disqualify it.
 # See comments at the top of this file for factors that are considered.
 # The threshold parameter specifies the minimum percentage of capitalized words
 #    in a string that is partly title case.
@@ -122,6 +122,6 @@ def titlecase_threshold(str):
         adj += 0.01 * (len(str) - 40)
     if str.startswith('(') and str.endswith(')'):
         adj -= 0.03
-    if firstAndLastTitlecase(str):
-        adj -= 0.01
+    # if firstAndLastTitlecase(str):
+    #     adj -= 0.01
     return adj
