@@ -136,3 +136,14 @@ def titlecase_threshold(str):
     # if firstAndLastTitlecase(str):
     #     adj -= 0.01
     return adj
+
+# Inserts the section heading between two parts, including newlines.
+def insert_heading(preheading, heading, postheading):
+    preheading = preheading.rstrip()
+    if preheading:
+        preheading += '\n'
+    postheading = postheading.lstrip()
+    if postheading:
+        postheading = '\n' + postheading
+    section = preheading + "\\s " + heading.strip() + "\n\\p" + postheading
+    return section
