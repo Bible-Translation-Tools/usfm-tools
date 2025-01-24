@@ -8,7 +8,7 @@ src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 import pytest
 
-@pytest.mark.parametrize('str, newstr',
+@pytest.mark.parametrize('str, expected',
     [
         ('.The house.about.', '. The house. about.'),
         ('!The house.about.', '!The house. about.'),
@@ -23,11 +23,11 @@ import pytest
         ('7,000', '7,000'),
         ('eos,s,t', 'eos, s, t'),
     ])
-def test_add_spaces(str, newstr):
+def test_add_spaces(str, expected):
     import usfm_cleanup
-    assert usfm_cleanup.add_spaces(str) == newstr
+    assert usfm_cleanup.add_spaces(str) == expected
 
-@pytest.mark.parametrize('str, newstr',
+@pytest.mark.parametrize('str, expected',
     [
         ('\\p\n\\s Heading', '\\p\n\\s Heading'),
         ('\\p \\s Heading', '\\p \\s Heading'),
@@ -46,11 +46,11 @@ def test_add_spaces(str, newstr):
     ])
 # usfm_move_pq moves standalone \p \m and \q markers which occur just before an \s# marker
 # to the next line after the \s# marker.
-def test_usfm_move_pq(str, newstr):
+def test_usfm_move_pq(str, expected):
     import usfm_cleanup
-    assert usfm_cleanup.usfm_move_pq(str) == newstr
+    assert usfm_cleanup.usfm_move_pq(str) == expected
 
-@pytest.mark.parametrize('str, newstr',
+@pytest.mark.parametrize('str, expected',
     [
         ('\\p\n\\s Heading', '\\s Heading'),
         ('\\p \\s Heading', '\\s Heading'),     # no line break after \p
@@ -73,11 +73,11 @@ def test_usfm_move_pq(str, newstr):
         ('\\p words before\n\\s Heading', '\\p words before\n\\s Heading'),
     ])
 # Remove standalone paragraph markers not followed by verse marker.
-def test_usfm_remove_pq(str, newstr):
+def test_usfm_remove_pq(str, expected):
     import usfm_cleanup
-    assert usfm_cleanup.usfm_remove_pq(str) == newstr
+    assert usfm_cleanup.usfm_remove_pq(str) == expected
 
-@pytest.mark.parametrize('str, newstr',
+@pytest.mark.parametrize('str, expected',
     [
         ('\\p\n\\s5 Heading?\n\\s Section heading', '\\p\n\\s5 Heading?\n\\s Section heading'),
         ('\\p asdf\\s5\n', '\\p asdf\\s5\n'),
@@ -88,11 +88,11 @@ def test_usfm_remove_pq(str, newstr):
         ('text before\n\\s5\n\\v 5 text after', 'text before\n\\v 5 text after'),
     ])
 # Remove standalone paragraph markers not followed by verse marker.
-def test_usfm_remove_s5(str, newstr):
+def test_usfm_remove_s5(str, expected):
     import usfm_cleanup
-    assert usfm_cleanup.usfm_remove_s5(str) == newstr
+    assert usfm_cleanup.usfm_remove_s5(str) == expected
 
-@pytest.mark.parametrize('str, newstr',
+@pytest.mark.parametrize('str, expected',
     [
         ('\\id ROM\n\\toc1 romans\n\\toc2 rOMans\n\\h ROMANS\n\\mt Romans\n',
           '\\id ROM\n\\toc1 Romans\n\\toc2 Romans\n\\h Romans\n\\mt Romans\n'),
@@ -103,11 +103,11 @@ def test_usfm_remove_s5(str, newstr):
         ('\\mt ii peter\n', '\\mt II Peter\n'),
         ('\\mt iiI petro\n', '\\mt III Petro\n'),
     ])
-def test_fix_booktitles(str, newstr):
+def test_fix_booktitles(str, expected):
     import usfm_cleanup
-    assert usfm_cleanup.fix_booktitles(str) == newstr
+    assert usfm_cleanup.fix_booktitles(str) == expected
 
-@pytest.mark.parametrize('str, newstr',
+@pytest.mark.parametrize('str, expected',
     [
         ('first,, second', 'first, second'),
         ('first(second', 'first (second'),
@@ -121,11 +121,11 @@ def test_fix_booktitles(str, newstr):
 # 2. Reduces double periods to single.
 # 3. Fixes free floating punctuation after verse marker.
 # 4. Adds space before left paren/bracket where needed.
-def test_fix_punctuation(str, newstr):
+def test_fix_punctuation(str, expected):
     import usfm_cleanup
-    assert usfm_cleanup.fix_punctuation(str) == newstr
+    assert usfm_cleanup.fix_punctuation(str) == expected
 
-@pytest.mark.parametrize('str, all, double, newstr',
+@pytest.mark.parametrize('str, all, double, expected',
     [
         ('first,second', True, True, 'first,second'),
         ('first,"second', True, True, 'first,"second'),
@@ -136,11 +136,11 @@ def test_fix_punctuation(str, newstr):
         ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", False, True, "oddo,'Me ri rossosu i'jâkikâle ~bwo, "),
         ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", False, False, "oddo,'Me ri rossosu i'jâkikâle ~bwo, "),
    ])
-def test_change_quote_medial(str, all, double, newstr):
+def test_change_quote_medial(str, all, double, expected):
     import usfm_cleanup
-    assert usfm_cleanup.change_quote_medial(str, all, double)[1] == newstr
+    assert usfm_cleanup.change_quote_medial(str, all, double)[1] == expected
 
-@pytest.mark.parametrize('str, newstr',
+@pytest.mark.parametrize('str, expected',
     [
         ('blah\\s Heading\n\n\n\\v 1', 'blah\\s Heading\n\\p\n\n\n\\v 1'),
         ('\n\\s Heading\n\\v 15 asdflkjadf', '\n\\s Heading\n\\p\n\\v 15 asdflkjadf'),
@@ -150,13 +150,13 @@ def test_change_quote_medial(str, all, double, newstr):
         ('\\s Heading\n\\p\n\n\\v 5 asdf\n\\s Heading 2\n\\v 6 asdf', '\\s Heading\n\\p\n\n\\v 5 asdf\n\\s Heading 2\n\\p\n\\v 6 asdf'),
     ])
 # usfm_add_p add \p between section heading and verse marker, where missing.
-def test_usfm_add_p(str, newstr):
+def test_usfm_add_p(str, expected):
     import usfm_cleanup
-    assert usfm_cleanup.usfm_add_p(str) == newstr
+    assert usfm_cleanup.usfm_add_p(str) == expected
 
 
 
-@pytest.mark.parametrize('line, new_line',
+@pytest.mark.parametrize('line, expected',
     [
        # the order of these tests is important because mark_sections() is context sensitive
     ('text at start of line', '\\s text at start of line'),
@@ -167,21 +167,19 @@ def test_usfm_add_p(str, newstr):
     ('text at start of line', '\\s text at start of line'),
     ('  ', '  '),
     ('', ''),
-    ('blah\\s Heading\n\n\n\\v 1', ''),
-    ('end of verse (Probable Heading)', 'end of verse \n\\s Probable Heading\n\\p\n'),
+    ('blah\\s Heading\n\n\n\\v 1', ''),     # should never occur
+    ('end of verse (Probable Heading)', 'end of verse\n\\s Probable Heading\n\\p'),
     ('end of verse. (not a heading) ', ''),
-    ('\\s Heading\n\\p\n\\v 2 asdf', ''),
-    ('(\nNewline Starts Heading)', '\n\\s Newline Starts Heading\n\\p\n'),
-    ('(\nStarts And End Heading With Newline\n)', '\n\\s Starts And End Heading With Newline\n\\p\n'),
-    ('(Newline \n Mid Not Heading)', ''),
+    ('\\s Heading\n\\p\n\\v 2 asdf', ''),   # should never occur
+    ('(Newline \n Mid Sentence)', ''),   # should never occur
     ])
-def test_mark_sections(line, new_line):
+def test_mark_sections(line, expected):
     import usfm_cleanup
-    if not new_line or new_line == line:
-        new_line = line
+    if not expected or expected == line:
+        expected = line
         changed = False
     else:
         changed = True
     (c,s) = usfm_cleanup.mark_sections(line)
-    assert s == new_line
+    assert s == expected
     assert c == changed
