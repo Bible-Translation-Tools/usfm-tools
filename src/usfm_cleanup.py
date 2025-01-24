@@ -333,7 +333,7 @@ textstart_re = re.compile(r' *[^ \\<\n(]')
 # Line modification consists of prepending "\s " and possibly inserting newline before/after heading.
 # Otherwise, returns (False, line), the line being unchanged.
 def mark_sections(line):
-    if not hasattr(mark_sections, "prevline"):
+    if not hasattr(mark_sections, "prevline"):  # first time called
         mark_sections.prevline = "xx"
         mark_sections.verse = "0"
 
@@ -353,7 +353,7 @@ def mark_sections(line):
                 startpos = line.find(pheading)
                 endpos = startpos + len(pheading)
                 assert startpos >= 0 and endpos <= len(line)
-                line = line[0:startpos] + "\n\\s " + pheading.strip('() \n') + "\n\\p\n" + line[endpos:]
+                line = section_titles.insert_heading(line[0:startpos], pheading.strip('() \n'), line[endpos:])
                 changed = True
 
     mark_sections.prevline = line
