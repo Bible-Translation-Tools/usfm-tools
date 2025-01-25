@@ -327,7 +327,6 @@ def percentTitlecase(str):
     return percent
 
 verse_re = re.compile(r'\\v +([0-9]+)')
-textstart_re = re.compile(r' *[^ \\<\n(]')
 
 # If the specified line is a section heading, returns (True, line), the line being modified.
 # Line modification consists of prepending "\s " and possibly inserting newline before/after heading.
@@ -336,6 +335,7 @@ def mark_sections(line):
     if not hasattr(mark_sections, "prevline"):  # first time called
         mark_sections.prevline = "xx"
         mark_sections.verse = "0"
+        mark_sections.sentenceended = True
 
     if line.find("\\c ") >= 0:
         mark_sections.verse = "0"
@@ -343,20 +343,20 @@ def mark_sections(line):
         mark_sections.verse = v.group(1)
 
     changed = False
-    if not "\\s" in line:
-        if textstart_re.match(line):    # line starts with text
-            if mark_sections.verse == "0" or mark_sections.prevline.strip() == '': # start of chapter or preceded by blank line
-                line = "\\s " + line.lstrip()
-                changed = True
-        if not changed:
-            if pheading := section_titles.find_parenthesized_heading(line):
-                startpos = line.find(pheading)
-                endpos = startpos + len(pheading)
-                assert startpos >= 0 and endpos <= len(line)
-                line = section_titles.insert_heading(line[0:startpos], pheading.strip('() \n'), line[endpos:])
-                changed = True
+    if section_titles.is_heading(line):
+        if mark_sections.verse == "0" or mark_sections.prevline.strip() == '' or mark_sections.sentenceended:
+            line = "\\s " + line.lstrip()
+            changed = True
+    if not changed:
+        if pheading := section_titles.find_parenthesized_heading(line):
+            startpos = line.find(pheading)
+            endpos = startpos + len(pheading)
+            assert startpos >= 0 and endpos <= len(line)
+            line = section_titles.insert_heading(line[0:startpos], pheading.strip('() \n'), line[endpos:])
+            changed = True
 
     mark_sections.prevline = line
+    mark_sections.sentenceended = sentences.endsSentence(line, checkquotes=True)
     return (changed, line)
 
 # Rewrites the file line by line, making changes to individual lines
@@ -395,7 +395,8 @@ def takeFootnote(key, value, usfm):
 def capitalizeAsNeeded(str):
     global needcaps
     str = sentences.capitalize(str, needcaps)
-    needcaps = (sentences.endsSentence(str) and not sentences.endsQuotedSentence(str))
+    # needcaps = (sentences.endsSentence(str) and not sentences.endsQuotedSentence(str))
+    needcaps = sentences.endsSentence(str, checkquotes = True)
     return str
 
 cl_pattern = re.compile(r'(.*)([\d]+)(.*)')

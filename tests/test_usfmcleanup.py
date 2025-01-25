@@ -159,13 +159,19 @@ def test_usfm_add_p(str, expected):
 @pytest.mark.parametrize('line, expected',
     [
        # the order of these tests is important because mark_sections() is context sensitive
-    ('text at start of line', '\\s text at start of line'),
-    ('   space at start of line   ', '\\s space at start of line   '),
+    ('text at start of line', ''),
+    ('   Space at Start of Line   ', '\\s Space at Start of Line   '),
     ('\\c 1 \\v 1 asdf', ''),
-    ('Text at start of line', ''),
-    ('\\c 2', ''),
-    ('text at start of line', '\\s text at start of line'),
+    ('Text at start of line', ''),  # after verse 1, the rules change
+    ('\\c 2 unexpected text', ''),
+    ('Looks Like A Title', '\\s Looks Like A Title'),
+    ('\\v 1 Part of a verse', ''),
+    ('Looks Like A Title', ''),
+    ('the rest of the verse.', ''),
+    ('Looks Like A Title', '\\s Looks Like A Title'),
+    ('\v 2 Part of a verse', ''),
     ('  ', '  '),
+    ('Looks Like A Title', '\\s Looks Like A Title'),
     ('', ''),
     ('blah\\s Heading\n\n\n\\v 1', ''),     # should never occur
     ('end of verse (Probable Heading)', 'end of verse\n\\s Probable Heading\n\\p'),
@@ -177,9 +183,9 @@ def test_mark_sections(line, expected):
     import usfm_cleanup
     if not expected or expected == line:
         expected = line
-        changed = False
+        expectchange = False
     else:
-        changed = True
+        expectchange = True
     (c,s) = usfm_cleanup.mark_sections(line)
     assert s == expected
-    assert c == changed
+    assert c == expectchange
