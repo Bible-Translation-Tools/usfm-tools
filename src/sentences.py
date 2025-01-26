@@ -5,8 +5,8 @@
 import re
 
 firstword_re = re.compile(r'([\w]+)')
-nextsent_re = re.compile(r'[.?!\u0964\u1361\u1362].*?([\w]+)', re.DOTALL)
-specialquoted_re = re.compile(r'[?!\u0964\u1361\u1362][\'"’”»\-——]')    # exception to sentence ending
+endsent_re = re.compile(r'[.?!\u0964\u1361\u1362].*?([\w]+)', re.DOTALL)
+badquoted_re = re.compile(r'[?!\u1361\u1362]+[«“‘\-\u2014\u2013]')
 endsentence_re = re.compile(r'[.?!\u0964\u1361\u1362][^\w]*$')
 
 """
@@ -14,19 +14,21 @@ Special characters:
 \u0964 is the Devangari Danda । character that terminates a sentence.
 \u1361 is the Ethiopic Wordspace ፡ character that is often doubled up to use in place of \u1362.
 \u1362 is the Ethiopic Full Stop ። character that terminates a sentence.
+\u2013 is an en dash
+\u2014 is an em dash
 """
 
-# Returns True if the specified text ends with sentence-ending punctuation:
-def endsSentence(str):
-    return endsentence_re.search(str)
-
-# Returns True if the specified text ends with sentence-ending punctuation
-# followed by a closed quote or straight quote or dash.
-def endsQuotedSentence(str):
-    ends = False
-    if ending := endsentence_re.search(str):
-        if specialquoted_re.match(str[ending.start():ending.start()+2]):
-           ends = True
+# Returns True if the specified text ends with sentence-ending punctuation.
+# However, an open quote mark following any of !?፡። introduces some uncertainty.
+# So if checkquotes is True, this function returns:
+#    False when opening quotes follow the sentence-ending punctuation
+#    True when closed quotes, straight quotes or no quotes follow the sentence-ending punctuation.
+def endsSentence(str, checkquotes=False):
+    ending = endsentence_re.search(str)
+    if ending and checkquotes:
+        ends = (badquoted_re.match(str[ending.start():ending.start()+3]) == None)
+    else:
+        ends = (ending != None)
     return ends
 
 # Returns the first word in the string.
@@ -39,21 +41,22 @@ def firstword(str):
 # Generator function to yield the first word in each sentence in str,
 # ***not counting*** the first word in the string, even if it starts a sentence.
 def nextfirstwords(str):
-    next = nextsent_re.search(str)
+    next = endsent_re.search(str)
     while next:
-        if not specialquoted_re.match(str[next.start():next.start()+2]):
+        if not badquoted_re.match(str[next.start():next.start()+2]):
             yield next.group(1)
-        next = nextsent_re.search(str, next.end())
+        next = endsent_re.search(str, next.end())
 
 # Generator function to yield the starting position of each sentence
 # or partial sentence in str.
 def nextstartpos(str):
-    next = firstword_re.search(str)
-    while next:
-        if not specialquoted_re.match(str[next.start():next.start()+2]):
-            nextpos = next.start(1)
-            yield nextpos
-        next = nextsent_re.search(str, next.end())
+    nextword = firstword_re.search(str)
+    while nextword:
+        yield nextword.start()
+        endsent = endsent_re.search(str, nextword.end())
+        while endsent and badquoted_re.match(endsent.group(0)):
+            endsent = endsent_re.search(str, endsent.end())
+        nextword = firstword_re.search(str, endsent.start()+1) if endsent else None
 
 # Capitalizes the first word in each sentence in the string.
 # Capitalizes the first word in the string if startsSentence is True.
@@ -65,14 +68,14 @@ def capitalize(str, startsSentence):
             if str[i].islower():
                 str = str[0:i] + str[i].upper() + str[i+1:]
                 changed = True
-    next = nextsent_re.search(str)
+    next = endsent_re.search(str)
     while next:
         i = str.find(next.group(1), next.start())
         if str[i].islower():
-            if not specialquoted_re.match(str[next.start():next.start()+2]):
+            if not badquoted_re.match(str[next.start():next.start()+2]):
                 str = str[0:i] + str[i].upper() + str[i+1:]
                 changed = True
-        next = nextsent_re.search(str, next.end())
+        next = endsent_re.search(str, next.end())
     return str
 
 # Returns the number of sentences or partial sentences in the string.
