@@ -173,7 +173,8 @@ def test_usfm_add_p(str, expected):
     ('  ', '  '),
     ('Looks Like A Title', '\\s Looks Like A Title'),
     ('', ''),
-    ('blah\\s Heading\n\n\n\\v 1', ''),     # should never occur
+    ('Amen!', ''),
+    ('blah\\s Heading\n\n\n\\v 1', ''),     # \n should never occur
     ('end of verse (Probable Heading)', 'end of verse\n\\s Probable Heading\n\\p'),
     ('end of verse. (not a heading) ', ''),
     ('\\s Heading\n\\p\n\\v 2 asdf', ''),   # should never occur
