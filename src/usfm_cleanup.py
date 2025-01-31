@@ -32,6 +32,7 @@ aligned_usfm = False
 needcaps = True
 in_footnote = False
 issuesFile = None
+corrupt_file = False
 
 def shortname(longpath):
     source_dir = config['source_dir']
@@ -205,9 +206,18 @@ def add_spaces(str):
 # Rewrites file and returns True if any changes are made.
 def convert_wholefile(path):
     global aligned_usfm
+    global corrupt_file
 
     with io.open(path, "tr", encoding="utf-8-sig") as input:
-        alltext = input.read()
+        try:
+            alltext = input.read()
+            corrupt_file = False
+        except UnicodeDecodeError as e:
+            reportError("File appears to not be UTF-8: " + shortname(path))
+            reportError(str(e))    # 0x92 is Windows encoding for right single quote mark; 0x92 is invalid in UTF-8.
+            corrupt_file = True
+            return False
+
     origtext = alltext
     aligned_usfm = ("lemma=" in alltext)
     changed = False
@@ -395,7 +405,6 @@ def takeFootnote(key, value, usfm):
 def capitalizeAsNeeded(str):
     global needcaps
     str = sentences.capitalize(str, needcaps)
-    # needcaps = (sentences.endsSentence(str) and not sentences.endsQuotedSentence(str))
     needcaps = sentences.endsSentence(str, checkquotes = True)
     return str
 
@@ -471,6 +480,8 @@ def convert_by_token(path):
 # Corrects issues in the USFM file
 def convertFile(path):
     global nChanged
+    global corrupt_file
+    corrupt_file = False
     reportProgress(f"Checking {shortname(path)}")
 
     tmppath = path + ".tmp"
@@ -480,12 +491,14 @@ def convertFile(path):
     shutil.copyfile(tmppath, path)
 
     changed1 = convert_wholefile(path)
-    changed2 = convert_by_line(path)
-    if enable[7] and changed2:   # sections may have been added
-        convert_wholefile(path)
-    changed4 = False
-    if enable[5] or enable[8]:   # capitalization or chapter titles
-        changed4 = convert_by_token(path)
+    changed2 = changed4 = False
+    if not corrupt_file:
+        changed2 = convert_by_line(path)
+        if enable[7] and changed2:   # sections may have been added
+            convert_wholefile(path)
+        changed4 = False
+        if enable[5] or enable[8]:   # capitalization or chapter titles
+            changed4 = convert_by_token(path)
 
     if changed1 or changed2 or changed4:
         nChanged += 1
