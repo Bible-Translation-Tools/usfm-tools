@@ -634,8 +634,8 @@ def takeC(c):
     if c != "1":
         previousVerseCheck()
         # longChunkCheck()
-    if state.currItemCategory == S:
-        reportError(f"Chapter ends with a section heading: {state.reference}", 13.2)
+    # if state.currItemCategory == S:
+    #     reportError(f"Chapter ends with a section heading: {state.reference}", 13.2)
     state.addChapter(c)
     if state.chapter < 1 or state.chapter > nChapters(state.ID):
         reportError(f"Invalid chapter number ({c}) is found after {state.lastRef}", 13.1)
@@ -683,10 +683,8 @@ def takeFootnote(token):
     else:
         if not state.inFootnote():
             reportError(f"Footnote marker ({token.type}) not between \\f ... \\f* pair at {state.reference}", 21)
-    # Prevent a problem with trying to take text where there is none
-    if len(token.value) == 0:
-        return
-    takeText(token.value, footnote=True)
+    if token.value: # Prevent a problem with trying to take text where there is none
+        takeText(token.value, footnote=True)
 
 def takeID(id):
     if len(id) < 3:
@@ -708,9 +706,9 @@ def takeP(type):
     reportParagraphMarkerErrors(type)
     if not aligned_usfm and not suppress[3] and not state.sentenceEnded():
         if state.verse > 0:
-            reportError(f"Punctuation missing at end of paragraph: {state.reference}", 26, suppress[11])
+            reportError(f"Check paragraph-ending punctuation at: {state.reference}", 26, suppress[11])
         elif state.reference != "ACT 22":
-            reportError(f"Punctuation missing at end of paragraph before {state.reference}", 26.1, suppress[11])
+            reportError(f"Punctuation missing at end of chapter before {state.reference}", 26.1, suppress[11])
     if type in {'nb'}:
         state.addUncountedParagraph()
     else:
@@ -888,7 +886,7 @@ def reportPunctuation(text):
             if not (chars[0] in ',.' and chars[1] in "0123456789"):   # it's a number
                 if not (chars[0] == ":" and chars[1] in "0123456789"):
                     reportError("Check the punctuation at " + state.reference + ": " + chars, 45)
-                elif not (state.inFootnote() or lastToken.getType().startswith('io') \
+                elif not lastToken or not (state.inFootnote() or lastToken.getType().startswith('io') \
                           or lastToken.getType().startswith('ip')):
                     s = context(text, bad.start()-2, bad.end()+1)
                     reportError(f"Untagged footnote (probable) at {state.reference}: {s}", 46)
@@ -985,7 +983,7 @@ def takeText(t, footnote=False):
         if lastToken:
             reportError("  preceding Token was \\" + lastToken.type, 0)
         else:
-            reportError("  no preceding Token", 0)
+            reportError("  top of file", 0)
     if state.textOkay() and state.verse == 0 and state.chapter > 0:
         reportError(f"Unmarked text before {state.reference + ':1'}", 54.1)
     if "<" in t and not ">" in t:
@@ -1002,7 +1000,7 @@ def takeText(t, footnote=False):
             reportError(f"Orphaned punctuation at {state.reference}", 58)
         else:
             reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
-    if lastToken.isV() and not aligned_usfm:
+    if lastToken and lastToken.isV() and not aligned_usfm:
         reportFootnotes(t)
     if not suppress[1]:
         reportNumbers(t, footnote)
@@ -1034,8 +1032,12 @@ def addWords(t):
 
 # Returns true if token is part of a footnote
 def isFootnote(token):
-    return (token.getType().startswith("f") and token.getType() != "fig") or token.getType().startswith("rq")
-    #return token.isF_S() or token.isF_E() or token.isFR() or token.isFT() or token.isFP() or token.isFE_S() or token.isFE_E()
+    if token:
+        result = (token.getType().startswith("f") and token.getType() != "fig") or token.getType().startswith("rq")
+        #return token.isF_S() or token.isF_E() or token.isFR() or token.isFT() or token.isFP() or token.isFE_S() or token.isFE_E()
+    else:
+        result = False
+    return result
 
 # Returns true if token is part of a cross reference
 def isCrossRef(token):
@@ -1075,9 +1077,13 @@ def isSpecialText(token):
 
 # Returns True if the specified token is followed by a separate text token
 def isTextCarryingToken(token):
-    return token.isB() or token.isM() or isSpecialText(token) or \
+    if token:
+        result = token.isB() or token.isM() or isSpecialText(token) or \
            isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
             # or token.isD() or token.isSP()    these tokens have their own text attached as a value
+    else:
+        result = False
+    return result
 
 def isTitleToken(token):
     return token.isH() or token.isTOC1() or token.isTOC2() or token.isTOC3() or token.isMT() or token.is_imt()
@@ -1190,6 +1196,8 @@ embeddedquotes_re = re.compile(r"\w'\w")
 # Verifies things that are better done as a whole file.
 # Can't report verse references because we haven't started to parse the book yet.
 def verifyWholeFile(contents, path):
+    if not contents.startswith("\\id "):
+        reportError(f"USFM file does not start with book id: {shortname(path)}")
     verifyChapterAndVerseMarkers(contents, path)
 
     lines = contents.split('\n')
@@ -1240,11 +1248,15 @@ backslasheol_re = re.compile(r'\\ *\n')
 # Corresponding entry point in tx-manager code is verify_contents_quiet()
 def verifyFile(path):
     global aligned_usfm
-    with io.open(path, "r", encoding="utf-8-sig") as input:
+    global lastToken
+    lastToken = None
+
+    with io.open(path, "tr", encoding="utf-8-sig") as input:
         try:
             contents = input.read(-1)
-        except UnicodeDecodeError:
+        except UnicodeDecodeError as e:
             reportError("File appears to not be UTF-8: " + shortname(path), 79.2 )
+            reportError(str(e))   # 0x92 is Windows encoding for right single quote mark; 0x92 is invalid in UTF-8.
             return
 
     if wjwj_re.search(contents):
