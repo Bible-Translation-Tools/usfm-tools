@@ -1197,7 +1197,7 @@ embeddedquotes_re = re.compile(r"\w'\w")
 # Can't report verse references because we haven't started to parse the book yet.
 def verifyWholeFile(contents, path):
     if not contents.startswith("\\id "):
-        reportError(f"USFM file does not start with book id: {shortname(path)}")
+        reportError(f"USFM file does not start with book id: {shortname(path)}", 74.1)
     verifyChapterAndVerseMarkers(contents, path)
 
     lines = contents.split('\n')
