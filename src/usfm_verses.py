@@ -1,5 +1,7 @@
 # usfm_verses module, to be imported by any module that needs access to the
 # chapter and verse counts, and other information about each book of the Bible.
+#
+# There are 1189 chapters in the Bible, and around 31,100 verses.
 
 verseCounts = {
 	"GEN": {
