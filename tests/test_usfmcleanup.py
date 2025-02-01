@@ -179,6 +179,7 @@ def test_usfm_add_p(str, expected):
     ('end of verse. (not a heading) ', ''),
     ('\\s Heading\n\\p\n\\v 2 asdf', ''),   # should never occur
     ('(Newline \n Mid Sentence)', ''),   # should never occur
+    ('Do not mark (Parenthesized Words) in the middle of a sentence as a title.', ''),
     ])
 def test_mark_sections(line, expected):
     import usfm_cleanup

@@ -94,8 +94,10 @@ def find_parenthesized_heading(line):
     for possible_hd in pphrase_re.finditer(line):
         possible_heading = possible_hd.group(0)
         if is_heading(possible_heading.strip()):
-            pheading = possible_heading
-            break
+            nextword = sentences.firstword(line[possible_hd.end():])
+            if not nextword or (nextword and not nextword.islower()):
+                pheading = possible_heading
+                break
     return pheading
 
 anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
@@ -110,7 +112,7 @@ def is_heading(str):
     str = str.strip(' \n')
     threshold = titlecase_threshold(str)
     # Initial qualification
-    possible = (len(str) > 3 and not '\n' in str and\
+    possible = (len(str) > 5 and not '\n' in str and\
                 not anyMarker_re.search(str) and sentences.sentenceCount(str) == 1)
     if possible and not confirmed and expect_allcaps:
         confirmed = str.isupper()
