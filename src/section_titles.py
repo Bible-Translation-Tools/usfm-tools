@@ -48,7 +48,6 @@ def isCapitalized(word):
     return result
 
 # Returns the fraction of words in the string which are title case.
-# Words containing quotation marks are considered non-title case.
 # But returns 0 if the first word is not capitalized.
 def percentTitlecase(str):
     percent = 1 if str.istitle() else 0
@@ -101,6 +100,7 @@ def find_parenthesized_heading(line):
     return pheading
 
 anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
+amen_re = re.compile(r'Am[ei]n')
 
 # Returns True if the string looks like a section heading.
 # Any backslash markers or quote marks in the string disqualify it.
@@ -112,8 +112,10 @@ def is_heading(str):
     str = str.strip(' \n')
     threshold = titlecase_threshold(str)
     # Initial qualification
-    possible = (len(str) > 5 and not '\n' in str and\
-                not anyMarker_re.search(str) and sentences.sentenceCount(str) == 1)
+    possible = (len(str) > 4 and not '\n' in str and\
+                not anyMarker_re.search(str) and not amen_re.search(str) and\
+                not quotes.partialQuote(str) and\
+                sentences.sentenceCount(str) == 1)
     if possible and not confirmed and expect_allcaps:
         confirmed = str.isupper()
     if possible and not confirmed and expect_titlecase:
