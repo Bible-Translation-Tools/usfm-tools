@@ -119,9 +119,22 @@ def translate(str, rexp, trans):
         snippet = rexp.search(str)
     return str
 
-quotes_re = re.compile(r'[“‘\'"’”]')
+quotes_re = re.compile(r'[“‘‹«\'"’”›»]')
 
 # Returns the character position of the first quote in the string, or -1 if none.
 def quotepos(str):
     quote = quotes_re.search(str)
     return quote.start() if quote else -1
+
+openquote_re = re.compile(r'[^\w]*[\'"“‘‹«]+.*\w')
+closequote_re = re.compile(r'\w.*[\'"’”›»]+[^\w]*$')
+internalquote_re = re.compile(r'\w.*["“‘‹«’”›»]+.*\w')
+
+# Returns True if the string starts or ends an incomplete quotation.
+# This function is used by section_titles.is_heading() to exclude
+# most candidates for section titles that include quote marks.
+def partialQuote(str):
+    starts = bool(openquote_re.match(str))
+    ends = bool(closequote_re.search(str))
+    internal = bool(internalquote_re.search(str))
+    return starts ^ ends ^ internal

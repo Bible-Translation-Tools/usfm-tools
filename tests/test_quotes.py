@@ -136,3 +136,24 @@ def test_promoteQuotes(str, result):
 def test_quotepos(str, expected):
     import quotes
     assert quotes.quotepos(str) == expected
+
+@pytest.mark.parametrize('str, expected',
+    [
+        ('“phrase quoted" ', False),
+        ('asdf\'', True),
+        ('qwert"', True),
+        ('\n‘"', False),
+        ('....,;asdf-no quotes!', False),
+        ('', False),
+        ('finally’”', True),
+        ('”’’’’’’', False),
+        ('  « Begins a quote.', True),
+        ('embedded "quote"', False),
+        ('"embedded "quote', False),
+        ('"Look, "At this."', True),
+        ('they said, "At this"', False),
+        ('Single quotes\' don\'t count as internal \'quotes', False)
+    ])
+def test_partialQuote(str, expected):
+    import quotes
+    assert quotes.partialQuote(str) == expected
