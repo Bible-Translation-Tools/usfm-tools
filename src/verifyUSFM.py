@@ -48,6 +48,7 @@ import re
 import unicodedata
 import usfm_utils
 import sentences
+import section_titles
 from datetime import date
 
 # Item categories
@@ -1217,19 +1218,6 @@ def verifyWholeFile(contents, path):
         elif nsingle > 0 and not suppress[7]:
             reportError(f"Straight quotes in {shortname(path)}: {nsingle} singles not counting {nembedded} word-medial.", 75)
 
-# Returns the fraction of words which are title case.
-# But returns 0 if the first word is not title case.
-def percentTitlecase(words):
-    n = 0
-    if words and words[0].istitle():
-        for word in words:
-            if word.istitle():
-                n += 1
-    if words:
-        return n / len(words)
-    else:
-        return 0
-
 conflict_re = re.compile(r'<+ HEAD', re.UNICODE)   # conflict resolution tag
 
 def reportOrphans(lines, path):
@@ -1238,7 +1226,7 @@ def reportOrphans(lines, path):
     for line in lines:
         lineno += 1
         if line and line[0] != '\\' and not conflict_re.match(line):
-            if line.istitle() or line.isupper() or percentTitlecase(line.split()) > 0.5:
+            if line.istitle() or line.isupper() or section_titles.percentTitlecase(line) > 0.5:
                 reportError("Possible section title at line " + str(lineno) + " in " + path, 76)
         prevline = line
 
