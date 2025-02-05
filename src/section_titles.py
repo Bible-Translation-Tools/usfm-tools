@@ -39,26 +39,22 @@ def consider_parens(consider=True):
     expect_parens = consider
 
 # Differs from str.istitle() in how apostrophes are treated.
+# Considered numbers to be uncapitalized words.
 # istitle("Paul's") returns False.
 # isCapitalized("Paul's") returns True.
 def isCapitalized(word):
-    result = word.istitle()
-    if not result:
-        result = word.replace("'", "").istitle()
+    result = word.replace("'", "").istitle() if word else False
     return result
 
 # Returns the fraction of words in the string which are title case.
-# But returns 0 if the first word is not capitalized.
+# Consider numbers to be uncapitalized.
 def percentTitlecase(str):
-    percent = 1 if str.istitle() else 0
-    if percent != 1:
-        n = 0
-        words = str.split()
-        if words and isCapitalized(words[0]):
-            for word in words:
-                if isCapitalized(word):
-                    n += 1
-            percent = n / len(words)
+    n = 0
+    words = str.split()
+    for word in words:
+        if isCapitalized(word):
+            n += 1
+    percent = n / (len(words) if words else 1)
     return percent
 
 # Returns True if the first and last word in the string are title case.
@@ -112,8 +108,9 @@ def is_heading(str):
     str = str.strip(' \n')
     threshold = titlecase_threshold(str)
     # Initial qualification
-    possible = (len(str) > 4 and not '\n' in str and\
+    possible = (len(str) > 4 and not '\n' in str and threshold <= 1 and\
                 not anyMarker_re.search(str) and not amen_re.search(str) and\
+                isCapitalized(sentences.firstword(str)) and\
                 not quotes.partialQuote(str) and\
                 sentences.sentenceCount(str) == 1)
     if possible and not confirmed and expect_allcaps:
@@ -126,6 +123,7 @@ def is_heading(str):
 
 # Calculates the Title Case threshold (percentage of words that must be capitalized)
 # based on characteristics of the string.
+# Assumes that the specified string has already been stripped of leading and trailing white space.
 def titlecase_threshold(str):
     adj = 0.51
     quotepos = quotes.quotepos(str)
@@ -137,9 +135,15 @@ def titlecase_threshold(str):
         adj += 0.01 * (len(str) - 40)
     if str.startswith('(') and str.endswith(')'):
         adj -= 0.03
-    # if firstAndLastTitlecase(str):
-    #     adj -= 0.01
+    if str and str[-1] in {'.!?\u0964\u1361\u1362'}:    # sentence ending punctuation
+        adj += 0.03
+    if not isCapitalized(lastword(str)):
+        adj += 0.24
     return adj
+
+def lastword(str):
+    words = str.split()
+    return words[-1] if words else ''
 
 # Inserts the section heading between two parts, including newlines.
 def insert_heading(preheading, heading, postheading):
