@@ -10,10 +10,10 @@ import pytest
 
 @pytest.mark.parametrize('str, expected',
     [('Sentence 1. Sentence 2.', False),
-     ('Numbers 1 2', True),
+     ('Numbers 1 2', False),
      ('Sentence Final Punctuation!', True),
      ('Sentence. Medial Punctuation', False),
-     ('Only Sentence ABC  ', True),     # > 50% title case
+     ('Only Sentence ABC  ', False),     # last word is not title case
      ('Only Sentence Xyz  ', True),
      ('Two words', False),
      ('(Parenthesized Heading)', True),
@@ -28,15 +28,17 @@ import pytest
      ('', False),
      ('This Fine House', True),
      ('noncap Fine House', False),
+     ('Three Words noncap', False),
+     ('Four Words But noncap', True),
      ('Newline Wedged\nIn', False),
      ('\nStarts With Newline', True),
      ('Ends With Newline\n', True),
      ('\\c 1 \\v 1 this is a verse', False),
-     ('\\c 2 St      \v 2 asdfasdf', False),
+     ('\\c 2 St      \\v 2 asdfasdf', False),
      ('\\c 3 String Possibility \\v 3', False), # Headings cannot include usfm markers
      ('Title MiXed lower', False),              # @todo we may honor capitalized, mixed case words later
      ('before a title. Then A Title', False),
-     ("How Paul's word", True),
+     ("How Paul's word", False),    # last word is not title case
      ("Paul's First Word Possessive", True),
      ('First A Title. Then not a title', False),
      ('This is a Ten Word Candidate with Seven Capitalized Words', True),
@@ -44,6 +46,19 @@ import pytest
      ('First and last Words', False),   # I would like for this to be True, but Lamboya's Matthew 1 doesn't.
      ('First and Third words', False),
      ("Tutge Hanuwa Wadeka monno Kama'kna Ammaha", True),
+     ('Amenee', False),
+     ('Amenee', False),
+        ('“Phrase Quoted" ', False),
+        ('End Quote\'', False),
+        ('\n‘"', False),
+        ('....,;Asdf-no Quotes!', False),
+        ('”’’’’’’', False),
+        ('  « Begins A Quote.', False),
+        ('Embedded "Quote"', False),
+        ('"Embedded "Quote', False),
+        ('"Look, "At This."', False),
+        ('They Said, "At this', False),
+        ('Single Quotes\' Don\'t Count as Internal \'Quotes', True)
     ])
 def test_is_heading(str, expected):
     import section_titles
@@ -85,3 +100,35 @@ def test_is_heading(str, expected):
 def test_find_parenthesized_heading(str, expected):
     import section_titles
     assert section_titles.find_parenthesized_heading(str) == expected
+
+@pytest.mark.parametrize('str, expected',
+    [('Sentence 1. Sentence 2.', 0.5),
+     ('numbers 1 2', 0),
+     ('Sentence Final Punctuation!', 1),
+     ('(Parenthesized Heading)', 1),
+     ('(Newline In\nParenthesized Heading)', 1),
+     ('.;-%  ', 0),
+     ('" Sentence With Quotes"  ', 0.75),
+     ('A sentence XYZ; a phrase!A sentence-dash?    Another sentence  ', 0.25),
+     ('\\v 3 Verse Three.', 0.5),
+     ('', 0),
+     ('\\c 2 St      \\v 2 asdfasdf', 1/6),
+     ('Title MiXed lower', 1/3),              # @todo we may honor capitalized, mixed case words later
+     ("How Paul's word", 2/3),
+     ('First A Title. Then not a title', 4/7),
+     ('This is a Ten Word Candidate with Seven Capitalized Words', 0.7),
+     ("Tutge Hanuwa Wadeka monno Kama'kna Ammaha", 5/6),
+     ('Amenee', 1),
+        ('“Phrase Quoted" ', 1),
+        ('End Quote\'', 1),
+        ('\n‘"', 0),
+        ('....,;Asdf-no Quotes!', 0.5),
+        ('  « Begins A Quote.', 3/4),
+        ('Embedded "Quote"', 1),
+        ('"Look, "At This."', 1),
+        ('They Said, "At this', 3/4),
+        ('Single Quotes\' Don\'t Count as Internal \'Quotes', 6/7)
+    ])
+def test_percentTitleCase(str, expected):
+    import section_titles
+    assert section_titles.percentTitlecase(str) == expected
