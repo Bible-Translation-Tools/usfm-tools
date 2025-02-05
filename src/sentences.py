@@ -33,7 +33,7 @@ def endsSentence(str, checkquotes=False):
 
 # Returns the first word in the string.
 def firstword(str):
-    word = None
+    word = ''
     if first := firstword_re.search(str):
         word = first.group(1)
     return word
@@ -49,6 +49,7 @@ def nextfirstwords(str):
 
 # Generator function to yield the starting position of each sentence
 # or partial sentence in str.
+# @TODO Modify function to ignore periods in verse references.
 def nextstartpos(str):
     nextword = firstword_re.search(str)
     while nextword:
