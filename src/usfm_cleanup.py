@@ -322,20 +322,6 @@ def change_floating_quotes(line):
             break
     return (changed, line)
 
-# Returns the fraction of words in the string which are title case.
-# But returns 0 if the first word is not title case.
-def percentTitlecase(str):
-    percent = 1 if str.istitle() else 0
-    if percent != 1:
-        n = 0
-        words = str.split()
-        if words and words[0].istitle():
-            for word in words:
-                if word.istitle():
-                    n += 1
-            percent = n / len(words)
-    return percent
-
 verse_re = re.compile(r'\\v +([0-9]+)')
 
 # If the specified line is a section heading, returns (True, line), the line being modified.
