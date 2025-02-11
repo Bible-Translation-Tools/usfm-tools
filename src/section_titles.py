@@ -43,7 +43,12 @@ def consider_parens(consider=True):
 # istitle("Paul's") returns False.
 # isCapitalized("Paul's") returns True.
 def isCapitalized(word):
-    result = word.replace("'", "").istitle() if word else False
+    if not word:
+        result = False
+    else:
+        word = word.replace("'", "")
+        word = word.replace("’", "")
+        result = word.istitle()
     return result
 
 # Returns the fraction of words in the string which are title case.
@@ -82,7 +87,7 @@ pphrase_re = re.compile(r'\([\s]*([\w\- ]+)[\s]*\)')
 # bphrase_re = re.compile(r'\{[\s]*([\w\- ]+)[\s]*\}')
 
 # Returns that portion of the specified line that is most likely a heading,
-# based characteristics of the text between a pair of parentheses in the line.
+# based on characteristics of the text between a pair of parentheses in the line.
 # Returns None if no parenthesized heading is found.
 def find_parenthesized_heading(line):
     pheading = None
@@ -107,10 +112,11 @@ def is_heading(str):
     confirmed = False
     str = str.strip(' \n')
     threshold = titlecase_threshold(str)
+    firstword = sentences.firstword(str)
     # Initial qualification
     possible = (len(str) > 4 and not '\n' in str and threshold <= 1 and\
                 not anyMarker_re.search(str) and not amen_re.search(str) and\
-                isCapitalized(sentences.firstword(str)) and\
+                (firstword.isupper() or isCapitalized(firstword)) and\
                 not quotes.partialQuote(str) and\
                 sentences.sentenceCount(str) == 1)
     if possible and not confirmed and expect_allcaps:
@@ -125,20 +131,25 @@ def is_heading(str):
 # based on characteristics of the string.
 # Assumes that the specified string has already been stripped of leading and trailing white space.
 def titlecase_threshold(str):
-    adj = 0.51
-    quotepos = quotes.quotepos(str)
-    if quotepos >= 0:
-        adj = 0.66 if str[quotepos] in "'’" else 1.5
-    if ',' in str:
-        adj += 0.05
-    if len(str) > 40:
-        adj += 0.01 * (len(str) - 40)
-    if str.startswith('(') and str.endswith(')'):
-        adj -= 0.03
-    if str and str[-1] in {'.!?\u0964\u1361\u1362'}:    # sentence ending punctuation
-        adj += 0.03
-    if not isCapitalized(lastword(str)):
-        adj += 0.24
+    if not str:
+        adj = 2
+    else:
+        adj = 0.51
+        quotepos = quotes.quotepos(str)
+        if quotepos >= 0:
+            adj = 0.66 if str[quotepos] in "'’" else 1.5
+        if ',' in str:
+            adj += 0.05
+        if len(str) > 40:
+            adj += 0.01 * (len(str) - 40)
+        if str.startswith('(') and str.endswith(')'):
+            adj -= 0.03
+        if str[-1] in ".\u0964\u1361\u1362":    # sentence ending punctuation
+            adj += 0.03
+        elif str[-1] in "!?,;":
+            adj = 1.1
+        if not isCapitalized(lastword(str)):
+            adj += 0.24
     return adj
 
 def lastword(str):

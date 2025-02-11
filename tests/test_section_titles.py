@@ -11,7 +11,8 @@ import pytest
 @pytest.mark.parametrize('str, expected',
     [('Sentence 1. Sentence 2.', False),
      ('Numbers 1 2', False),
-     ('Sentence Final Punctuation!', True),
+     ('Has A Final Period.', True),
+     ('Sentence Final Punctuation!', False),
      ('Sentence. Medial Punctuation', False),
      ('Only Sentence ABC  ', False),     # last word is not title case
      ('Only Sentence Xyz  ', True),
@@ -58,16 +59,19 @@ import pytest
         ('"Embedded "Quote', False),
         ('"Look, "At This."', False),
         ('They Said, "At this', False),
-        ('Single Quotes\' Don\'t Count as Internal \'Quotes', True)
+        ('Single Quotes\' Don\'t Count as Internal \'Quotes', True),
+        ('Parens At (End)', True),
+        ('Olukaado Lw’omuyofu N’amamera', True),
     ])
 def test_is_heading(str, expected):
     import section_titles
     assert section_titles.is_heading(str) == expected
 
 @pytest.mark.parametrize('str, expected',
-    [(' ( Sentence 1 Sentence 2 )', '( Sentence 1 Sentence 2 )'),
-     ('Only Sentence Abc  ', None),
-     ('(Two words)', '(Two words)'),
+    [(' ( Sentence 1 Sentence Two )', '( Sentence 1 Sentence Two )'),
+     ('No Parens  ', None),
+     ('(Two Words)', '(Two Words)'),
+     ('(Two words)', None),
      ('(Two Sentences. Heading)', None),
      ('before parens(Only Sentence Xyz  )after parens  ', None),
      ('\nline before\n(Only Sentence Xyz)\nLine after\n', '(Only Sentence Xyz)'),
@@ -90,9 +94,9 @@ def test_is_heading(str, expected):
         ('(Heading half Title case) then some text', None),
         ('(notlower Firstword)', None),
         ('some text then (Heading Title Case Minus Close Paren', None),
-        ('some text then (First heading) (Second Heading)', '(First heading)'),
-        ('some text then (first heading) (Second heading)', '(Second heading)'),
-        ('(first heading) (Second heading) (Third Heading)', '(Second heading)'),
+        ('some text then (First heading) (Second Heading)', '(Second Heading)'),
+        ('some text then (first heading) (Second heading)', None),
+        ('(first heading) (Second Heading) (Third Heading)', '(Second Heading)'),
         ('\\v 15 Meakore me einya honainyele iteainyembe. (Nim-Kam Mekae Rei maite Yeuboke)', '(Nim-Kam Mekae Rei maite Yeuboke)'),
         ('Do not mark (Parenthesized Words) in the middle of a sentence as a title.', None),
         ('OK (Parenthesized Words) Before new sentence', '(Parenthesized Words)'),
@@ -132,3 +136,19 @@ def test_find_parenthesized_heading(str, expected):
 def test_percentTitleCase(str, expected):
     import section_titles
     assert section_titles.percentTitlecase(str) == expected
+
+@pytest.mark.parametrize('str, expected',
+    [('N’amamera', True),
+     ('text', False),
+     ('5', False),
+     ('Two Words', True),
+     (None, False),
+     ('(Parenthesized)', True),
+     ('', False),
+     ('.;-%  ', False),
+     ('"Quotes"', True),
+     ("Paul's", True),
+    ])
+def test_isCapitalized(str, expected):
+    import section_titles
+    assert section_titles.isCapitalized(str) == expected
