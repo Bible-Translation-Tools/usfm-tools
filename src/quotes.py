@@ -128,13 +128,14 @@ def quotepos(str):
 
 openquote_re = re.compile(r'[^\w]*[\'"“‘‹«]+.*\w')
 closequote_re = re.compile(r'\w.*[\'"’”›»]+[^\w]*$')
-internalquote_re = re.compile(r'\w.*["“‘‹«’”›»]+.*\w')
+internalquote_re = re.compile(r'\w.*["“‘‹«”›»]+.*\w')
 
 # Returns True if the string starts or ends an incomplete quotation.
 # This function is used by section_titles.is_heading() to exclude
 # most candidates for section titles that include quote marks.
+# @TODO A *complete* internal quotation should not cause a True return value.
 def partialQuote(str):
     starts = bool(openquote_re.match(str))
     ends = bool(closequote_re.search(str))
-    internal = bool(internalquote_re.search(str))
+    internal = bool(internalquote_re.search(str))   # too simplistic
     return starts ^ ends ^ internal

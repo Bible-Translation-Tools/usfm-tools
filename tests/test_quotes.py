@@ -152,7 +152,8 @@ def test_quotepos(str, expected):
         ('"embedded "quote', False),
         ('"Look, "At this."', True),
         ('they said, "At this"', False),
-        ('Single quotes\' don\'t count as internal \'quotes', False)
+        ('Single quotes\' don\'t count as internal \'quotes', False),
+        ('Olukaado Lw’omuyofu N’amamera', False),
     ])
 def test_partialQuote(str, expected):
     import quotes
