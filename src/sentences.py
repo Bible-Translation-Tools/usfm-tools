@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 # Utility functions for detecting end of sentence, and for capitalizing the first word in sentences.
+# Supports hyphenated words.
 # Note that these functions do not work if there are USFM markers in the input strings.
 
 import re
 
-firstword_re = re.compile(r'([\w]+)')
-endsent_re = re.compile(r'[.?!\u0964\u1361\u1362].*?([\w]+)', re.DOTALL)
-badquoted_re = re.compile(r'[?!\u1361\u1362]+[«“‘\-\u2014\u2013]')
 endsentence_re = re.compile(r'[.?!\u0964\u1361\u1362][^\w]*$')
+badquoted_re = re.compile(r'[?!\u1361\u1362]+[«“‘\-\u2014\u2013]')
 
 """
 Special characters:
@@ -31,12 +30,16 @@ def endsSentence(str, checkquotes=False):
         ends = (ending != None)
     return ends
 
+firstword_re = re.compile(r'(\w+-\w+|\w+)')
+
 # Returns the first word in the string.
 def firstword(str):
     word = ''
     if first := firstword_re.search(str):
         word = first.group(1)
     return word
+
+endsent_re = re.compile(r'[.?!\u0964\u1361\u1362].*?(\w+-\w+|\w+)', re.DOTALL)
 
 # Generator function to yield the first word in each sentence in str,
 # ***not counting*** the first word in the string, even if it starts a sentence.
@@ -68,14 +71,12 @@ def capitalize(str, startsSentence):
             i = first.start()
             if str[i].islower():
                 str = str[0:i] + str[i].upper() + str[i+1:]
-                changed = True
     next = endsent_re.search(str)
     while next:
         i = str.find(next.group(1), next.start())
         if str[i].islower():
             if not badquoted_re.match(str[next.start():next.start()+2]):
                 str = str[0:i] + str[i].upper() + str[i+1:]
-                changed = True
         next = endsent_re.search(str, next.end())
     return str
 

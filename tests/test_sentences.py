@@ -8,6 +8,24 @@ src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 import pytest
 
+@pytest.mark.parametrize('str, expected',
+    [('Sentence 1. Next sentence 2.', 'Sentence'),
+     ('Sentence\nSecond sentence.', 'Sentence'),
+     ('Hyphenated-word', 'Hyphenated-word'),
+     ('-Another try', 'Another'),
+     ('\n  A- Minus', 'A'),
+     ('B-', 'B'),
+     ('B-C', 'B-C'),
+     ('BB-CC', 'BB-CC'),
+     ('D--C', 'D'),
+     ('E-F-G', 'E-F'),
+     ('F-.G', 'F')
+    ])
+def test_firstword(str, expected):
+    import sentences
+    firstword = sentences.firstword(str)
+    assert firstword == expected
+
 # Note that nextfirstwords() disregards the first sentence or partial sentence in the string.
 @pytest.mark.parametrize('str, expected',
     [('Sentence 1. Next sentence 2.', ['Next']),
@@ -15,6 +33,10 @@ import pytest
      ('Sentence 1\n.Second sentence.', ['Second']),
      ('Only one sentence', []),
      ('Only one sentence!', []),
+     ('Sentence 1\n.More sentences! Even more! Yet more.', ['More', 'Even', 'Yet']),
+     ('First. More-sentences! Even-more more! -Yet- more.', ['More-sentences', 'Even-more', 'Yet']),
+     ('F-.G', ['G']),
+     ('F-.G-H', ['G-H']),
     ])
 def test_nextfirstwords(str, expected):
     import sentences
@@ -40,7 +62,8 @@ def test_nextfirstwords(str, expected):
      ('ለእስራኤል አዘዘው፡፡ለያህዌ ከበግችህ፤ ከፍየሎችህ  ይሁን፡፡', [0,13]),
      ('Quoted sentence!" does ___ make a sentence! Why?', [0,18,44]),
      ('Quoted sentence!‘ does not make a sentence! Why?', [0,44]),
-     ('মহিমার মত হব’।” সদাপ্রভু বলেন, এস! এস! ', [0,16,35])
+     ('মহিমার মত হব’।” সদাপ্রভু বলেন, এস! এস! ', [0,16,35]),
+     ('Hyphenated-words in sentence! Should-work! -Why-?', [0,30,44]),
     ])
 def test_nextstartpos(str, result):
     import sentences
