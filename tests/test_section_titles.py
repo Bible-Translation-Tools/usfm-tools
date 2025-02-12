@@ -96,10 +96,16 @@ def test_is_heading(str, expected):
         ('some text then (Heading Title Case Minus Close Paren', None),
         ('some text then (First heading) (Second Heading)', '(Second Heading)'),
         ('some text then (first heading) (Second heading)', None),
-        ('(first heading) (Second Heading) (Third Heading)', '(Second Heading)'),
+        ('(first heading) (Second Heading) (Third Heading)', '(Third Heading)'),
         ('\\v 15 Meakore me einya honainyele iteainyembe. (Nim-Kam Mekae Rei maite Yeuboke)', '(Nim-Kam Mekae Rei maite Yeuboke)'),
         ('Do not mark (Parenthesized Words) in the middle of a sentence as a title.', None),
-        ('OK (Parenthesized Words) Before new sentence', '(Parenthesized Words)'),
+        ('middle of verse (Paul) continue', None),
+        ('middle of verse (Peter).', None),
+        ('middle of verse (Mary Peter Paul).', None),
+        ('(Anything But White Space) after the closing paren disqualifies it', None),
+    ('but (White Space Is Okay) \nNext line', '(White Space Is Okay)'),
+        ('end of line (Mary Peter Paul)', '(Mary Peter Paul)'),
+        ('end of line (One Two Three) with more', None),
     ])
 def test_find_parenthesized_heading(str, expected):
     import section_titles

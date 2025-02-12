@@ -62,38 +62,16 @@ def percentTitlecase(str):
     percent = n / (len(words) if words else 1)
     return percent
 
-# Returns True if the first and last word in the string are title case.
-# def firstAndLastTitlecase(str):
-    # words = str.split()
-    # return (words[0].istitle() and words[-1].istitle()) if words else False
-
-# Returns that portion of the specified line that is most likely a heading,
-# based characteristics of the text between the start and end characters.
-# Typically a parenthesized heading.
-# Returns the parentheses and everything in between.
-# Returns None if no parenthesized heading is found.
-# def find_parenthesized_heading(line, start='(', end =')'):
-#     pheading = None
-#     pattern = "\\" + start + "[\s]*([\w\- ]+)[\s]*" + "\\" + end
-#     for possible_hd in re.finditer(pattern, line):
-#         possible = possible_hd.group(0)
-#         stripchars = start + end + " \n"
-#         if is_heading(possible.strip(stripchars)):
-#             pheading = possible
-#             break
-#     return pheading
-
-pphrase_re = re.compile(r'\([\s]*([\w\- ]+)[\s]*\)')
 # bphrase_re = re.compile(r'\{[\s]*([\w\- ]+)[\s]*\}')
+pphrase_re = re.compile(r'\([\s]*([\w\- ]+)[\s]*\)\s*$', re.MULTILINE)
 
 # Returns that portion of the specified line that is most likely a heading,
-# based on characteristics of the text between a pair of parentheses in the line.
 # Returns None if no parenthesized heading is found.
 def find_parenthesized_heading(line):
     pheading = None
     for possible_hd in pphrase_re.finditer(line):
-        possible_heading = possible_hd.group(0)
-        if is_heading(possible_heading.strip()):
+        possible_heading = possible_hd.group(0).strip()
+        if is_heading(possible_heading):
             nextword = sentences.firstword(line[possible_hd.end():])
             if not nextword or (nextword and not nextword.islower()):
                 pheading = possible_heading
