@@ -154,8 +154,6 @@ def test_usfm_add_p(str, expected):
     import usfm_cleanup
     assert usfm_cleanup.usfm_add_p(str) == expected
 
-
-
 @pytest.mark.parametrize('line, expected',
     [
        # the order of these tests is important because mark_sections() is context sensitive
@@ -173,13 +171,20 @@ def test_usfm_add_p(str, expected):
     ('  ', '  '),
     ('Looks Like A Title', '\\s Looks Like A Title'),
     ('', ''),
-    ('Amen!', ''),
+    ('Amini!', ''),
     ('blah\\s Heading\n\n\n\\v 1', ''),     # \n should never occur
-    ('end of verse (Probable Heading)', 'end of verse\n\\s Probable Heading\n\\p'),
+    ('end of verse. (Probable Heading)', 'end of verse.\n\\s Probable Heading\n\\p'),
+    ('end of verse. (Ends with Period.)', ''),
     ('end of verse. (not a heading) ', ''),
+    ('Do not mark (Parenthesized Words) in the middle of a sentence as a title.', ''),
+    ('middle of verse (Paul) continue', ''),
+    ('middle of verse (Peter).', ''),
+    ('middle of verse (Mary Peter Paul).', ''),
+    ('end of line (Mary Peter Paul)', 'end of line\n\\s Mary Peter Paul\n\\p'),
+    ('end of line (One Two Three) with more', ''),
     ('\\s Heading\n\\p\n\\v 2 asdf', ''),   # should never occur
     ('(Newline \n Mid Sentence)', ''),   # should never occur
-    ('Do not mark (Parenthesized Words) in the middle of a sentence as a title.', ''),
+    # (' Matutra Tutge Puasa (Mat. 9:14-17; Luk. 5:33-39)', '\\s Matutra Tutge Puasa (Mat. 9:14-17; Luk. 5:33-39)\n\\p'),
     ])
 def test_mark_sections(line, expected):
     import usfm_cleanup
