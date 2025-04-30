@@ -7,6 +7,7 @@ tests_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 import pytest
+import verifyUSFM
 
 @pytest.mark.parametrize('str, result',
     [
@@ -21,7 +22,6 @@ import pytest
         (None, 0),
     ])
 def test_nChapters(str, result):
-    import verifyUSFM
     assert verifyUSFM.nChapters(str) == result
 
 @pytest.mark.parametrize('word, expected',
@@ -57,10 +57,9 @@ def test_nChapters(str, result):
         ('”After', False),
     ])
 def test_isMixed(word, expected):
-    import verifyUSFM
     assert verifyUSFM.isMixed(word) == expected
 
-@pytest.mark.parametrize('str, nchapter, expname',
+@pytest.mark.parametrize('s, nchapter, expname',
     [
         ('', 1, ''),
         ('XYZ', 22, 'XYZ'),
@@ -75,9 +74,26 @@ def test_isMixed(word, expected):
         ('1Korin 2', 1, '1Korin 2'),
         ('1Korin 2', 2, '1Korin'),
     ])
-def test_parseChapterLabel(str, nchapter, expname):
-    import verifyUSFM
-    assert verifyUSFM.parseChapterLabel(str, nchapter) == expname
+def test_parseChapterLabel(s, nchapter, expname):
+    assert verifyUSFM.parseChapterLabel(s, nchapter) == expname
+
+@pytest.mark.parametrize('line, exp_marker, exp_payload',
+    [
+        ('', '', ''),
+        ('15 XYZ', '', '15 XYZ'),
+        ('\\id mat asdf', 'id', 'mat asdf'),
+        ('\\p', 'p', ''),
+        ('\\p asdf', 'p', 'asdf'),
+        ('\\c 1 asdf', 'c', '1'),
+        ('\\v  2', 'v', '2'),
+        ('\\v  2-3  asdf', 'v', '2-3'),
+        ('\\v 4 asdljasdf asdf\\v 5 asdf', 'v', '4'),
+        ('asdfasdf. \\v 5', '', 'asdfasdf. \\v 5'),
+    ])
+def test_parseLine(line, exp_marker, exp_payload):
+    marker, payload = verifyUSFM.parseLine(line)
+    assert marker == exp_marker
+    assert payload == exp_payload
 
 @pytest.mark.parametrize('s, expected',
     [
@@ -92,7 +108,6 @@ def test_parseChapterLabel(str, nchapter, expname):
         ('  ۲۴  ', 24),
     ])
 def test_decimalvalue(s, expected):
-    import verifyUSFM
     assert verifyUSFM.decimal_value(s) == expected
 
 @pytest.mark.parametrize('text, reference, expTrigger',
@@ -108,7 +123,6 @@ def test_decimalvalue(s, expected):
         ('a hundred thousand (100,000)', "MAT 6:13", None),
     ])
 def test_findFootnote(text, reference, expTrigger):
-    import verifyUSFM
     assert verifyUSFM.findFootnote(text, reference) == expTrigger
 
 @pytest.mark.parametrize('text, expected',
@@ -121,7 +135,6 @@ def test_findFootnote(text, reference, expTrigger):
         ('a hundred thousand [100,000]', False),
     ])
 def test_validBracketedFootnote(text, expected):
-    import verifyUSFM
     assert verifyUSFM.validBracketedFootnote(text) == expected
 
 @pytest.mark.parametrize('fname, expected',
@@ -132,5 +145,4 @@ def test_validBracketedFootnote(text, expected):
         ('A1-BAK.usfm', True),
     ])
 def test_peripheral(fname, expected):
-    import verifyUSFM
     assert verifyUSFM.peripheral(fname) == expected

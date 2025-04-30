@@ -136,7 +136,7 @@ class State:
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = B
 
-    def addChapter(self, c):
+    def addChapter(self, c: str):
         self.lastChapter = self.chapter
         self.chapter = int(c)
         self.needPP = True
@@ -177,7 +177,6 @@ class State:
 
     def addPoetry(self, value):
         self.nPoetry += 1
-        self.nParagraphs += 1
         self.needQQ = False
         self.needPP = False
         self.textOkayHere = True
@@ -205,7 +204,7 @@ class State:
         # self.currMarker = token.type
         return okay
 
-    def addVerse(self, v):
+    def addVerse(self, v: str):
         self.lastVerse = self.verse
         self.verse = int(v)
         self.needVerseText = True
@@ -841,7 +840,7 @@ def reportSectionPrecedentErrors(tag):
     if state.currItemCategory == PP:
         reportError(f"Warning: useless paragraph (p,m,nb) marker before \\{tag} marker at: {state.reference}", 27)
     elif state.currItemCategory == QQ:
-        reportError(f"Warning: useless \q before \\{tag} marker at: {state.reference}", 28)
+        reportError(f"Warning: useless \\q before \\{tag} marker at: {state.reference}", 28)
     elif state.currItemCategory == B:
         reportError(f"\\b may not be used before or after section heading. {state.reference}", 29)
 
@@ -1127,7 +1126,7 @@ def takeText(t, footnote=False):
     state.addText(t)
     addWords(t)
 
-allpunc = ".,:;!?-\[\]{}()<>'\"“‘’”`*/"
+allpunc = ".,:;!?-[]{}()<>'\"“‘’”`*/"
 quoteend_re = re.compile(r"[.,:;!?-\[\]{}()<>'\"“‘’”`*/]'$")    # punct ' EOL
 quotebegin_re = re.compile(r"'[.,:;!?-\[\]{}()<>'\"“‘’”`*/]")    # ' punct
 notnumberinfootnote_re = re.compile(r'[^\d:\-.,]')
@@ -1275,11 +1274,9 @@ def verifyChapterAndVerseMarkers(text, path):
         reportError("Missing space after verse number: " + s + " in " + path, 74)
 
 def verifyParagraphCount():
-    # Prevent a divide by 0 error and continue scanning
-    if state.chapter == 0:
-        return
-    if state.nParagraphs / state.chapter <= 2.5 and state.nPoetry / state.chapter <= 15:
-        reportError(f"Low paragraph count ({state.nParagraphs + state.nPoetry}) for {state.ID}", 73.5)
+    if state.chapter > 0:
+        if state.nParagraphs / state.chapter <= 2.5 and state.nPoetry / state.chapter <= 15:
+            reportError(f"Low paragraph count ({state.nParagraphs + state.nPoetry}) for {state.ID}", 73.5)
 
 embeddedquotes_re = re.compile(r"\w'\w")
 
@@ -1306,20 +1303,52 @@ def verifyWholeFile(contents, path):
         elif nsingle > 0 and not suppress[7]:
             reportError(f"Straight quotes in {shortname(path)}: {nsingle} singles not counting {nembedded} word-medial.", 75)
 
+usfm_re = re.compile(r'\\([a-z][a-z1-5]*\*?)(\s+.*)?')
+cvnumber_re = re.compile(r'[1-9][-0-9]*')
+# Simplistically parses a single line as usfm.
+# Assumes markers occur only at beginning of line, and syntax is always good.
+# Returns a single tuple of (marker, payload)
+# Either marker or payload may be an empty string.
+def parseLine(line):
+    marker = ""
+    if usfm := usfm_re.match(line):
+        marker = usfm.group(1)
+        payload = usfm.group(2).strip() if usfm.group(2) else ""
+        if marker in {'c', 'v'}:
+            if cvnumber := cvnumber_re.match(payload):
+                payload = cvnumber.group(0)
+            else:
+                marker = ""
+    if not marker:
+        payload = line
+    return (marker, payload)
+
 conflict_re = re.compile(r'<+ HEAD', re.UNICODE)   # conflict resolution tag
 
 # Examines lines of text that may contain section headings.
 def reportSectionHeadings(lines, path):
-    lineno = 0
+    localstate = State()
     found = False
     for line in lines:
-        lineno += 1
-        if line and not conflict_re.match(line):
-            found = (line[0] != '\\' and section_titles.is_possible_heading(line))
-            if not found:
-                found = section_titles.find_eol_heading(line)
-            if found:
-                reportError("Possible section title at line " + str(lineno) + " in " + path, 76)
+        # lineno += 1
+        if not line.strip():
+            continue
+        marker, payload = parseLine(line)
+        match marker:
+            case 'id':
+                localstate.addID(payload[0:3].upper())
+            case 'c':
+                localstate.addChapter(payload)
+            case 'v':
+                localstate.addVerse(payload)
+            case _:
+                if not conflict_re.match(line):
+                    found = (line[0] != '\\' and section_titles.is_possible_heading(line))
+                    if not found:
+                        found = section_titles.find_eol_heading(line)
+                    if found:
+                        # reportError("Possible section title at line " + str(lineno) + " in " + path, 76)
+                        reportError("Possible section title at " + localstate.reference + " in " + path, 76)
 
 usfmname_re = re.compile(r'([0-9AB][0-9])-(\w\w\w)\.')
 # Returns True if the specified fname is a peripheral usfm (back matter, etc.)
