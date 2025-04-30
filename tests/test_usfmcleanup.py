@@ -7,6 +7,7 @@ tests_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 import pytest
+import usfm_cleanup
 
 @pytest.mark.parametrize('str, expected',
     [
@@ -24,7 +25,6 @@ import pytest
         ('eos,s,t', 'eos, s, t'),
     ])
 def test_add_spaces(str, expected):
-    import usfm_cleanup
     assert usfm_cleanup.add_spaces(str) == expected
 
 @pytest.mark.parametrize('str, expected',
@@ -47,7 +47,6 @@ def test_add_spaces(str, expected):
 # usfm_move_pq moves standalone \p \m and \q markers which occur just before an \s# marker
 # to the next line after the \s# marker.
 def test_usfm_move_pq(str, expected):
-    import usfm_cleanup
     assert usfm_cleanup.usfm_move_pq(str) == expected
 
 @pytest.mark.parametrize('str, expected',
@@ -74,7 +73,6 @@ def test_usfm_move_pq(str, expected):
     ])
 # Remove standalone paragraph markers not followed by verse marker.
 def test_usfm_remove_pq(str, expected):
-    import usfm_cleanup
     assert usfm_cleanup.usfm_remove_pq(str) == expected
 
 @pytest.mark.parametrize('str, expected',
@@ -89,7 +87,6 @@ def test_usfm_remove_pq(str, expected):
     ])
 # Remove standalone paragraph markers not followed by verse marker.
 def test_usfm_remove_s5(str, expected):
-    import usfm_cleanup
     assert usfm_cleanup.usfm_remove_s5(str) == expected
 
 @pytest.mark.parametrize('str, expected',
@@ -104,7 +101,6 @@ def test_usfm_remove_s5(str, expected):
         ('\\mt iiI petro\n', '\\mt III Petro\n'),
     ])
 def test_fix_booktitles(str, expected):
-    import usfm_cleanup
     assert usfm_cleanup.fix_booktitles(str) == expected
 
 @pytest.mark.parametrize('str, expected',
@@ -128,7 +124,6 @@ def test_fix_booktitles(str, expected):
 # 3. Fixes free floating punctuation after verse marker.
 # 4. Adds space before left paren/bracket where needed.
 def test_fix_punctuation(str, expected):
-    import usfm_cleanup
     if not expected:
         expected = str
     assert usfm_cleanup.fix_punctuation(str) == expected
@@ -145,7 +140,6 @@ def test_fix_punctuation(str, expected):
         ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", False, False, "oddo,'Me ri rossosu i'jâkikâle ~bwo, "),
    ])
 def test_change_quote_medial(str, all, double, expected):
-    import usfm_cleanup
     assert usfm_cleanup.change_quote_medial(str, all, double)[1] == expected
 
 @pytest.mark.parametrize('str, expected',
@@ -159,7 +153,6 @@ def test_change_quote_medial(str, all, double, expected):
     ])
 # usfm_add_p add \p between section heading and verse marker, where missing.
 def test_usfm_add_p(str, expected):
-    import usfm_cleanup
     assert usfm_cleanup.usfm_add_p(str) == expected
 
 @pytest.mark.parametrize('line, expected',
@@ -197,7 +190,6 @@ def test_usfm_add_p(str, expected):
     # (' Matutra Tutge Puasa (Mat. 9:14-17; Luk. 5:33-39)', '\\s Matutra Tutge Puasa (Mat. 9:14-17; Luk. 5:33-39)\n\\p'),
     ])
 def test_mark_sections(line, expected):
-    import usfm_cleanup
     if not expected or expected == line:
         expected = line
         expectchange = False
@@ -216,7 +208,6 @@ def test_mark_sections(line, expected):
     ('\\v  16. asdf \\v 17. qwpoeru', '\\v  16 asdf \\v 17 qwpoeru'),
     ])
 def test_remove_periods(line, expected):
-    import usfm_cleanup
     if not expected or expected == line:
         expected = line
         expectchange = False
@@ -225,3 +216,21 @@ def test_remove_periods(line, expected):
     (c,s) = usfm_cleanup.remove_periods(line)
     assert s == expected
     assert c == expectchange
+
+@pytest.mark.parametrize('line, exp_marker, exp_payload',
+    [
+        ('', '', ''),
+        ('15 XYZ', '', '15 XYZ'),
+        ('\\id mat asdf', 'id', 'mat asdf'),
+        ('\\p', 'p', ''),
+        ('\\p asdf', 'p', 'asdf'),
+        ('\\c 1 asdf', 'c', '1'),
+        ('\\v  2', 'v', '2'),
+        ('\\v  2-3  asdf', 'v', '2-3'),
+        ('\\v 4 asdljasdf asdf\\v 5 asdf', 'v', '4'),
+        ('asdfasdf. \\v 5', '', 'asdfasdf. \\v 5'),
+    ])
+def test_parseLine(line, exp_marker, exp_payload):
+    marker, payload = usfm_cleanup.parseLine(line)
+    assert marker == exp_marker
+    assert payload == exp_payload
