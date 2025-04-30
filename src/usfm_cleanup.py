@@ -41,6 +41,7 @@ class State:
         self.initBook()
 
     def initBook(self):
+        self.bookId = ""
         self.schapter = ""
         self.sverse = ""
         self.currMarker = None
@@ -51,8 +52,20 @@ class State:
             self.schapter = token.value
         elif token.isV():
             self.sverse = token.value
+        elif token.isID():
+            self.bookId = token.value
         self.prevMarker = self.currMarker
         self.currMarker = token.type
+
+    def addLine(self, line):
+        marker, payload = parseLine(line)
+        match marker:
+            case 'id':
+                self.bookId = payload[0:3].upper()
+            case 'c':
+                self.schapter = payload
+            case 'v':
+                self.sverse = payload
 
 def shortname(longpath):
     source_dir = config['source_dir']
@@ -374,7 +387,8 @@ def mark_sections(line):
     if not pheading:
         pheading = section_titles.find_parenthesized_heading(line)
     if not pheading and sentences.sentenceCount(line) > 1:
-        pheading = section_titles.find_eol_heading(line)
+        if not state or state.bookId != 'JHN' or state.schapter != "19" or state.sverse != "19":
+            pheading = section_titles.find_eol_heading(line)
 
     if pheading:
         startpos = line.find(pheading)
@@ -400,9 +414,31 @@ def remove_periods(line):
         vperiod = vperiod_re.search(line, vperiod.end()-1)
     return (changed, line)
 
+usfm_re = re.compile(r'\\([a-z][a-z1-5]*\*?)(\s+.*)?')
+cvnumber_re = re.compile(r'[1-9][-0-9]*')
+# Simplistically parses a single line as usfm.
+# Assumes markers occur only at beginning of line, and syntax is always good.
+# Returns a single tuple of (marker, payload)
+# Either marker or payload may be an empty string.
+# This function is duplicated in verifyUSFM.
+def parseLine(line):
+    marker = ""
+    if usfm := usfm_re.match(line):
+        marker = usfm.group(1)
+        payload = usfm.group(2).strip() if usfm.group(2) else ""
+        if marker in {'c', 'v'}:
+            if cvnumber := cvnumber_re.match(payload):
+                payload = cvnumber.group(0)
+            else:
+                marker = ""
+    if not marker:
+        payload = line
+    return (marker, payload)
+
 # Rewrites the file line by line, making changes to individual lines
 # Returns True if any changes are made
 def convert_by_line(path):
+    state.initBook()
     with io.open(path, "tr", encoding="utf-8-sig") as input:
         lines = input.readlines()
     output = io.open(path, "tw", encoding='utf-8', newline='\n')
@@ -410,6 +446,7 @@ def convert_by_line(path):
     changed3 = False
 
     for line in lines:
+        state.addLine(line)
         (changed1, line) = change_quote_medial(line, enable[4], enable[3])
         (changed2, line) = change_floating_quotes(line)
         if enable[7]:
