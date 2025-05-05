@@ -7,6 +7,7 @@ tests_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 import pytest
+import quotes
 
 @pytest.mark.parametrize('str, expected',
     [
@@ -119,7 +120,6 @@ import pytest
 '''),
     ])
 def test_promoteQuotes(str, expected):
-    import quotes
     assert quotes.promoteQuotes(str) == expected
 
 @pytest.mark.parametrize('str, expected',
@@ -230,7 +230,6 @@ def test_promoteQuotes(str, expected):
 '''),
     ])
 def test_promoteDoubleQuotes(str, expected):
-    import quotes
     if not expected:
         expected = str
     result = quotes.promoteDoubleQuotes(str)
@@ -248,7 +247,6 @@ def test_promoteDoubleQuotes(str, expected):
 #         ('”’’’’’’', 0),
 #     ])
 # def test_quotepos(str, expected):
-#     import quotes
 #     assert quotes.quotepos(str) == expected
 
 # @pytest.mark.parametrize('str, expected',
@@ -270,5 +268,19 @@ def test_promoteDoubleQuotes(str, expected):
 #         ('Olukaado Lw’omuyofu N’amamera', False),
 #     ])
 # def test_partialQuote(str, expected):
-#     import quotes
 #     assert quotes.partialQuote(str) == expected
+
+@pytest.mark.parametrize('quotechar, exp_mate',
+    [
+        ('"', '"'),
+        ('«', '»'),
+        ('6', ''),
+        ('', ''),
+        ('»', '«'),
+        ("'", "'"),
+        ('“', '”'),
+        ('’', '‘'),
+    ])
+def test_matechar(quotechar, exp_mate):
+    mate = quotes.matechar(quotechar)
+    assert mate == exp_mate

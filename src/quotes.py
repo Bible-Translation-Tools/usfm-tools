@@ -33,28 +33,28 @@ closetrans = str.maketrans('\'"', '’”')
 
 # Changes straight quotes to curly quotes where context suggests with very high confidence.
 # Called by usfm_cleanup, passing in the entire usfm file as a string.
-def promoteQuotes(str):
+def promoteQuotes(s):
     pos = 0
-    snippet = quote0_re.search(str, pos)
+    snippet = quote0_re.search(s, pos)
     while snippet:
         if snippet.group(1) == snippet.group(2) and len(snippet.group(1)) == 1:
             (i,j) = (snippet.start(1), snippet.end(2))
-            str = str[0:i] + snippet.group(1).translate(opentrans) + str[i+1:j-1] + snippet.group(2).translate(closetrans) + str[j:]
+            s = s[0:i] + snippet.group(1).translate(opentrans) + s[i+1:j-1] + snippet.group(2).translate(closetrans) + s[j:]
         pos = snippet.end()
-        snippet = quote0_re.search(str, pos)
+        snippet = quote0_re.search(s, pos)
 
-    str = _translate(str, quote1_re, opentrans)
-    str = _translate(str, quote2_re, opentrans)
-    str = _translate(str, quote3_re, closetrans)
-    str = _translate(str, quote4_re, closetrans)
-    str = _translate(str, quote5_re, closetrans)
-    str = _translate(str, quote6_re, closetrans)
-    str = _translate(str, quote8_re, opentrans)
-    str = _translate(str, snglquote9_re, closetrans)
-    str = _translate(str, dblquote9_re, closetrans)
+    s = _translate(s, quote1_re, opentrans)
+    s = _translate(s, quote2_re, opentrans)
+    s = _translate(s, quote3_re, closetrans)
+    s = _translate(s, quote4_re, closetrans)
+    s = _translate(s, quote5_re, closetrans)
+    s = _translate(s, quote6_re, closetrans)
+    s = _translate(s, quote8_re, opentrans)
+    s = _translate(s, snglquote9_re, closetrans)
+    s = _translate(s, dblquote9_re, closetrans)
     for pair in subs:
-        str = str.replace(pair[0], pair[1])
-    return str
+        s = s.replace(pair[0], pair[1])
+    return s
 
 dblquote0_re = re.compile(r'[^\w]("+)\w+("+)[^\w]')     # a single word in quotes
 dblquote1_re = re.compile(r'[ \(\[]("+)[\w‘\']')     # SPACE|PAREN " word => “
@@ -86,39 +86,39 @@ dblsubs = [
 ]
 
 # Changes straight double quotes to curly quotes where context suggests with very high confidence.
-def promoteDoubleQuotes(str):
+def promoteDoubleQuotes(s):
     pos = 0
-    snippet = dblquote0_re.search(str, pos)
+    snippet = dblquote0_re.search(s, pos)
     while snippet:
         if snippet.group(1) == snippet.group(2) and len(snippet.group(1)) == 1:
             (i,j) = (snippet.start(1), snippet.end(2))
-            str = str[0:i] + snippet.group(1).translate(dblopentrans) + str[i+1:j-1] + snippet.group(2).translate(dblclosetrans) + str[j:]
+            s = s[0:i] + snippet.group(1).translate(dblopentrans) + s[i+1:j-1] + snippet.group(2).translate(dblclosetrans) + s[j:]
         pos = snippet.end()
-        snippet = dblquote0_re.search(str, pos)
+        snippet = dblquote0_re.search(s, pos)
 
-    str = _translate(str, dblquote1_re, dblopentrans)
-    str = _translate(str, dblquote2_re, dblopentrans)
-    str = _translate(str, dblquote3_re, dblclosetrans)
-    str = _translate(str, dblquote4_re, dblclosetrans)
-    str = _translate(str, dblquote5_re, dblclosetrans)
-    str = _translate(str, dblquote6_re, dblclosetrans)
-    str = _translate(str, dblquote8_re, dblopentrans)
-    str = _translate(str, dblquote9_re, dblclosetrans)
+    s = _translate(s, dblquote1_re, dblopentrans)
+    s = _translate(s, dblquote2_re, dblopentrans)
+    s = _translate(s, dblquote3_re, dblclosetrans)
+    s = _translate(s, dblquote4_re, dblclosetrans)
+    s = _translate(s, dblquote5_re, dblclosetrans)
+    s = _translate(s, dblquote6_re, dblclosetrans)
+    s = _translate(s, dblquote8_re, dblopentrans)
+    s = _translate(s, dblquote9_re, dblclosetrans)
 
     for pair in dblsubs:
-        str = str.replace(pair[0], pair[1])
-    return str
+        s = s.replace(pair[0], pair[1])
+    return s
 
 # Internal function.
 # Translates quotes in the string wherever the expression matches.
 # Uses trans as the translation table.
-def _translate(str, rexp, trans):
-    snippet = rexp.search(str)
+def _translate(s, rexp, trans):
+    snippet = rexp.search(s)
     while snippet:
         (i,j) = (snippet.start(1), snippet.end(1))
-        str = str[0:i] + snippet.group(1).translate(trans) + str[j:]
-        snippet = rexp.search(str)
-    return str
+        s = s[0:i] + snippet.group(1).translate(trans) + s[j:]
+        snippet = rexp.search(s)
+    return s
 
 # quotes_re = re.compile(r'[“‘‹«\'"’”›»]')
 
@@ -140,3 +140,32 @@ def _translate(str, rexp, trans):
 #     ends = bool(closequote_re.search(str))
 #     internal = bool(internalquote_re.search(str))   # too simplistic
 #     return starts ^ ends ^ internal
+
+matetrans = str.maketrans("\"'«“‘»”’", "\"'»”’«“‘")
+
+# Returns the complementary quote character, or '' if invalid input.
+def matechar(quote: str):
+    if quote in "\"'«“‘»”’":
+        mate = quote.translate(matetrans)
+    else:
+        mate = ''
+    return mate
+
+def is_open(quote: str):
+    return quote in "«“‘"
+
+def is_closed(quote: str):
+    return quote in "»”’"
+
+# Returns True if the specified character is a straight quote.
+# @param all means single and double quotes qualify
+# @param double means double quotes qualify
+# If neither all nor double are set, this function returns False.
+def is_straight(quote: str, all, double):
+    if all:
+        rtnval = (quote in "\"'")
+    elif double:
+        rtnval = (quote == '"')
+    else:
+        rtnval = False
+    return rtnval
