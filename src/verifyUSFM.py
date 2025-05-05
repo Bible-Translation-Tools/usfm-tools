@@ -994,7 +994,6 @@ spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)    # spa
 spacey2_re = re.compile(r'[\s][\[\]\(\'"«“‘’”»›][\s]', re.UNICODE)    # free floating marks
 spacey3_re = re.compile(r'[\(\'"«“‘’”»›][\s]', re.UNICODE)       # quote-space at beginning of verse
 spacey4_re = re.compile(r'[\s][\(\'"«“‘’”»›]$', re.UNICODE)       # quote-space at end of verse
-#wordmedial_punct_re = re.compile(r'[\w][\.\?!;\:,\(\)\[\]"«“‘’”»›][\.\?!;\:,\(\)\[\]\'"«“‘’”»›]*[\w]', re.UNICODE)
 wordmedial_punct_re = re.compile(r'[\w][.?!;:,()\[\]"«“‘”»›][.?!;:,()\[\]\'"«“‘’”»›]*[\w]')
 outsidequote_re = re.compile(r'([\'"’”»›][\.!])', re.UNICODE)   # Period or exclamation outside closing quote.
 
@@ -1309,6 +1308,7 @@ cvnumber_re = re.compile(r'[1-9][-0-9]*')
 # Assumes markers occur only at beginning of line, and syntax is always good.
 # Returns a single tuple of (marker, payload)
 # Either marker or payload may be an empty string.
+# This function is duplicated in usfm_cleanup.
 def parseLine(line):
     marker = ""
     if usfm := usfm_re.match(line):
@@ -1340,7 +1340,8 @@ def reportSectionHeadings(lines, path):
             case 'c':
                 localstate.addChapter(payload)
             case 'v':
-                localstate.addVerse(payload)
+                vs = payload.split('-')
+                localstate.addVerse(vs[-1])
             case _:
                 if not conflict_re.match(line):
                     found = (line[0] != '\\' and section_titles.is_possible_heading(line))
