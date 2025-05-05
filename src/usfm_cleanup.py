@@ -284,31 +284,58 @@ def convert_wholefile(path):
         changed = True
     return changed
 
-# Returns the complementary quote character
-def matechar(quote):
-    leftquote  = "\"'«“‘"
-    rightquote = "\"'»”’"
-    pos = leftquote.find(quote)
-    if pos >= 0:
-        mate = rightquote[pos]
-    else:
-        pos = rightquote.find(quote)
-        mate = leftquote[pos]   # works even if pos is -1
-    return mate
+# Returns the position of the closing quote matching the open quote at line[pos].
+# @param all means consider straight single and double quotes
+# @param double means consider straight double quotes
+# If neither all nor double are set, only find match for curly quotes.
+def find_matching_closequote(line: str, pos: int, all, double):
+    closepos = -1
+    quote = line[pos] if pos >= 0 else ''
+    if quotes.is_open(quote):
+        opens = 1
+        closequote = quotes.matechar(quote)
+        for i in range(pos+1, len(line)):
+            if line[i] == quote:
+                opens += 1
+            elif line[i] == closequote:
+                opens -= 1
+            if opens == 0:
+                closepos = i
+                break
+    elif quotes.is_straight(quote, all, double):
+        closepos = line.find(quote, pos+1)
+        for i in range(pos, closepos-1): # exclude straight pairs which have a directional quote between them
+            if line[i] in '«“‘»”’':
+                closepos = -1
+                break
+    return closepos
 
-# Returns position of the matching quote mark, before or after specified quote position.
-# Returns -1 if matching quote is not found.
-def find_mate(quote, pos, line):
-    mate = matechar(quote)
-    nFollowing = line[pos+1:].count(mate)
-    nPreceding = line[:pos-1].count(mate)
-    if nFollowing % 2 == 1 and nPreceding % 2 == 0:
-        matepos = line.find(mate, pos+1)
-    elif nFollowing % 2 == 0 and nPreceding % 2 == 1:
-        matepos = line.rfind(mate, 0, pos-1)
-    else:
-        matepos = -1
-    return matepos
+# Returns the position of the open quote matching the closed quote at line[pos].
+# @param all means consider straight single and double quotes
+# @param double means consider straight double quotes
+# If neither all nor double are set, only find match for curly quotes.
+# Returns -1 if no match, or if line[pos] is not a quote mark.
+def find_matching_openquote(line: str, pos: int, all, double):
+    openpos = -1
+    quote = line[pos] if 0 < pos < len(line) else ''
+    if quotes.is_closed(quote):
+        closes = 1
+        openquote = quotes.matechar(quote)
+        for i in range(pos-1, -1, -1):
+            if line[i] == quote:
+                closes += 1
+            elif line[i] == openquote:
+                closes -= 1
+            if closes == 0:
+                openpos = i
+                break
+    elif quotes.is_straight(quote, all, double):
+        openpos = line.rfind(quote, 0, pos)
+        for i in range(openpos, pos-1): # exclude straight pairs which have a directional quote between them
+            if line[i] in '«“‘»”’':
+                openpos = -1
+                break
+    return openpos
 
 q1_re = re.compile(r'[\w][\.\?!;\:,](["\'«“‘’”»])[\w]')    # adjacent punctuation where second char is a quote mark
 q2_re = re.compile(r'[\w][\.\?!;\:,](["«“‘’”»])[\w]')
@@ -328,39 +355,62 @@ def change_quote_medial(line, all, double):
     else:   # not safe to insert spaces around straight quotes
         quotemedial_re = q3_re
 
-    while bad := quotemedial_re.search(line):
+    bad = quotemedial_re.search(line)
+    while bad:
         pos = bad.start() + 2
-        matepos = find_mate(bad.group(1), pos, line)
+        matepos = find_matching_closequote(line, pos, all, True)
         if matepos > pos:
             line = line[:pos] + ' ' + line[pos:]
             changed = True
-        elif 0 <= matepos < pos:
-            line = line[:pos+1] + ' ' + line[pos+1:]
-            changed = True
+        else:
+            matepos = find_matching_openquote(line, pos, all, double)
+            if 0 <= matepos < pos:
+                line = line[:pos+1] + ' ' + line[pos+1:]
+                changed = True
         bad = quotemedial_re.search(line)
         if bad and bad.start() <= pos:
             break
     return (changed, line)
 
-quotefloat_re = re.compile(r' (["\'«“‘’”»])[\s]', re.UNICODE)
+quotefloat_re = re.compile(r'(^|\s)(["\'«“‘’”»])(\s|$)')
 
-# Deals with quotes surrounded by white space on both sides.
-# Removes one of the spaces if a matching quote is found in the same line.
-def change_floating_quotes(line):
-    pos = 0
+# Returns a list of (openpos, closepos) tuples, each of which represents
+# the positions of a matching pair of quotes in the given string.
+def pair_up_quotes(line, all, double):
+    if (all or double) and line.count('"') % 2 == 1:
+        all = double = False
+    if all and line.count("'") % 2 == 1:
+        all = False
+
+    pairs = []
+    for i in range(len(line)-1, 0, -1):
+        if i not in [pair[0] for pair in pairs]:
+            openpos = find_matching_openquote(line, i, all, double)
+            if openpos >= 0:
+                pairs.append((openpos, i))
+    return pairs
+
+# floatopen_re =  re.compile(r'(^|\s)(["\'«“‘])(\s+|$)')
+# floatclose_re = re.compile(r'(^|\s)(["\'’”»])(\s+|$)')
+
+def change_floating_quotes(line, all, double):
     changed = False
-    while bad := quotefloat_re.search(line):
-        pos = bad.start() + 1
-        matepos = find_mate(bad.group(1), pos, line)
-        if matepos > pos:
-            line = line[:pos+1] + line[pos+2:]
-            changed = True
-        elif 0 <= matepos < pos:
-            line = line[:pos-1] + line[pos:]
-            changed = True
-        bad = quotefloat_re.search(line)
-        if bad and bad.start() <= pos:
-            break
+    if quotefloat_re.search(line):    # if there exist any floating quotes in this line
+        quotepairs = pair_up_quotes(line, all, double)
+        closepositions = [p[1] for p in quotepairs]
+        openpositions = [p[0] for p in quotepairs]
+        if quotes := closepositions + openpositions:
+            quotes.sort(reverse=True)
+            for pos in quotes:
+                if pos in closepositions:
+                    while pos > 0 and line[pos-1] == ' ':
+                        line = line[0:pos-1] + line[pos:]
+                        pos -= 1
+                        changed = True
+                elif pos in openpositions:
+                    while len(line) > pos+1 and line[pos+1] == ' ':
+                        line = line[0:pos+1] + line[pos+2:]
+                        changed = True
     return (changed, line)
 
 verse_re = re.compile(r'\\v +([0-9]+)')
@@ -448,7 +498,7 @@ def convert_by_line(path):
     for line in lines:
         state.addLine(line)
         (changed1, line) = change_quote_medial(line, enable[4], enable[3])
-        (changed2, line) = change_floating_quotes(line)
+        (changed2, line) = change_floating_quotes(line, enable[4], enable[3])
         if enable[7]:
             (changed3, line) = mark_sections(line)
         (changed4, line) = remove_periods(line)
