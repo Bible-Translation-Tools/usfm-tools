@@ -9,7 +9,7 @@ sys.path.append(src_path)
 import pytest
 import usfm_cleanup
 
-@pytest.mark.parametrize('str, expected',
+@pytest.mark.parametrize('s, expected',
     [
         ('.The house.about.', '. The house. about.'),
         ('!The house.about.', '!The house. about.'),
@@ -24,10 +24,10 @@ import usfm_cleanup
         ('7,000', '7,000'),
         ('eos,s,t', 'eos, s, t'),
     ])
-def test_add_spaces(str, expected):
-    assert usfm_cleanup.add_spaces(str) == expected
+def test_add_spaces(s, expected):
+    assert usfm_cleanup.add_spaces(s) == expected
 
-@pytest.mark.parametrize('str, expected',
+@pytest.mark.parametrize('s, expected',
     [
         ('\\p\n\\s Heading', '\\p\n\\s Heading'),
         ('\\p \\s Heading', '\\p \\s Heading'),
@@ -39,17 +39,17 @@ def test_add_spaces(str, expected):
         ('\\c 6 \n\\pi\n\\s3 Heading\n', '\\c 6 \n\\s3 Heading\n\\pi\n'),
         ('\\v 1 words of a verse.\n\\q2\n\\s Heading\n', '\\v 1 words of a verse.\n\\s Heading\n\\q2\n'),
         ('\n\\q2\n\\s2Heading\n', '\n\\q2\n\\s2Heading\n'),     # not a proper heading
-        ('\n\\s Heading\n\s Heading2', '\n\\s Heading\n\s Heading2'),
+        ('\n\\s Heading\n\s Heading2', '\n\\s Heading\n\\s Heading2'),
         ('\n\\p\n\\s Heading\n\\s Heading2', '\n\\s Heading\n\\p\n\\s Heading2'),
         ('\n\\p\n\n\\s Heading\n', '\n\\s Heading\n\\p\n'),
         ('\n\\p\n\\s First Heading\n\\v 1 verse\n\\p\n\\s1 Second Heading\n', '\n\\s First Heading\n\\p\n\\v 1 verse\n\\s1 Second Heading\n\\p\n'),
     ])
 # usfm_move_pq moves standalone \p \m and \q markers which occur just before an \s# marker
 # to the next line after the \s# marker.
-def test_usfm_move_pq(str, expected):
-    assert usfm_cleanup.usfm_move_pq(str) == expected
+def test_usfm_move_pq(s, expected):
+    assert usfm_cleanup.usfm_move_pq(s) == expected
 
-@pytest.mark.parametrize('str, expected',
+@pytest.mark.parametrize('s, expected',
     [
         ('\\p\n\\s Heading', '\\s Heading'),
         ('\\p \\s Heading', '\\s Heading'),     # no line break after \p
@@ -72,10 +72,10 @@ def test_usfm_move_pq(str, expected):
         ('\\p words before\n\\s Heading', '\\p words before\n\\s Heading'),
     ])
 # Remove standalone paragraph markers not followed by verse marker.
-def test_usfm_remove_pq(str, expected):
-    assert usfm_cleanup.usfm_remove_pq(str) == expected
+def test_usfm_remove_pq(s, expected):
+    assert usfm_cleanup.usfm_remove_pq(s) == expected
 
-@pytest.mark.parametrize('str, expected',
+@pytest.mark.parametrize('s, expected',
     [
         ('\\p\n\\s5 Heading?\n\\s Section heading', '\\p\n\\s5 Heading?\n\\s Section heading'),
         ('\\p asdf\\s5\n', '\\p asdf\\s5\n'),
@@ -86,10 +86,10 @@ def test_usfm_remove_pq(str, expected):
         ('text before\n\\s5\n\\v 5 text after', 'text before\n\\v 5 text after'),
     ])
 # Remove standalone paragraph markers not followed by verse marker.
-def test_usfm_remove_s5(str, expected):
-    assert usfm_cleanup.usfm_remove_s5(str) == expected
+def test_usfm_remove_s5(s, expected):
+    assert usfm_cleanup.usfm_remove_s5(s) == expected
 
-@pytest.mark.parametrize('str, expected',
+@pytest.mark.parametrize('s, expected',
     [
         ('\\id ROM\n\\toc1 romans\n\\toc2 rOMans\n\\h ROMANS\n\\mt Romans\n',
           '\\id ROM\n\\toc1 Romans\n\\toc2 Romans\n\\h Romans\n\\mt Romans\n'),
@@ -100,10 +100,10 @@ def test_usfm_remove_s5(str, expected):
         ('\\mt ii peter\n', '\\mt II Peter\n'),
         ('\\mt iiI petro\n', '\\mt III Petro\n'),
     ])
-def test_fix_booktitles(str, expected):
-    assert usfm_cleanup.fix_booktitles(str) == expected
+def test_fix_booktitles(s, expected):
+    assert usfm_cleanup.fix_booktitles(s) == expected
 
-@pytest.mark.parametrize('str, expected',
+@pytest.mark.parametrize('s, expected',
     [
         ('first,, second', 'first, second'),
         ('first(second', 'first (second'),
@@ -123,12 +123,12 @@ def test_fix_booktitles(str, expected):
 # 2. Reduces double periods to single.
 # 3. Fixes free floating punctuation after verse marker.
 # 4. Adds space before left paren/bracket where needed.
-def test_fix_punctuation(str, expected):
+def test_fix_punctuation(s, expected):
     if not expected:
-        expected = str
-    assert usfm_cleanup.fix_punctuation(str) == expected
+        expected = s
+    assert usfm_cleanup.fix_punctuation(s) == expected
 
-@pytest.mark.parametrize('str, all, double, expected',
+@pytest.mark.parametrize('s, all, double, expected',
     [
         ('first,second', True, True, 'first,second'),
         ('first,"second', True, True, 'first,"second'),
@@ -139,10 +139,68 @@ def test_fix_punctuation(str, expected):
         ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", False, True, "oddo,'Me ri rossosu i'jâkikâle ~bwo, "),
         ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", False, False, "oddo,'Me ri rossosu i'jâkikâle ~bwo, "),
    ])
-def test_change_quote_medial(str, all, double, expected):
-    assert usfm_cleanup.change_quote_medial(str, all, double)[1] == expected
+def test_change_quote_medial(s, all, double, expected):
+    if not expected:
+        expected == s
+    exp_change = (s != expected)
+    (changed, newstr) = usfm_cleanup.change_quote_medial(s, all, double)
+    assert changed == exp_change
+    assert newstr == expected
 
-@pytest.mark.parametrize('str, expected',
+floating_test_cases = [
+    ('first\'second', ''),
+    ('first,"second', ''),
+    ('first, " second', ''),
+    ('first, " second"', 'first, "second"'),
+    ('"first, " second"', ''),
+    ('""XX, " ,YY"', '""XX, ",YY"'),
+    ('",YY " ZZ YY""', '",YY" ZZ YY""'),
+    ('"  A  "', '"A"'),
+    ('"A" BB " C"', '"A" BB "C"'),
+    ('" C " " D "', '"C" "D"'),
+    ('" D " ,EE "F"', '"D" ,EE "F"'),
+    ('" G', ''),
+    ('" G " H', '"G" H'),
+    ('H " I " J', 'H "I" J'),
+    ('I “ 1234 ” ', 'I “1234” '),
+    ('J ” 1234 “ ', ''),
+    ('" K, " L,“ ', '"K," L,“ '),
+    (' " L, " ', ' "L," '),
+    ('“,YY ” ZZ YY“ ”', '“,YY” ZZ YY“”'),
+    ('“,YY " ZZ XX', '“,YY " ZZ XX'),
+    ('“,ZZ " XX YY"', '“,ZZ "XX YY"'),
+    ('“,AA " XX YY”', ''),
+    ('“,AA " XX YY   ”', '“,AA " XX YY”'),
+    ('"BB, ” second”"', ''),
+    ('"ABC, ” second” " DEF', ''),
+    ('"ABC, “ ABC” " DEF', '"ABC, “ABC” " DEF'),
+    ('"CC, " second”', '"CC," second”'),
+    ('“DD, “   second”', '“DD, “second”'),
+    ('"EE, " FF " GG " HH', '"EE," FF "GG" HH'),
+    ('"EE,  " FF " GG " HH "', ''),
+]
+
+'''
+@pytest.mark.parametrize('s, expected', floating_test_cases)
+def test_change_floating_quotes_old(s, expected):
+    if not expected:
+        expected = s
+    exp_change = (expected != s)
+    (changed, newstr) = usfm_cleanup.change_floating_quotes_old(s)
+    assert newstr == expected
+    assert changed == exp_change
+'''
+
+@pytest.mark.parametrize('s, expected', floating_test_cases)
+def test_change_floating_quotes(s, expected):
+    if not expected:
+        expected = s
+    exp_change = (expected != s)
+    (changed, newstr) = usfm_cleanup.change_floating_quotes(s, True, True)
+    assert newstr == expected
+    assert changed == exp_change
+
+@pytest.mark.parametrize('s, expected',
     [
         ('blah\\s Heading\n\n\n\\v 1', 'blah\\s Heading\n\\p\n\n\n\\v 1'),
         ('\n\\s Heading\n\\v 15 asdflkjadf', '\n\\s Heading\n\\p\n\\v 15 asdflkjadf'),
@@ -152,8 +210,8 @@ def test_change_quote_medial(str, all, double, expected):
         ('\\s Heading\n\\p\n\n\\v 5 asdf\n\\s Heading 2\n\\v 6 asdf', '\\s Heading\n\\p\n\n\\v 5 asdf\n\\s Heading 2\n\\p\n\\v 6 asdf'),
     ])
 # usfm_add_p add \p between section heading and verse marker, where missing.
-def test_usfm_add_p(str, expected):
-    assert usfm_cleanup.usfm_add_p(str) == expected
+def test_usfm_add_p(s, expected):
+    assert usfm_cleanup.usfm_add_p(s) == expected
 
 @pytest.mark.parametrize('line, expected',
     [
@@ -234,3 +292,82 @@ def test_parseLine(line, exp_marker, exp_payload):
     marker, payload = usfm_cleanup.parseLine(line)
     assert marker == exp_marker
     assert payload == exp_payload
+
+@pytest.mark.parametrize('line, pos, exp_matepos',
+    [
+        ('"Quoted."', 0, 8),
+        ('"Quoted."', 1, -1),
+        ('x"Quoted."', 1, 9),
+        ('x"Quoted."', 9, -1),
+        ('x“Curly.”', 1, 8),
+        ('x”Curly.“', 1, -1),
+        ('x“Curly. “More”', 1, -1),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 35, -1),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 0, 46),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 0, 16),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 5, -1),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 7, -1),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 10, 15),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 15, -1),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 20, 25),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 25, -1),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 26, 30),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 31, -1),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 35, -1),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 36, 40),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 40, -1),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', 45, -1),
+        ('“1234"6789“1234””789"1234"‘789’’234‘‘789’1234"', -1, -1),
+    ])
+def test_find_matching_closequote(line, pos, exp_matepos):
+    matepos = usfm_cleanup.find_matching_closequote(line, pos, True, True)
+    assert matepos == exp_matepos
+
+@pytest.mark.parametrize('line, pos, exp_matepos',
+    [
+        ('"Quoted."', 0, -1),
+        ('"Quoted."', 1, -1),
+        ('x"Quoted."', 1, -1),
+        ('x"Quoted."', 9, 1),
+        ('x“Curly.”', 1, -1),
+        ('x”Curly.“', 1, -1),
+        ('x“Curly. “More”', 14, 9),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 47, -1),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 46, 0),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 45, -1),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 42, -1),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 40, 36),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 36, -1),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 31, -1),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 30, 26),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 25, 20),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 20, -1),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 16, 1),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 15, 10),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 10, -1),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 5, -1),
+        ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 1, -1),
+    ])
+def test_find_matching_openquote(line, pos, exp_matepos):
+    matepos = usfm_cleanup.find_matching_openquote(line, pos, True, True)
+    assert matepos == exp_matepos
+
+@pytest.mark.parametrize('line, all, double, exp_pairs',
+    [
+    ('first\'second', True, True, []),
+    ('first, " second"', True, True, [(7,15)]),
+    ('first, " second"', False, True, [(7,15)]),
+    ('first, " second"', True, False, [(7,15)]),    # abberant case
+    ('first, " second"', False, False, []),
+    ('"first, " second"', True, True, []),
+    ('""234 " 890"', False, True, [(6,11), (0,1)]),
+    ('""234 " 890"', False, False, []),
+    ('““234"6789“1\'34””78\'"1234"‘789’’234‘‘789’1234"”\' \' ', True, True, [(47, 49), (0, 46), (36, 40), (26, 30), (20, 25), (1, 16), (10, 15)]),
+    ('““234"6789“1\'34””78\'"1234"‘789’’234‘‘789’1234"”\' \' ', False, True, [ (0, 46), (36, 40), (26, 30), (20, 25), (1, 16), (10, 15)]),
+    ('““234"6789“1\'34””78\'"1234"‘789’’234‘‘789’1234"”\' \' ', False, False, [ (0, 46), (36, 40), (26, 30), (1, 16), (10, 15)]),
+    ])
+def test_pair_up_quotes(line, all, double, exp_pairs):
+    pairs = usfm_cleanup.pair_up_quotes(line, all, double)
+    assert pairs == exp_pairs
+    quotes = [p[0] for p in pairs] + [p[1] for p in pairs]
+    assert len(set(quotes)) == len(pairs) * 2    # ensures no duplicate indexes
