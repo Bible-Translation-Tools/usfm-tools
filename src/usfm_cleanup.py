@@ -453,8 +453,9 @@ def mark_sections(line):
     mark_sections.sentenceended = changed or sentences.endsSentence(line, checkquotes=True)
     return (changed, line)
 
-vperiod_re = re.compile(r'\\v +[\d\-]+\.')
-# Removed periods after verse numbers.
+vperiod_re = re.compile(r'\\v +[\d\-]+[).]')
+
+# Removed periods or right parens after verse numbers.
 def remove_periods(line):
     changed = False
     vperiod = vperiod_re.search(line)
