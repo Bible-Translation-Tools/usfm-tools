@@ -262,8 +262,18 @@ def test_mark_sections(line, expected):
     ('11. \\v 11.', '11. \\v 11'),
     ('alone. alert. 12.   13.,', ''),
     ('\\c 14 \\v 14. asdf\n', '\\c 14 \\v 14 asdf\n'),
-    ('\\v  15.asdf ', '\\v  15asdf '),
+    ('\\v  15.asdf ', '\\v  15 asdf '),
     ('\\v  16. asdf \\v 17. qwpoeru', '\\v  16 asdf \\v 17 qwpoeru'),
+    ('\\v 17.asdf ', '\\v 17 asdf '),
+    ('\\v 18)asdf ', '\\v 18 asdf '),
+    ('\\v 19) asdf ', '\\v 19 asdf '),
+    ('\\v 20-21)asdf ', '\\v 20-21 asdf '),
+    ('\\v 21-22)', '\\v 21-22'),
+    ('\\v 22-23. ', '\\v 22-23 '),
+    ('\\v 24 24.asdf ', ''),
+    ('\\v 25 25)asdf ', ''),
+    ('\\v 26 26 asdf ', ''),
+    ('\\v 27 27. asdf ', ''),
     ])
 def test_remove_periods(line, expected):
     if not expected or expected == line:

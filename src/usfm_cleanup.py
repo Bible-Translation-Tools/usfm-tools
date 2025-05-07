@@ -337,9 +337,9 @@ def find_matching_openquote(line: str, pos: int, all, double):
                 break
     return openpos
 
-q1_re = re.compile(r'[\w][\.\?!;\:,](["\'«“‘’”»])[\w]')    # adjacent punctuation where second char is a quote mark
-q2_re = re.compile(r'[\w][\.\?!;\:,](["«“‘’”»])[\w]')
-q3_re = re.compile(r'[\w][\.\?!;\:,]([«“‘’”»])[\w]')
+q1_re = re.compile(r'[\w][.?!;:,](["\'«“‘’”»])[\w]')    # adjacent punctuation where second char is a quote mark
+q2_re = re.compile(r'[\w][.?!;:,](["«“‘’”»])[\w]')
+q3_re = re.compile(r'[\w][.?!;:,]([«“‘’”»])[\w]')
 
 # Finds sequences of phrase-ending punctuation followed by a quote,
 #   adjacent to word-forming characters on both sides.
@@ -453,14 +453,19 @@ def mark_sections(line):
     mark_sections.sentenceended = changed or sentences.endsSentence(line, checkquotes=True)
     return (changed, line)
 
-vperiod_re = re.compile(r'\\v +[\d\-]+[).]')
+vperiod_re = re.compile(r'\\v +[\d\-]+([).])([^\s]?)')
 
 # Removed periods or right parens after verse numbers.
 def remove_periods(line):
     changed = False
     vperiod = vperiod_re.search(line)
     while vperiod:
-        line = line[0:vperiod.end()-1] + line[vperiod.end():]
+        elide = vperiod.end(1)
+        if vperiod.group(2):   # means the next character is not a space
+            sp = ' '
+        else:
+            sp = ''
+        line = line[0:elide-1] + sp + line[elide:]
         changed = True
         vperiod = vperiod_re.search(line, vperiod.end()-1)
     return (changed, line)
@@ -504,6 +509,7 @@ def convert_by_line(path):
             (changed3, line) = mark_sections(line)
         (changed4, line) = remove_periods(line)
         if changed1 or changed2 or changed3 or changed4:
+        # if changed3 or changed4:
             changedfile = True
         output.write(line)
     output.close()
@@ -557,9 +563,14 @@ def takeText(str, usfm):
     origstr = str
     global in_footnote
     if state.prevMarker == 'v' and str.startswith(state.sverse):
-        str = str[len(state.sverse):].lstrip()
+        vlen = len(state.sverse)
+        if vlen < len(str) and str[vlen] in '.)':   # period or paren is stuck to verse number
+            vlen += 1
+        str = str[vlen:].lstrip()
     if enable[5] and not in_footnote:
         str = capitalizeAsNeeded(str)
+    # s = change_quote_medial(s, enable[4], enable[3])
+    # s = change_floating_quotes(s, enable[4], enable[3])
     usfm.writeStr(str)
     return (str != origstr)
 
