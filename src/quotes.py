@@ -24,9 +24,9 @@ quote1_re = re.compile(r'[ \(\[][“‘]*([\'"]+)\w')     # SPACE|PAREN quotes w
 quote2_re = re.compile(r': +[“‘]*([\'"]+)[^\.!?)]')     # colon SPACE quotes ... => open quotes
 quote3_re = re.compile(r'[,;][’”]*([\'"]+)[\)\]]')     # comma/semicolon quotes PAREN => close quotes
 quote4_re = re.compile(r'[\.!\?][’”]*([\'"]+)')     # period/bang/question quotes => close quotes
-quote5_re = re.compile(r'\w[’”]*([\'"]+) *\n')        # word quotes EOL
+quote5_re = re.compile(r'\w[’”]*([\'"]+)\s*$')        # word quotes EOS
 quote6_re = re.compile(r'\w[\w ][’”]*([\'"]+\?)')       # quotes question => close quotes question
-quote8_re = re.compile(r'\n *([\'"]+)\w')   # quotes word at start of line
+quote8_re = re.compile(r'^ *([\'"]+)[“‘]*\w', re.MULTILINE)   # quotes word at start of line
 snglquote9_re = re.compile(r'‘[^“‘\'’”\n\\]+[^\s“‘\'’”\n\\](\')[^\w]')  # single quote at end of word if there is a matching open quote on the same line
 opentrans = str.maketrans('\'"', "‘“")
 closetrans = str.maketrans('\'"', '’”')
@@ -61,9 +61,9 @@ dblquote1_re = re.compile(r'[ \(\[]("+)[\w‘\']')     # SPACE|PAREN " word => �
 dblquote2_re = re.compile(r': +[\'‘]*("+)[^\.!?)]')     # colon SPACE " ... => “
 dblquote3_re = re.compile(r'[,;][’\']*("+)[’\']*[\)\]]')     # comma/semicolon " PAREN => ”
 dblquote4_re = re.compile(r'[\.!\?][’\']*("+)')     # period/bang/question " => ”
-dblquote5_re = re.compile(r'\w[’\']*("+) *\n')        # word " EOL => ”
+dblquote5_re = re.compile(r'\w[’\']*("+)\s*$')        # word " EOS => ”
 dblquote6_re = re.compile(r'\w[\w ][’”]*("+\?)')       # " question => ” question
-dblquote8_re = re.compile(r'\n *("+)[\w\'‘]')   # " word at start of line => “
+dblquote8_re = re.compile(r'^ *("+)[\w\'‘]', re.MULTILINE)   # " word at start of line => “
 dblquote9_re = re.compile(r'“[^“‘\'’”\n\\]+[^\s“‘\'’”\n\\](")[^\w]')  # quote at end of word if there is a matching open quote on the same line
 dblopentrans = str.maketrans('"', '“')
 dblclosetrans = str.maketrans('"', '”')

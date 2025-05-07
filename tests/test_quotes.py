@@ -9,22 +9,24 @@ sys.path.append(src_path)
 import pytest
 import quotes
 
-@pytest.mark.parametrize('str, expected',
+@pytest.mark.parametrize('s, expected',
     [
         ('“phrase partially quoted" ', '“phrase partially quoted” '),
-        ('‘phrase partially quoted" ', '‘phrase partially quoted" '),
+        ('‘phrase partially quoted" ', '‘phrase partially quoted” '),
         ('‘phrase partially quoted\' ', '‘phrase partially quoted’ '),
         ('‘phrase partially quoted\'embedded ', '‘phrase partially quoted\'embedded '),
-        ('‘phrase “partially quoted\' ', '‘phrase “partially quoted\' '),
+        ('‘phrase “partially quoted\' ', '‘phrase “partially quoted’ '),
         ('“phrase “partially quoted" ', '“phrase “partially quoted” '),
         ('“phrase "partially quoted" ', '“phrase “partially quoted” '),
-        ('“phrase \'partially quoted" ', '“phrase ‘partially quoted" '),
+        ('“phrase \'partially quoted" ', '“phrase ‘partially quoted” '),
+        ('“word11 partially quoted "', ''),
+        ('“word11 \'partially quoted" word2 ', '“word11 ‘partially quoted" word2 '),
 
         (' \'word\' ', ' ‘word’ '),    # single word in quotes
         (' "word")',  ' “word”)'),
-        ('X"word"', 'X"word"'),
+        ('X"word"', 'X"word”'),
         (' ["word"]', ' [“word”]'),
-        ('""word""', '"“word”"'),
+        ('""word""', '““word””'),
         ('\n"start".', '\n“start”.'),
         (' " start " ' , ' " start " '),
         (' "start ' , ' “start '),         # SPACE|PAREN quotes word
@@ -119,23 +121,29 @@ import quotes
 ',
 '''),
     ])
-def test_promoteQuotes(str, expected):
-    assert quotes.promoteQuotes(str) == expected
+def test_promoteQuotes(s, expected):
+    if not expected:
+        expected = s
+    assert quotes.promoteQuotes(s) == expected
 
-@pytest.mark.parametrize('str, expected',
+@pytest.mark.parametrize('s, expected',
     [
         ('“phrase partially quoted" ', '“phrase partially quoted” '),
-        ('‘phrase partially quoted" ', ''),
+        ('‘phrase partially quoted" ', '‘phrase partially quoted” '),   # convert to close quote at EOS
+        ('‘phrase partially quoted" \n', '‘phrase partially quoted” \n'),
         ('‘phrase partially quoted\' ', ''),
         ('‘phrase partially quoted\'embedded ', '‘phrase partially quoted\'embedded '),
         ('‘phrase “partially quoted\' ', '‘phrase “partially quoted\' '),
         ('“phrase “partially quoted" ', '“phrase “partially quoted” '),
         ('“phrase "partially quoted" ', '“phrase “partially quoted” '),
-        ('“phrase \'partially quoted" ', ''),
+        ('“phrase \'partially quoted" ', '“phrase \'partially quoted” '),
+        ('“word11 \'partially quoted "', ''),
+        ('“word11 \'partially quoted" word2 ', ''),
 
         (' \'word\' ', ''),    # single word in quotes
         (' "word")',  ' “word”)'),
-        ('X"word"', 'X"word"'),
+        ('X"word"', 'X"word”'),
+        ('Y"word "', ''),
         (' ["word"]', ' [“word”]'),
         ('""word""', '““word””'),
         ('\n"start".', '\n“start”.'),
@@ -229,10 +237,10 @@ def test_promoteQuotes(str, expected):
 ',
 '''),
     ])
-def test_promoteDoubleQuotes(str, expected):
+def test_promoteDoubleQuotes(s, expected):
     if not expected:
-        expected = str
-    result = quotes.promoteDoubleQuotes(str)
+        expected = s
+    result = quotes.promoteDoubleQuotes(s)
     assert result == expected
 
 # @pytest.mark.parametrize('str, expected',
