@@ -274,10 +274,6 @@ def convert_wholefile(path):
             alltext = fix_punctuation(alltext)
         if enable[1]:
             alltext = add_spaces(alltext)
-        if enable[4]:   # convert single and double quotes
-            alltext = quotes.promoteQuotes(alltext)
-        elif enable[3]:
-            alltext = quotes.promoteDoubleQuotes(alltext)
     if alltext != origtext:
         with io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n') as output:
             output.write(alltext)
@@ -347,7 +343,6 @@ q3_re = re.compile(r'[\w][.?!;:,]([«“‘’”»])[\w]')
 # Inserts space before or after the quote, as appropriate.
 def change_quote_medial(line, all, double):
     pos = 0
-    changed = False
     if all:   # all straight quotes can be considered quotation marks
         quotemedial_re = q1_re
     elif double:    # only straight double quotes can be considered quotation marks
@@ -361,16 +356,14 @@ def change_quote_medial(line, all, double):
         matepos = find_matching_closequote(line, pos, all, True)
         if matepos > pos:
             line = line[:pos] + ' ' + line[pos:]
-            changed = True
         else:
             matepos = find_matching_openquote(line, pos, all, double)
             if 0 <= matepos < pos:
                 line = line[:pos+1] + ' ' + line[pos+1:]
-                changed = True
         bad = quotemedial_re.search(line)
         if bad and bad.start() <= pos:
             break
-    return (changed, line)
+    return line
 
 quotefloat_re = re.compile(r'(^|\s)(["\'«“‘’”»])(\s|$)')
 
@@ -390,11 +383,7 @@ def pair_up_quotes(line, all, double):
                 pairs.append((openpos, i))
     return pairs
 
-# floatopen_re =  re.compile(r'(^|\s)(["\'«“‘])(\s+|$)')
-# floatclose_re = re.compile(r'(^|\s)(["\'’”»])(\s+|$)')
-
 def change_floating_quotes(line, all, double):
-    changed = False
     if quotefloat_re.search(line):    # if there exist any floating quotes in this line
         quotepairs = pair_up_quotes(line, all, double)
         closepositions = [p[1] for p in quotepairs]
@@ -406,12 +395,10 @@ def change_floating_quotes(line, all, double):
                     while pos > 0 and line[pos-1] == ' ':
                         line = line[0:pos-1] + line[pos:]
                         pos -= 1
-                        changed = True
                 elif pos in openpositions:
                     while len(line) > pos+1 and line[pos+1] == ' ':
                         line = line[0:pos+1] + line[pos+2:]
-                        changed = True
-    return (changed, line)
+    return line
 
 verse_re = re.compile(r'\\v +([0-9]+)')
 
@@ -503,13 +490,10 @@ def convert_by_line(path):
 
     for line in lines:
         state.addLine(line)
-        (changed1, line) = change_quote_medial(line, enable[4], enable[3])
-        (changed2, line) = change_floating_quotes(line, enable[4], enable[3])
         if enable[7]:
             (changed3, line) = mark_sections(line)
         (changed4, line) = remove_periods(line)
-        if changed1 or changed2 or changed3 or changed4:
-        # if changed3 or changed4:
+        if changed3 or changed4:
             changedfile = True
         output.write(line)
     output.close()
@@ -559,20 +543,24 @@ def takeCL(label, usfm):
     usfm.writeUsfm("cl", label)
     return (label != origlabel)
 
-def takeText(str, usfm):
-    origstr = str
+def takeText(s, usfm):
+    origstr = s
     global in_footnote
-    if state.prevMarker == 'v' and str.startswith(state.sverse):
+    if state.prevMarker == 'v' and s.startswith(state.sverse):
         vlen = len(state.sverse)
-        if vlen < len(str) and str[vlen] in '.)':   # period or paren is stuck to verse number
+        if vlen < len(s) and s[vlen] in '.)':   # period or paren is stuck to verse number
             vlen += 1
-        str = str[vlen:].lstrip()
+        s = s[vlen:].lstrip()
     if enable[5] and not in_footnote:
-        str = capitalizeAsNeeded(str)
-    # s = change_quote_medial(s, enable[4], enable[3])
-    # s = change_floating_quotes(s, enable[4], enable[3])
-    usfm.writeStr(str)
-    return (str != origstr)
+        s = capitalizeAsNeeded(s)
+    s = change_quote_medial(s, enable[4], enable[3])
+    s = change_floating_quotes(s, enable[4], enable[3])
+    if enable[4]:   # convert single and double quotes
+        s = quotes.promoteQuotes(s)
+    elif enable[3]:
+        s = quotes.promoteDoubleQuotes(s)
+    usfm.writeStr(s)
+    return (s != origstr)
 
 def take(token, usfm):
     state.addToken(token)
