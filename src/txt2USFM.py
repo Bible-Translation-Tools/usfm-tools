@@ -543,7 +543,7 @@ def getBookId(folder):
     if not bookId:
         language_code = config['language_code']
         matchstr = language_code + "_([a-zA-Z1-3][a-zA-Z][a-zA-Z])_"
-        if okname := re.match(matchstr, os.path.basename(folder)):
+        if okname := re.search(matchstr, os.path.basename(folder)):
             bookId = okname.group(1).upper()
     return bookId
 
@@ -593,7 +593,7 @@ def shortname(longpath):
 
 def convertFolder(folder):
     language_code = config['language_code']
-    if os.path.basename(folder).startswith(language_code):
+    if language_code + '_' in os.path.basename(folder):
         bookId = getBookId(folder)
         bookTitle = getBookTitle(folder)
         if bookId and bookTitle:

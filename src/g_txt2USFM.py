@@ -26,7 +26,7 @@ class Txt2USFM(g_step.Step):
     def onExecute(self, values):
         self.enablebutton(2, False)
         self.values = values
-        count = g_util.count_folders(values['source_dir'], f"{values['language_code']}_[\w][\w][\w].*_reg|_ulb$")
+        count = g_util.count_folders(values['source_dir'], f"{values['language_code']}_[\w][\w][\w].*_reg|_ulb")
         self.mainapp.execute_script("txt2USFM", count)
         self.frame.clear_messages()
 
@@ -40,7 +40,7 @@ class Txt2USFM(g_step.Step):
             if self.values.getboolean('section_headings', fallback = False):
                 status = """
 Regarding section titles:
-This process attempted to identify section titles using hueristic criteria. \
+This process attempted to identify section titles using various criteria. \
 Some section titles may have been missed because they didn't meet all the critera. \
 Other things that aren't really section titles may have been marked as section titles because they did meet the criteria. \
 Therefore, it is necessary to manually verify section titles after this step.
