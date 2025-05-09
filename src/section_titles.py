@@ -118,6 +118,7 @@ def is_possible_heading(str):
 
 anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
 amen_re = re.compile(r'Am[ei]+n')
+selah_re = re.compile(r'Selah')
 forbidden_re = re.compile(r'["“‘‹«”›»]')
 singleWordInParens_re = re.compile(r'\(\s*\w+\s*\)')
 
@@ -127,7 +128,7 @@ def qualifies(str, threshold):
     firstword = sentences.firstword(str)
     # Initial qualification
     possible = (threshold <= 1 and not '\n' in str and\
-                not anyMarker_re.search(str) and not amen_re.search(str) and\
+                not anyMarker_re.search(str) and not amen_re.search(str) and not selah_re.search(str) and\
                 (firstword.isupper() or isCapitalized(firstword)) and\
                 # not quotes.partialQuote(str) and\
                 not forbidden_re.search(str) and\

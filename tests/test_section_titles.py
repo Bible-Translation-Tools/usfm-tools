@@ -50,6 +50,7 @@ import pytest
      ("Tutge Hanuwa Wadeka monno Kama'kna Ammaha", True),
      ('Amenee', False),
      ('Amiina', False),
+     ('Selah', False),
         ('“Phrase Quoted" ', False),
         ('End Quote\'', False),
         ('\n‘"', False),
