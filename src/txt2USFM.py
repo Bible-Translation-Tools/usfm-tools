@@ -633,6 +633,8 @@ def listChapters(bookdir):
         list.sort(key=int)
     return list
 
+txtfile_re = re.compile(r'(\d{2,3})\.txt$', re.IGNORECASE)
+
 # This method lists the chunk names (just the digits, without the .txt extension)
 # in the specified folder.
 # The list is returned in numeric order.
@@ -640,8 +642,8 @@ def listChunks(chap):
     list = []
     longest = 0
     for filename in os.listdir(chap):
-        chunky = re.match(r'(\d{2,3})\.txt$', filename)
-        if chunky and filename != '00.txt':
+        chunky = txtfile_re.match(filename)
+        if chunky and chunky.group(1) != '00':
             chunk = chunky.group(1)
             list.append(chunk)
             if len(chunk) > longest:
