@@ -659,7 +659,7 @@ def previousVerseCheck():
         reportError("Verse is entirely ASCII: " + state.reference, 3)
     (sim, n) = similarToSource()
     if sim > 0.4:
-        reportError(f"Verse may be untranslated (based on words in common): {state.reference}", 3.5)
+        reportError(f"Verse may be untranslated (based on words in common with source text): {state.reference}", 3.5)
 
 def longChunkCheck():
     max_chunk_length = 400  # set lower if this is ever needed again
@@ -1342,14 +1342,13 @@ def reportSectionHeadings(lines, path):
             case 'v':
                 vs = payload.split('-')
                 localstate.addVerse(vs[-1])
-            case _:
-                if not conflict_re.match(line):
-                    found = (line[0] != '\\' and section_titles.is_possible_heading(line))
-                    if not found:
-                        found = section_titles.find_eol_heading(line)
-                    if found:
-                        # reportError("Possible section title at line " + str(lineno) + " in " + path, 76)
-                        reportError("Possible section title at " + localstate.reference + " in " + path, 76)
+        if marker not in {'id','c'} and not conflict_re.match(line):
+            found = (line[0] != '\\' and section_titles.is_possible_heading(line))
+            if not found:
+                found = section_titles.find_eol_heading(line)
+            if found:
+                # reportError("Possible section title at line " + str(lineno) + " in " + path, 76)
+                reportError("Possible section title at " + localstate.reference + " in " + path, 76)
 
 usfmname_re = re.compile(r'([0-9AB][0-9])-(\w\w\w)\.')
 # Returns True if the specified fname is a peripheral usfm (back matter, etc.)
