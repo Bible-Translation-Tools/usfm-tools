@@ -450,7 +450,10 @@ def write(msg, stream):
 
 def reportSuppressedIssues():
     any = False
-    for val in suppress:
+    for val in suppress[1:9]:
+        if val:
+            any = True
+    for val in suppress[10:]:
         if val:
             any = True
     if any:
@@ -472,8 +475,6 @@ def reportSuppressedIssues():
             issuesfile.write(f"    Straight quotes.\n")
         elif suppress[7]:
             issuesfile.write(f"    Straight single quotes.\n")
-        if suppress[9]:
-            issuesfile.write(f"    ASCII content.\n")
         if suppress[8]:
             issuesfile.write(f"    Upper case book titles.\n")
         if suppress[10]:
@@ -655,7 +656,7 @@ def previousVerseCheck():
             empty = True
     if not empty and shortened_verse(state.reference):
         reportError(f"Translation is very short compared to source: {state.reference}", 2)
-    if not suppress[9] and state.asciiVerse and state.getTextLength() > 0:
+    if not suppress[9] and state.asciiVerse and not empty:
         reportError("Verse is entirely ASCII: " + state.reference, 3)
     (sim, n) = similarToSource()
     if sim > 0.4:
@@ -1288,7 +1289,7 @@ def verifyWholeFile(contents, path):
     verifyChapterAndVerseMarkers(contents, path)
 
     lines = contents.split('\n')
-    reportSectionHeadings(lines, path)
+    verifyLineByLine(lines, path)
 
     if not suppress[6]:
         nembedded = len(embeddedquotes_re.findall(contents))
@@ -1325,12 +1326,12 @@ def parseLine(line):
 
 conflict_re = re.compile(r'<+ HEAD', re.UNICODE)   # conflict resolution tag
 
-# Examines lines of text that may contain section headings.
-def reportSectionHeadings(lines, path):
+# Reports lines of text that may contain section headings.
+# Also determines whether to check for ASCII content (by setting suppress[9])
+def verifyLineByLine(lines, path):
     localstate = State()
-    found = False
+    nAscii = 0
     for line in lines:
-        # lineno += 1
         if not line.strip():
             continue
         marker, payload = parseLine(line)
@@ -1343,12 +1344,13 @@ def reportSectionHeadings(lines, path):
                 vs = payload.split('-')
                 localstate.addVerse(vs[-1])
         if marker not in {'id','c'} and not conflict_re.match(line):
-            found = (line[0] != '\\' and section_titles.is_possible_heading(line))
-            if not found:
-                found = section_titles.find_eol_heading(line)
-            if found:
-                # reportError("Possible section title at line " + str(lineno) + " in " + path, 76)
+            if line.isascii():
+                nAscii += 1
+            if line[0] != '\\' and section_titles.is_possible_heading(line):
                 reportError("Possible section title at " + localstate.reference + " in " + path, 76)
+            elif section_titles.find_eol_heading(line):
+                reportError("Possible section title at end of " + localstate.reference + " in " + path, 76.1)
+    suppress[9] = (nAscii / len(lines) > 0.05)
 
 usfmname_re = re.compile(r'([0-9AB][0-9])-(\w\w\w)\.')
 # Returns True if the specified fname is a peripheral usfm (back matter, etc.)

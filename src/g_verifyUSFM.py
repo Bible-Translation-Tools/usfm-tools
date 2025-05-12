@@ -152,12 +152,6 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         suppress8_Tip = Hovertip(suppress8_checkbox, hover_delay=500,
              text=r"Suppress warnings about UPPER CASE BOOK TITLES")
 
-        self.suppress9_checkbox = ttk.Checkbutton(self, text=r'ASCII content', variable=self.suppress[9],
-                                             onvalue=True, offvalue=False)
-        self.suppress9_checkbox.grid(row=13, column=1, sticky=W)
-        suppress9_Tip = Hovertip(self.suppress9_checkbox, hover_delay=500,
-             text=r"Suppress warnings about ASCII content")
-
         suppress10_checkbox = ttk.Checkbutton(self, text=r'Capitalization', variable=self.suppress[10],
                                              onvalue=True, offvalue=False)
         suppress10_checkbox.grid(row=13, column=2, sticky=W)
@@ -280,12 +274,6 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
     # When the language code changes, set the ASCII content flag.
     def _onChangeLanguage(self, *args):
         code = self.language_code.get()
-        nonascii_script = code in {'', 'am','apd','ar','arb','as','bn','bul',
-            'grc','gu','hi','kk','km','kn','ml','mr','my','nag','ne','or','pa','pcl',
-            'pes','pnb','pnb-x-faqirparsi','rml','ru','ta','te','tg','th','thr','ur',
-            'ur-deva','xal','zh'}
-        self.suppress[9].set(not nonascii_script)
-        self.suppress9_checkbox.state(['disabled'] if nonascii_script else ['!disabled'])
         if code:
             dir = self.source_dir.get()
             cmp = self.compare_dir.get()
