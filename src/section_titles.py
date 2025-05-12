@@ -151,7 +151,7 @@ def _titlecase_threshold(str):
         adj = 2
     else:
         adj = 0.51
-        if str[-1] == "'" or str[-1] == "’":
+        if str[-1] in "'’,":
             adj = 1.2
         if ',' in str:
             adj += 0.16
@@ -166,7 +166,7 @@ def _titlecase_threshold(str):
                 adj += 0.16
                 if _wordcount(str) == 1:
                     adj = 1.01
-            elif str[i] in "!?,;":
+            elif str[i] in "!?;":
                 adj = 0.99
         lastword = _lastword(str)
         if not isCapitalized(lastword) and not lastword.isupper():
