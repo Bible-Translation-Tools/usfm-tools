@@ -10,8 +10,17 @@ sys.path.append(src_path)
 from manifestyaml import ManifestYaml
 
 dir = r'C:\DCS\Test\test_reg'
+nomanifest_dir = r'C:\DCS\Test\no_manifest'
 language_code = 'test'
 language_name = 'Test Language'
+
+def test_nonexistent_manifest():
+    my = ManifestYaml()
+    errors = my.load(nomanifest_dir)
+    assert errors and errors[0].startswith('File not found:')
+    assert my.getLanguageId() + "_" + my.getResourceId() == "_"
+    assert my.contents == None
+    assert my.getLanguage() == None
 
 def test_all():
     init_newfile()
