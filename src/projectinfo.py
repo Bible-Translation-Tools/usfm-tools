@@ -6,7 +6,8 @@
 # If the json file already exists, it is loaded on ProjectInfo initialization.
 # Other parts of project info can be saved to a manifest.yaml file in project directory.
 # The contents of the two files overlap.
-# ProjectInfo manages manifest.yaml via the manifestyaml module.
+# ProjectInfo also manages manifest.yaml via the manifestyaml module.
+# The SaidWords class, defined in this file, is a helper class.
 
 import json
 import os
@@ -17,22 +18,24 @@ from manifestyaml import ManifestYaml
 class ProjectInfo:
     def __init__(self, project_dir, language_code):
         self.project_dir = project_dir      # will need self.project_dir for manifest support
-        # self.confirmed = False
-        self.info = self.configpath = None
+        self.info = self.jsonpath = None
         self.manifest = None
         if os.path.exists( os.path.dirname(project_dir) ):
-            self.configpath = os.path.join(os.path.dirname(project_dir), language_code+".json")
-            if os.path.isfile(self.configpath):
-                with io.open(self.configpath, 'r') as json_file:
+            self.jsonpath = os.path.join(os.path.dirname(project_dir), language_code+".json")
+            if os.path.isfile(self.jsonpath):
+                with io.open(self.jsonpath, 'r') as json_file:
                     self.info = json.load(json_file)
+                assert 'language' in self.info
                 assert 'source_translations' in self.info
-                # self.confirmed = ('language' in self.info and language_code != "")
+                if not 'said_words' in self.info:
+                    self.info['said_words'] = {}
         if not self.info:
             self.info = {'language': {'id': language_code},
-                        'source_translations': [] }
+                        'source_translations': [],
+                         'said_words': {} }
 
     def __repr__(self):
-        return f'ProjectInfo({self.configpath})'
+        return f'ProjectInfo({self.jsonpath})'
 
     # Loads the manifest file, if any.
     # Does not report any load errors, but creates a template yaml in that case.
@@ -47,14 +50,14 @@ class ProjectInfo:
         else:
             self.manifest = None
 
-    # Saves the current information in the project json file.
-    # Implicitly saves the manifest file also, if it is in use.
-    def save(self):
-        self.info['source_translations'].sort(reverse=True, key=operator.itemgetter('count'))    # sorts in place
-        with io.open(self.configpath, 'w') as json_file:
-            json.dump(self.info, json_file, indent=4)
-            # self.confirmed = (self.info['language']['id'] != "")
-        if self.manifest:
+    # Saves the current information in the project json file if savePI is True.
+    # Implicitly saves the manifest file also, if it is in use, and saveM is True.
+    def save(self, savePI=True, saveM=True):
+        if savePI:
+            self.info['source_translations'].sort(reverse=True, key=operator.itemgetter('count'))    # sorts in place
+            with io.open(self.jsonpath, 'w') as json_file:
+                json.dump(self.info, json_file, indent=4)
+        if saveM and self.manifest:
             if mainsource := self.getMainSource():
                 self.manifest.setVersion(mainsource['version'])
             self.manifest.setDates()
@@ -89,7 +92,6 @@ class ProjectInfo:
         if self.manifest:
             self.manifest.addSource(language_id, resource_id, version)
 
-    # This function is temporary, until the manifest.yaml is implemented
     def getSources(self):
         return self.info['source_translations']
     def getMainSource(self):
@@ -121,3 +123,43 @@ class ProjectInfo:
     def addProject(self, project):
         if self.manifest:
             self.manifest.addProject(project)
+
+    # Adds or updates the specified word in ProjectInfo.
+    def addWord(self, word, count):
+        assert 'said_words' in self.info
+        if word not in self.info['said_words'] or self.info['said_words'][word] < count:
+            self.info['said_words'][word] = count
+
+    # Returns the list of words with count greater than mincount.
+    def getWords(self, mincount=1):
+        return [word for word in self.info['said_words'] if self.info['said_words'][word] >= mincount]
+
+class SaidWords:
+    def __init__(self, project_dir, language_code):
+        self.words = {}
+        self.project_dir = project_dir
+        self.language_code = language_code
+
+    # For convenience, this function would return the list of words saved in the project info file.
+    # Would not change anything in the SaidWords object.
+    # I decided not to muddy the waters by implementing this function.
+    # def getSavedWords(self, mincount=1):
+
+    # Increments the counter for the specified word.
+    def addWord(self, word: str):
+        if word in self.words:
+            self.words[word] += 1
+        else:
+            self.words[word] = 1
+
+    def getWords(self, mincount=1):
+        return [word for word in self.words if self.words[word] >= mincount]
+
+    # Saves the current information to ProjectInfo, which serializes the
+    # top "said" words in the project info file.
+    def save(self, mincount=1):
+        projectInfo = ProjectInfo(self.project_dir, self.language_code)
+        for word in self.words:
+            if self.words[word] >= mincount:
+                projectInfo.addWord(word, self.words[word])
+        projectInfo.save(savePI=True, saveM=False)

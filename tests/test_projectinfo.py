@@ -7,7 +7,7 @@ import pytest
 tests_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
-from projectinfo import ProjectInfo
+from projectinfo import ProjectInfo, SaidWords
 
 dir = r'C:\DCS\Matengo\work'
 language_code = 'mgv'
@@ -100,3 +100,75 @@ def test_getMainSource():
     projectInfo = ProjectInfo(dir, language_code)
     source = projectInfo.getMainSource()
     assert source['version'] == "7.6"
+
+# Before running this, remove "said_words" from mgv.json.
+def test_saidwords():
+    nowords()
+    addwords()
+    savedwords()
+    add_to_savedwords()
+    saidWords()
+    savedSaidWords( )
+
+def nowords():
+    pi = ProjectInfo(dir, language_code)
+    words = pi.getWords()
+    assert words == []
+
+def addwords():
+    pi = ProjectInfo(dir, language_code)
+    pi.addWord('aaa', 2)
+    pi.addWord('bbb', 3)
+    pi.addWord('ccc', 1)
+    pi.addWord('ddd', 0)
+    words = pi.getWords(mincount=1)
+    assert words == ['aaa', 'bbb', 'ccc']
+    words = pi.getWords(mincount=2)
+    assert words == ['aaa', 'bbb']
+    pi.save()
+
+# Run this test after running test_addwords()
+def savedwords():
+    pi = ProjectInfo(dir, language_code)
+    words = pi.getWords(mincount=1)
+    assert words == ['aaa', 'bbb', 'ccc']
+    words = pi.getWords(mincount=2)
+    assert words == ['aaa', 'bbb']
+
+def add_to_savedwords():
+    pi = ProjectInfo(dir, language_code)
+    pi.addWord('bbb', 1)    # no effect
+    pi.addWord('ccc', 3)
+    words = pi.getWords(mincount=2)
+    assert words == ['aaa', 'bbb', 'ccc']
+    pi.save()
+
+# Run this test after running test_savedwords()
+def saidWords():
+    saidwords = SaidWords(dir, language_code)
+    saidwords.addWord('aaa')
+    saidwords.addWord('aaa')
+    saidwords.addWord('aaa')
+    saidwords.addWord('bbb')
+    saidwords.addWord('bbb')
+    saidwords.addWord('ccc')
+    saidwords.addWord('ccc')
+    saidwords.addWord('ddd')
+    saidwords.addWord('ddd')
+    saidwords.addWord('eee')
+    words = saidwords.getWords(mincount=1)
+    assert words == ['aaa','bbb','ccc','ddd','eee']
+    words = saidwords.getWords(mincount=2)
+    assert words == ['aaa','bbb','ccc','ddd']
+    words = saidwords.getWords(mincount=3)
+    assert words == ['aaa']
+    words = saidwords.getWords(mincount=4)
+    assert words == []
+    saidwords.save(mincount=2)
+
+def savedSaidWords():
+    pi = ProjectInfo(dir, language_code)
+    words = pi.getWords(mincount=1)
+    assert words == ['aaa', 'bbb', 'ccc', 'ddd']    # notice, 'eee' was not saved
+    words = pi.getWords(mincount=3)
+    assert words == ['aaa', 'bbb', 'ccc']
