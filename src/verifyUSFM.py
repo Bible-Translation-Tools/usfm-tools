@@ -22,13 +22,11 @@
 #   suppress[12] - Suppress warnings about Mixed-case words.
 # Detects whether files are aligned USFM.
 
-config = None
+config = {}
 suppress = [False]*13
-std_titles = None
-state = None
+std_titles = []
 gui = None
-listener = None
-
+listener = None # Reuben sets this externally
 issuesFile = None
 issues: dict = {}   # Can't put in State because we want to accumulate issues across all files.
 wordlist = dict()
@@ -44,6 +42,7 @@ import footnotes
 import usfm_verses
 import re
 from manifestyaml import ManifestYaml
+from projectinfo import SaidWords
 import usfm_utils
 import sentences
 import section_titles
@@ -323,6 +322,8 @@ class State:
     def reportedUpperCase(self):
         self.upperCaseReported = True
 
+state: State
+
 # Returns the category of the specified marker.
 def category(token):
     category = OTHER
@@ -403,7 +404,7 @@ def long_substring(s1, s2):
 
 # Writes error message to stderr and to issues.txt.
 # Keeps track of how many errors of each type.
-def reportError(msg, errorId=0, summarize_only=False):
+def reportError(msg, errorId=0.0, summarize_only=False):
     if not summarize_only:
         reportToGui('<<ScriptMessage>>', msg)
         write(msg, sys.stderr)
@@ -587,7 +588,7 @@ def scanSourceFile(path):
         scan(token)
     state.booklength_src = len(contents)
 
-# Returns the language code and identifier as a string
+# Returns the language code and resource identifier as a string.
 def identifySource(sourcedir):
     my = ManifestYaml()
     my.load(sourcedir)
@@ -1282,7 +1283,6 @@ embeddedquotes_re = re.compile(r"\w'\w")
 
 # Receives the text of an entire book as input.
 # Verifies things that are better done as a whole file.
-# Can't report verse references because we haven't started to parse the book yet.
 def verifyWholeFile(contents, path):
     if not contents.startswith("\\id "):
         reportError(f"USFM file does not start with book id: {shortname(path)}", 74.1)
@@ -1324,10 +1324,22 @@ def parseLine(line):
         payload = line
     return (marker, payload)
 
-conflict_re = re.compile(r'<+ HEAD', re.UNICODE)   # conflict resolution tag
+said_re = re.compile(r'(\w+)[,:] ["«“‘]\w')
+
+# Returns a word in the line that introduces a quotation, or None.
+# Only returns the first such word if there are more than one.
+def said_word(line):
+    word = None
+    if line:
+        if said := said_re.search(line):
+            word = said.group(1)
+    return word
+
+conflict_re = re.compile(r'<+ HEAD')   # conflict resolution tag
 
 # Reports lines of text that may contain section headings.
-# Also determines whether to check for ASCII content (by setting suppress[9])
+# Also determines whether to check for ASCII content, and sets suppress[9] accordingly.
+# Also collects "said" words.
 def verifyLineByLine(lines, path):
     localstate = State()
     nAscii = 0
@@ -1346,8 +1358,10 @@ def verifyLineByLine(lines, path):
         if marker not in {'id','c'} and not conflict_re.match(line):
             if line.isascii():
                 nAscii += 1
+            if word := said_word(line):
+                saidwords.addWord(word)
             if line[0] != '\\' and section_titles.is_possible_heading(line):
-                reportError("Possible section title at " + localstate.reference + " in " + path, 76)
+                reportError("Possible section title on a line by itself at " + localstate.reference + " in " + path, 76)
             elif section_titles.find_eol_heading(line):
                 reportError("Possible section title at end of " + localstate.reference + " in " + path, 76.1)
     suppress[9] = (nAscii / len(lines) > 0.05)
@@ -1363,7 +1377,6 @@ def peripheral(fname):
 wjwj_re = re.compile(r' \\wj +\\wj\*', flags=re.UNICODE)
 backslasheol_re = re.compile(r'\\ *\n')
 
-# Corresponding entry point in tx-manager code is verify_contents_quiet()
 def verifyFile(path):
     with io.open(path, "tr", encoding="utf-8-sig") as input:
         try:
@@ -1430,17 +1443,14 @@ def verifyDir(workdir):
             elif path.is_file() and path.name[-3:].lower() == 'sfm':
                 verifyFile(path)
 
-def main(app=None):
+def initializeGlobals():
     global config
     global suppress
-    global gui
     global wordlist
 
     wordlist = dict()
-    gui = app
     config = configmanager.ToolsConfigManager().get_section('VerifyUSFM')   # configmanager version
     if config:
-        workdir = config['source_dir']
         for i in range(1, len(suppress)):
             suppress[i] = config.getboolean('suppress'+str(i), fallback = False)
         global std_titles
@@ -1454,7 +1464,30 @@ def main(app=None):
         issues = dict()
         global footnotedVerses
         footnotedVerses.clear()
+        global saidwords
+        saidwords = SaidWords(config['source_dir'], config['language_code'])
 
+# Serializes issues list, word list, and saidwords.
+def saveResults():
+    dumpWords()
+
+    global issuesFile
+    if issuesFile:
+        reportIssues()
+        issuesFile.close()
+        issuesFile = None
+    else:
+        reportStatus("No issues to report.")
+
+    if saidwords:
+        saidwords.save(mincount = 4)
+
+def main(app=None):
+    global gui
+    gui = app
+    initializeGlobals()
+    if config:
+        workdir = config['source_dir']
         file = config['filename']
         if file:
             path = os.path.join(workdir, file)
@@ -1466,15 +1499,7 @@ def main(app=None):
             verifyDir(workdir)
         if not suppress[12]:
             reportMixedCase()
-        dumpWords()
-
-        global issuesFile
-        if issuesFile:
-            reportIssues()
-            issuesFile.close()
-            issuesFile = None
-        else:
-            reportStatus("No issues to report.")
+        saveResults()
         reportStatus("\nDone.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
