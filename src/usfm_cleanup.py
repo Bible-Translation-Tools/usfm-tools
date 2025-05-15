@@ -23,9 +23,8 @@ import usfmWriter
 from datetime import date
 
 gui = None
-config = None
+config = {}
 enable = [True]*9
-state = None
 std_titles = ""
 nChanged = 0
 aligned_usfm = False
@@ -33,6 +32,7 @@ needcaps = True
 in_footnote = False
 issuesFile = None
 corrupt_file = False
+saidwords = []
 
 # Manages the state for a single usfm file. Used when converting by token.
 # @TODO Move needcaps and in_footnote into the State object.
@@ -66,6 +66,8 @@ class State:
                 self.schapter = payload
             case 'v':
                 self.sverse = payload
+
+state: State
 
 def shortname(longpath):
     source_dir = config['source_dir']
@@ -109,6 +111,18 @@ def openIssuesFile():
             issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
             issuesFile.write(f"Issues detected by usfmCleanup, {date.today()}, {source_dir}\n-------------------\n")
     return issuesFile
+
+# Sets the global saidwords list, assuming language_code is available.
+def getSaidWords(source_dir):
+    from manifestyaml import ManifestYaml
+
+    my = ManifestYaml()
+    my.load(source_dir)
+    if language_code := my.getLanguageId():
+        from projectinfo import ProjectInfo
+        global saidwords
+        pi = ProjectInfo(source_dir, language_code)
+        saidwords = pi.getWords(mincount=4)
 
 addp_re = re.compile(r'(\\s[1-5]? .*?\n)(\n*\\v )')
 
@@ -365,8 +379,6 @@ def change_quote_medial(line, all, double):
             break
     return line
 
-quotefloat_re = re.compile(r'(^|\s)(["\'«“‘’”»])(\s|$)')
-
 # Returns a list of (openpos, closepos) tuples, each of which represents
 # the positions of a matching pair of quotes in the given string.
 def pair_up_quotes(line, all, double):
@@ -383,8 +395,27 @@ def pair_up_quotes(line, all, double):
                 pairs.append((openpos, i))
     return pairs
 
+said_re = re.compile(r'(\w+)[,:]? ["\'«“‘]( )')
+
+# Removes space on right side of quote if preceded by a "said" word.
+def fix_saids(line):
+    saidquote = said_re.search(line)
+    while saidquote:
+        if saidquote.group(1) in saidwords:
+            pos = saidquote.start(2)
+            line = line[0:pos] + line[pos+1:]
+        else:
+            pos = saidquote.end()
+        saidquote = said_re.search(line, pos)
+    return line
+
+quotefloat_re = re.compile(r'(^|\s)(["\'«“‘’”»])(\s|$)')
+
+# Removes space on right side of quote if preceded by a "said" word.
+# Removes space on one side of floating quotes if there are matching quotes.
 def change_floating_quotes(line, all, double):
     if quotefloat_re.search(line):    # if there exist any floating quotes in this line
+        line = fix_saids(line)
         quotepairs = pair_up_quotes(line, all, double)
         closepositions = [p[1] for p in quotepairs]
         openpositions = [p[0] for p in quotepairs]
@@ -659,6 +690,7 @@ def main(app = None):
     if config:
         std_titles = config['standard_chapter_title']
         source_dir = config['source_dir']
+        getSaidWords(source_dir)
         for i in range(1, len(enable)):
             enable[i] = config.getboolean('enable'+str(i), fallback = True)
         file = config['filename']
