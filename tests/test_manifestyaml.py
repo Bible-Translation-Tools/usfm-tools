@@ -19,7 +19,7 @@ def test_nonexistent_manifest():
     errors = my.load(nomanifest_dir)
     assert errors and errors[0].startswith('File not found:')
     assert my.getLanguageId() + "_" + my.getResourceId() == "_"
-    assert my.contents == None
+    assert not my.contents
     assert my.getLanguage() == None
 
 def test_all():

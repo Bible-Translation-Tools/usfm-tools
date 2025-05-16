@@ -18,7 +18,8 @@ from manifestyaml import ManifestYaml
 class ProjectInfo:
     def __init__(self, project_dir, language_code):
         self.project_dir = project_dir      # will need self.project_dir for manifest support
-        self.info = self.jsonpath = None
+        self.info = {}
+        self.jsonpath = ""
         self.manifest = None
         if os.path.exists( os.path.dirname(project_dir) ):
             self.jsonpath = os.path.join(os.path.dirname(project_dir), language_code+".json")

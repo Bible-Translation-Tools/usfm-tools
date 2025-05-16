@@ -17,7 +17,8 @@ class ManifestYaml:
     # Creates manifest.yaml file if it doesn't already exist, or fails to load.
     # Sets self.contents.
     def __init__(self):
-        self.contents = None
+        self.project_dir = ""
+        self.contents:dict = {}
         self.path = ""
 
     def __repr__(self):
@@ -59,16 +60,12 @@ class ManifestYaml:
     # [Over]writes the current manifest.yaml file.
     # Does nothing if contents is not initialized.
     def save(self):
-        if self.path:
+        if self.path and self.contents:
             self.contents['projects'].sort(key=operator.itemgetter('sort'))
             self.contents['dublin_core']['contributor'].sort()
             with io.open(self.path, "tw", encoding='utf-8', newline='\n') as file:
                 # yaml.safe_dump(self.contents, file, default_flow_style=False, default_style="'")
                 yaml.safe_dump(self.contents, file)
-
-    # Returns the current project information represented in manifest.
-    def contents(self):
-        return self.contents
 
     def setLanguage(self, id, name, direction):
         if self.contents and 'dublin_core' in self.contents:
