@@ -2,10 +2,10 @@
 # GUI interface for USFM file verification
 #
 
-from tkinter import *
 from tkinter import ttk
 from tkinter import font
 from tkinter import filedialog
+from tkinter import StringVar, BooleanVar, W, E, DISABLED
 from idlelib.tooltip import Hovertip
 import g_util
 import g_step
@@ -70,7 +70,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
 
         # language_code will be used for ProjectInfo soon in verifyUSFM.
         language_code_label = ttk.Label(self, text="Language code:", width=20)
-        language_code_label.grid(row=3, column=1, sticky=(W,E,N), pady=2)
+        language_code_label.grid(row=3, column=1, sticky="wen", pady=2)
         language_code_entry = ttk.Entry(self, width=18, textvariable=self.language_code)
         language_code_entry.grid(row=3, column=2, sticky=W)
         std_titles_label = ttk.Label(self, text="Standard chapter title:", width=20)
