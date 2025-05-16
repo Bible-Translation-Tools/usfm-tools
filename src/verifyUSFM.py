@@ -31,6 +31,7 @@ issuesFile = None
 issues: dict = {}   # Can't put in State because we want to accumulate issues across all files.
 wordlist = dict()
 footnotedVerses = {}
+nFiles = 0  # number of .usfm files verified line by line
 
 import configmanager
 import os
@@ -1365,6 +1366,8 @@ def verifyLineByLine(lines, path):
             elif section_titles.find_eol_heading(line):
                 reportError("Possible section title at end of " + localstate.reference + " in " + path, 76.1)
     suppress[9] = (nAscii / len(lines) > 0.05)
+    global nFiles
+    nFiles += 1
 
 usfmname_re = re.compile(r'([0-9AB][0-9])-(\w\w\w)\.')
 # Returns True if the specified fname is a peripheral usfm (back matter, etc.)
@@ -1480,7 +1483,8 @@ def saveResults():
         reportStatus("No issues to report.")
 
     if saidwords:
-        saidwords.save(mincount = 4)
+        global nFiles
+        saidwords.save(mincount = 4 if nFiles < 40 else 6)
 
 def main(app=None):
     global gui
