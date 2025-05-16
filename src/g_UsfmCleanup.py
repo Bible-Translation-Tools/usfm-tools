@@ -115,24 +115,26 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         enable2_Tip = Hovertip(enable2_checkbox, hover_delay=500,
              text="Fix double periods, doubled angle brackets, other \"safe\" substitutions (recommended for most languages).")
 
-        self.enable3_checkbox = ttk.Checkbutton(self, text='Double quotes          ', variable=self.enable[3],
+        self.enable3_checkbox = ttk.Checkbutton(self, text='Promote dbl quotes', variable=self.enable[3],
                                              onvalue=True, offvalue=False)
-        self.enable3_checkbox.grid(row=11, column=3, sticky=W)
+        self.enable3_checkbox.grid(row=11, column=2, sticky=W)
         enable3_Tip = Hovertip(self.enable3_checkbox, hover_delay=500,
              text="Promote straight double quotes to curly quotes.")
-        self.grid_columnconfigure(2, minsize=40, weight=1)
 
-        self.enable4_checkbox = ttk.Checkbutton(self, text='All straight quotes', variable=self.enable[4],
+        self.enable4_checkbox = ttk.Checkbutton(self, text='Promote quotes', variable=self.enable[4],
                                              onvalue=True, offvalue=False)
-        self.enable4_checkbox.grid(row=11, column=4, sticky=W)
+        self.enable4_checkbox.grid(row=11, column=3, sticky=W)
         enable4_Tip = Hovertip(self.enable4_checkbox, hover_delay=500,
              text="Promote single and double straight quotes to curly quotes, except word-medial.")
+        self.grid_columnconfigure(2, minsize=16, weight=1)
+        self.grid_columnconfigure(3, minsize=16, weight=2)
+        self.grid_columnconfigure(4, minsize=16, weight=3)
 
-        enable5_checkbox = ttk.Checkbutton(self, text='Capitalization', variable=self.enable[5],
-                                             onvalue=True, offvalue=False)
-        enable5_checkbox.grid(row=11, column=2, sticky=W)
-        enable5_Tip = Hovertip(enable5_checkbox, hover_delay=500,
-             text="Enforce capitalization of the first word in sentences, disregarding footnotes.")
+        # enable5_checkbox = ttk.Checkbutton(self, text='Capitalization', variable=self.enable[5],
+        #                                      onvalue=True, offvalue=False)
+        # enable5_checkbox.grid(row=11, column=2, sticky=W)
+        # enable5_Tip = Hovertip(enable5_checkbox, hover_delay=500,
+        #      text="Enforce capitalization of the first word in sentences, disregarding footnotes.")
 
         # enable6_checkbox = ttk.Checkbutton(self, text='\s5 markers', variable=self.enable[6],
         #                                      onvalue=True, offvalue=False)
@@ -142,7 +144,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
 
         enable7_checkbox = ttk.Checkbutton(self, text='Section titles', variable=self.enable[7],
                                            onvalue=True, offvalue=False)
-        enable7_checkbox.grid(row=12, column=1, sticky=W)
+        enable7_checkbox.grid(row=11, column=4, sticky=W)
         enable7_Tip = Hovertip(enable7_checkbox, hover_delay=500,
               text="Mark recognizable section titles with \\s. Disable this option if no section headings exist.")
 
@@ -195,6 +197,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
             configvalue = f"enable{si}"
             self.values[configvalue] = str(self.enable[si].get())
         self.values['enable1'] = "True" # Spaces
+        self.values['enable5'] = "True" # Capitalization
         self.values['enable6'] = "True" # \s5 markers
         self.values['enable8'] = "True" if self.std_titles.get() else "False"
         self.controller.mainapp.save_values(stepname, self.values)
