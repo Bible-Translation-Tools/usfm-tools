@@ -51,6 +51,7 @@ class VerifyUSFM(g_step.Step):
 class VerifyUSFM_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
+        self.changingVars = False
 
         self.language_code = StringVar()
         self.source_dir = StringVar()
@@ -178,6 +179,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         code = values.get('language_code', fallback="")
         dir = values.get('source_dir', fallback="")
         cmp = values.get('compare_dir', fallback="")
+        self.changingVars = True
         self.language_code.set(code)
         self.source_dir.set(dir)
         self.compare_dir.set(cmp)
@@ -200,6 +202,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         else:
             tip = "Automated USFM file cleanup"
         self.controller.showbutton(5, ">>>", tip=tip, cmd=self._onNext)
+        self.changingVars = False
         self._set_button_status()
 
     def _onExecute(self):
@@ -236,7 +239,6 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             configvalue = f"suppress{si}"
             self.values[configvalue] = str(self.suppress[si].get())
         self.controller.mainapp.save_values(stepname, self.values)
-        # self._set_button_status()
 
     # This function does more thorough input validation than _set_button_status() does.
     # The user may need this help in identifying certain incorrect input(s).
@@ -278,14 +280,24 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             dir = self.source_dir.get()
             cmp = self.compare_dir.get()
             self.compare_dir.set( self._getCompareValue(dir, code, cmp) )
-        self._set_button_status()
+        else:
+            self._set_button_status()
 
     def _onChangeSourceDir(self, *args):
+        self.changingVars = True
         dir = self.source_dir.get()
         code = self.language_code.get()
-        cmp = self.compare_dir.get()
+        if os.path.isdir(dir):
+            from manifestyaml import ManifestYaml
+            my = ManifestYaml()
+            my.load(dir)
+            code = my.getLanguageId()
+            if code != self.language_code.get():   # to avoid xs callbacks
+                self.language_code.set(code)
         if dir and code:
+            cmp = self.compare_dir.get()
             self.compare_dir.set( self._getCompareValue(dir, code, cmp) )
+        self.changingVars = False
         self._set_button_status()
 
     def _onChangeQuotes(self, *args):
@@ -305,24 +317,25 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         os.startfile(path)
 
     def _set_button_status(self, *args):
-        good_code = self.language_code.get()
-        good_dir = os.path.isdir(self.source_dir.get())
-        good_cmp = not self.compare_dir.get() or os.path.isdir(self.compare_dir.get())
-        namedfile = self.filename.get()
-        good_subject = good_dir and not namedfile
-        if good_dir and namedfile:
-            filepath = os.path.join(self.source_dir.get(), namedfile)
-            good_subject = os.path.isfile(filepath)
-        self.verify_ready = good_code and good_subject and good_cmp
-        self.controller.enablebutton(2, self.verify_ready)
-        if good_dir:
-            title = namedfile if namedfile and good_subject else "Work folder"
-            self.controller.showbutton(4, title, tip=f"Open {title}", cmd=self._onOpenUsfm)
-        else:
-            self.controller.hidebutton(4)
+        if not self.changingVars:
+            good_code = self.language_code.get()
+            good_dir = os.path.isdir(self.source_dir.get())
+            good_cmp = not self.compare_dir.get() or os.path.isdir(self.compare_dir.get())
+            namedfile = self.filename.get()
+            good_subject = good_dir and not namedfile
+            if good_dir and namedfile:
+                filepath = os.path.join(self.source_dir.get(), namedfile)
+                good_subject = os.path.isfile(filepath)
+            self.verify_ready = good_code and good_subject and good_cmp
+            self.controller.enablebutton(2, self.verify_ready)
+            if good_dir:
+                title = namedfile if namedfile and good_subject else "Work folder"
+                self.controller.showbutton(4, title, tip=f"Open {title}", cmd=self._onOpenUsfm)
+            else:
+                self.controller.hidebutton(4)
 
-        issuespath = os.path.join(self.source_dir.get(), "issues.txt")
-        self.controller.enablebutton(3, os.path.isfile(issuespath))
+            issuespath = os.path.join(self.source_dir.get(), "issues.txt")
+            self.controller.enablebutton(3, os.path.isfile(issuespath))
 
     # Returns the most reasonable new value for compare_dir,
     # based on existence of valid project info, if any.
