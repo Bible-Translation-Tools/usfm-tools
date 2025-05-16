@@ -114,15 +114,15 @@ def openIssuesFile():
 
 # Sets the global saidwords list, assuming language_code is available.
 def getSaidWords(source_dir):
-    from manifestyaml import ManifestYaml
+    # from manifestyaml import ManifestYaml
 
-    my = ManifestYaml()
-    my.load(source_dir)
-    if language_code := my.getLanguageId():
-        from projectinfo import ProjectInfo
-        global saidwords
-        pi = ProjectInfo(source_dir, language_code)
-        saidwords = pi.getWords(mincount=4)
+    # my = ManifestYaml()
+    # my.load(source_dir)
+    # if language_code := my.getLanguageId():
+    from projectinfo import ProjectInfo
+    global saidwords
+    pi = ProjectInfo(source_dir, config['language_code'])
+    saidwords = pi.getWords(mincount=4)
 
 addp_re = re.compile(r'(\\s[1-5]? .*?\n)(\n*\\v )')
 

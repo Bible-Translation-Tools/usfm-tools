@@ -2,10 +2,11 @@
 # GUI interface for automated USFM file cleanup
 #
 
-from tkinter import *
+# from tkinter import *
 from tkinter import ttk
 from tkinter import font
 from tkinter import filedialog
+from tkinter import StringVar, BooleanVar, E, W, N, DISABLED
 from idlelib.tooltip import Hovertip
 import g_util
 import g_step
@@ -51,15 +52,22 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
 
+        self.language_code = StringVar()
         self.source_dir = StringVar()
         self.filename = StringVar()
         self.std_titles = StringVar()
-        for var in (self.filename, self.source_dir):
+        for var in (self.language_code, self.filename):
             var.trace_add("write", self._onChangeEntry)
+        self.source_dir.trace_add("write", self._onChangeSourceDir)
         self.std_titles.trace_add("write", self._onChangeTitles)
         self.enable = [BooleanVar(value = False) for i in range(9)]
         self.enable[3].trace_add("write", self._onChangeQuotes)
         self.enable[4].trace_add("write", self._onChangeQuotes)
+
+        language_code_label = ttk.Label(self, text="Language code:", width=20)
+        language_code_label.grid(row=3, column=1, sticky="wen", pady=2)
+        language_code_entry = ttk.Entry(self, width=18, textvariable=self.language_code)
+        language_code_entry.grid(row=3, column=2, sticky=W)
 
         source_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
@@ -136,7 +144,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
                                            onvalue=True, offvalue=False)
         enable7_checkbox.grid(row=12, column=1, sticky=W)
         enable7_Tip = Hovertip(enable7_checkbox, hover_delay=500,
-              text="Mark recognizable section titles with \s. Disable this option if no section headings exist.")
+              text="Mark recognizable section titles with \\s. Disable this option if no section headings exist.")
 
         # self.enable8_checkbox = ttk.Checkbutton(self, text='Chapter labels', variable=self.enable[8],
         #                                      onvalue=True, offvalue=False)
@@ -147,6 +155,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
 
     def show_values(self, values):
         self.values = values
+        self.language_code.set(values.get('language_code', fallback=""))
         self.source_dir.set(values.get('source_dir', fallback=""))
         self.filename.set(values.get('filename', fallback=""))
         self.std_titles.set(values.get('standard_chapter_title', fallback=""))
@@ -167,7 +176,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
         self.controller.enablebutton(2, self.cleanup_ready)
-        nChanged = g_util.count_files(self.source_dir.get(), ".*\.usfm\.orig$")
+        nChanged = g_util.count_files(self.source_dir.get(), r".*\.usfm\.orig$")
         self.controller.enablebutton(4, nChanged > 0)
 
     def _onChangeQuotes(self, *args):
@@ -178,6 +187,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
             self.enable[4].set(False)
 
     def _save_values(self):
+        self.values['language_code'] = self.language_code.get()
         self.values['source_dir'] = self.source_dir.get()
         self.values['filename'] = self.filename.get()
         self.values['standard_chapter_title'] = self.std_titles.get()
@@ -204,6 +214,16 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self.controller.executeInventoryLabels()
     def _onChangeEntry(self, *args):
         self._set_button_status()
+
+    def _onChangeSourceDir(self, *args):
+        dir = self.source_dir.get()
+        if os.path.isdir(dir):
+            from manifestyaml import ManifestYaml
+            my = ManifestYaml()
+            my.load(dir)
+            self.language_code.set(my.getLanguageId())
+        self._set_button_status()
+
     def _onOpenSourceDir(self, *args):
         self._save_values()
         os.startfile(self.values['source_dir'])
@@ -225,12 +245,12 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
 
     def _set_button_status(self):
         good_source = os.path.isdir(self.source_dir.get())
-        backup_count = g_util.count_files(self.source_dir.get(), ".*\.usfm\.orig$")
+        backup_count = g_util.count_files(self.source_dir.get(), r".*\.usfm\.orig$")
         self.controller.enablebutton(3, good_source)
         self.controller.enablebutton(4, backup_count > 0)
 
         if good_source and self.filename.get():
             path = os.path.join(self.source_dir.get(), self.filename.get())
             good_source = os.path.isfile(path)
-        self.cleanup_ready = good_source
-        self.controller.enablebutton(2, good_source)
+        self.cleanup_ready = good_source and self.language_code.get()
+        self.controller.enablebutton(2, self.cleanup_ready)
