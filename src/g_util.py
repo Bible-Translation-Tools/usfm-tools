@@ -15,15 +15,12 @@ def count_files(folder, pattern):
 
 # Returns a count of folders in path matching path name pattern.
 # If the specified path itself is a folder matching the pattern, return 1.
-# Omits subfolders whose names start with '.'
 def count_folders(path, pattern):
     n = 0
     if os.path.isdir(path):
         if re.search(pattern, path):
             n = 1
-        else:
-            for entry in os.listdir(path):
-                if entry[0] != '.':
-                    subpath = os.path.join(path, entry)
-                    n += count_folders(subpath, pattern)
+        for entry in os.listdir(path):
+                if re.search(pattern, entry):
+                    n += 1
     return n
