@@ -57,7 +57,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self.filename = StringVar()
         self.std_titles = StringVar()
         for var in (self.language_code, self.filename):
-            var.trace_add("write", self._onChangeEntry)
+            var.trace_add("write", self._set_button_status)
         self.source_dir.trace_add("write", self._onChangeSourceDir)
         self.std_titles.trace_add("write", self._onChangeTitles)
         self.enable = [BooleanVar(value = False) for i in range(9)]
@@ -212,8 +212,6 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
     def _onInventoryLabels(self, *args):
         self._save_values()
         self.controller.executeInventoryLabels()
-    def _onChangeEntry(self, *args):
-        self._set_button_status()
 
     def _onChangeSourceDir(self, *args):
         dir = self.source_dir.get()
@@ -221,7 +219,9 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
             from manifestyaml import ManifestYaml
             my = ManifestYaml()
             my.load(dir)
-            self.language_code.set(my.getLanguageId())
+            language_code = my.getLanguageId()
+            if language_code != self.language_code.get():   # to avoid xs callbacks
+                self.language_code.set(language_code)
         self._set_button_status()
 
     def _onOpenSourceDir(self, *args):
@@ -243,14 +243,15 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         path = os.path.join(self.values['source_dir'], "issues.txt")
         os.startfile(path)
 
-    def _set_button_status(self):
-        good_source = os.path.isdir(self.source_dir.get())
-        backup_count = g_util.count_files(self.source_dir.get(), r".*\.usfm\.orig$")
+    def _set_button_status(self, *args):
+        source_dir = self.source_dir.get()
+        good_source = os.path.isdir(source_dir)
+        backup_count = g_util.count_files(source_dir, r".*\.usfm\.orig$")
         self.controller.enablebutton(3, good_source)
         self.controller.enablebutton(4, backup_count > 0)
 
         if good_source and self.filename.get():
-            path = os.path.join(self.source_dir.get(), self.filename.get())
+            path = os.path.join(source_dir, self.filename.get())
             good_source = os.path.isfile(path)
-        self.cleanup_ready = good_source and self.language_code.get()
+        self.cleanup_ready = good_source and len(self.language_code.get()) > 0
         self.controller.enablebutton(2, self.cleanup_ready)
