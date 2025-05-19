@@ -42,7 +42,6 @@ import io
 import footnotes
 import usfm_verses
 import re
-from manifestyaml import ManifestYaml
 from projectinfo import SaidWords
 import usfm_utils
 import sentences
@@ -591,6 +590,7 @@ def scanSourceFile(path):
 
 # Returns the language code and resource identifier as a string.
 def identifySource(sourcedir):
+    from manifestyaml import ManifestYaml
     my = ManifestYaml()
     my.load(sourcedir)
     id = my.getLanguageId() + "_" + my.getResourceId()
@@ -1363,8 +1363,9 @@ def verifyLineByLine(lines, path):
                 saidwords.addWord(word)
             if line[0] != '\\' and section_titles.is_possible_heading(line):
                 reportError("Possible section title on a line by itself at " + localstate.reference + " in " + path, 76)
-            elif section_titles.find_eol_heading(line):
-                reportError("Possible section title at end of " + localstate.reference + " in " + path, 76.1)
+            elif localstate.reference not in section_titles.exclude_eol_checks:
+                if section_titles.find_eol_heading(line):
+                    reportError("Possible section title at end of " + localstate.reference + " in " + path, 76.1)
     suppress[9] = (nAscii / len(lines) > 0.05)
     global nFiles
     nFiles += 1

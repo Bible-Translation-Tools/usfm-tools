@@ -15,6 +15,8 @@
 import re
 import sentences
 
+exclude_eol_checks = ['JHN 19:19', 'REV 22:9']
+
 expect_allcaps = True
 expect_titlecase = True
 expect_parens = True

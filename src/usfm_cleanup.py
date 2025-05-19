@@ -6,7 +6,7 @@
 # Moves standalone \p \m and \q markers which occur just before an \s# marker
 #    to the next line after the \s# marker.
 # Promote straight quotes to open and closed quotes. (optional)
-# Capitalizes first word in sentences. (optional)
+# Capitalizes first word in sentences.
 
 import configmanager
 import re       # regular expression module
@@ -25,6 +25,16 @@ from datetime import date
 gui = None
 config = {}
 enable = [True]*9
+'''
+enable[1] to add space after periods, around parens, etc.
+enable[2] to fix punctuation
+enable[3] to promote double stright quotes
+enable[4] to promote all straight quotes
+enable[5] to capitalize sentences
+enable[6] to remove \\s5 markers
+enable[7] to mark section titles
+enable[8] to fix chapter titles
+'''
 std_titles = ""
 nChanged = 0
 aligned_usfm = False
@@ -44,16 +54,21 @@ class State:
         self.bookId = ""
         self.schapter = ""
         self.sverse = ""
+        self.reference = ""
         self.currMarker = None
         self.prevMarker = None
 
     def addToken(self, token):
         if token.isC():
             self.schapter = token.value
+            self.reference = self.bookId + " " + token.value
         elif token.isV():
             self.sverse = token.value
+            self.reference = self.bookId + " " + self.schapter + ":" + token.value
         elif token.isID():
             self.bookId = token.value
+            self.reference = token.value + " header/intro"
+
         self.prevMarker = self.currMarker
         self.currMarker = token.type
 
@@ -62,10 +77,13 @@ class State:
         match marker:
             case 'id':
                 self.bookId = payload[0:3].upper()
+                self.reference = self.bookId + " header/intro"
             case 'c':
                 self.schapter = payload
+                self.reference = self.bookId + " " + payload
             case 'v':
                 self.sverse = payload
+                self.reference = self.bookId + " " + self.schapter + ":" + payload
 
 state: State
 
@@ -114,11 +132,6 @@ def openIssuesFile():
 
 # Sets the global saidwords list, assuming language_code is available.
 def getSaidWords(source_dir):
-    # from manifestyaml import ManifestYaml
-
-    # my = ManifestYaml()
-    # my.load(source_dir)
-    # if language_code := my.getLanguageId():
     from projectinfo import ProjectInfo
     global saidwords
     pi = ProjectInfo(source_dir, config['language_code'])
@@ -455,7 +468,7 @@ def mark_sections(line):
     if not pheading:
         pheading = section_titles.find_parenthesized_heading(line)
     if not pheading and sentences.sentenceCount(line) > 1:
-        if not state or state.bookId != 'JHN' or state.schapter != "19" or state.sverse != "19":
+        if not state or state.reference not in section_titles.exclude_eol_checks:
             pheading = section_titles.find_eol_heading(line)
 
     if pheading:
