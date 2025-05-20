@@ -126,7 +126,10 @@ class UsfmWizard(tkinter.Tk):
         gotostep = None
         match self.stepstack[-1].name():
             case 'MarkParagraphs':
-                gotostep = 'VerifyManifest'
+                if self.process == 'Usfm2Usx':
+                    gotostep = 'Usfm2Usx'
+                else:
+                    gotostep = 'VerifyManifest'
             case 'SelectProcess':
                 if self.process == 'Usfm2Usx':
                     gotostep = 'VerifyUSFM'
@@ -143,9 +146,7 @@ class UsfmWizard(tkinter.Tk):
             case 'Usx2Usfm':
                 gotostep = 'VerifyUSFM'
             case 'VerifyUSFM':
-                if self.process == 'Usfm2Usx':
-                    gotostep = 'Usfm2Usx'
-                elif self.process == 'Usx2Usfm':
+                if self.process in {'Usfm2Usx', 'Usx2Usfm'}:
                     gotostep = 'MarkParagraphs'
                 else:
                     gotostep = 'UsfmCleanup'
