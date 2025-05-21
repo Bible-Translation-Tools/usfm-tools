@@ -218,7 +218,7 @@ def fix_booktitles(str):
     str = fix_booktitles_x(str, re.compile(r'(\\mt1? )([^\n]+\n)'))
     return str
 
-spacey3_re = re.compile(r'\\v [0-9]+ ([\(\[\'"«“‘])\s', re.UNICODE)    # verse starts with free floating punctuation
+spacey3_re = re.compile(r'\\v [0-9\-]+ +([\(\[\'"«“‘])\s')    # verse starts with free floating punctuation
 jammedleftparen_re = re.compile(r'[^\s][\(\[\{]')
 jammedrightparen_re = re.compile(r'[\)\]\}]\w')
 
@@ -234,10 +234,11 @@ def fix_punctuation(str):
         if pos != str.find("...", pos):
             str = str[:pos] + str[pos+1:]
         pos = str.find("..", pos+2)
-    pos = 0
-    if bad := spacey3_re.search(str):
+    bad = spacey3_re.search(str)
+    while bad:
         pos = bad.end()
         str = str[:pos-1] + str[pos:]
+        bad = spacey3_re.search(str, pos)
     bad = jammedleftparen_re.search(str)
     while bad:
         pos = bad.start() + 1
