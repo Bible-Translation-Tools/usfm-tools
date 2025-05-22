@@ -3,10 +3,10 @@
 # for operating the txt2USFM.py script.
 # GUI interface for merging BTTW text files and converting to USFM
 
-from tkinter import *
 from tkinter import ttk
 from tkinter import font
 from tkinter import filedialog
+from tkinter import StringVar, BooleanVar, W, DISABLED
 from idlelib.tooltip import Hovertip
 import os
 import g_util
@@ -26,7 +26,8 @@ class Txt2USFM(g_step.Step):
     def onExecute(self, values):
         self.enablebutton(2, False)
         self.values = values
-        count = g_util.count_folders(values['source_dir'], f"{values['language_code']}_[\w][\w][\w].*_reg|_ulb")
+        pattern = values['language_code'] + r"_[\w][\w][\w].*_reg|_ulb"
+        count = g_util.count_folders(values['source_dir'], pattern)
         self.mainapp.execute_script("txt2USFM", count)
         self.frame.clear_messages()
 
