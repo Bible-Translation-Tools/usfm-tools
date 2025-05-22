@@ -51,6 +51,8 @@ class Step(ABC):
             self.buttons.enable(psn)
         else:
             self.buttons.disable(psn)
+    # def buttonenabled(self, psn):
+    #     return self.buttons.enabled(psn)
 
     # Called by the main app.
     # Displays the specified string in the message area.
@@ -65,11 +67,11 @@ class Step(ABC):
 
     # Prompts the user for a folder, using the parent of the specified default folder as the starting point.
     # Sets dirpath to the selected folder, or leaves it unchanged if the user cancels.
-    def askdir(self, dirpath: StringVar):
+    def askdir(self, dirpath: StringVar, msg="Select Folder"):
         initdir = dirpath.get()
         if os.path.isdir(initdir):
             initdir = os.path.dirname(initdir)
-        path = filedialog.askdirectory(initialdir=initdir, mustexist=False, title = "Select Folder")
+        path = filedialog.askdirectory(initialdir=initdir, mustexist=False, title=msg)
         if path:
             dirpath.set(path)
 
@@ -112,7 +114,7 @@ class Step_Frame(ttk.Frame, ABC):
     def clear_messages(self):
         self.message_area['state'] = NORMAL   # enables insertions to message area
         self.message_area.delete('1.0', 'end')
-    
+
     # Clears the message area and shows the specified message
     # Disables new insertions.
     def clear_show(self, message):
