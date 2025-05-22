@@ -164,12 +164,12 @@ def _titlecase_threshold(str):
         if not goodstart_re.match(str):
             adj += 0.18
         for i in range(len(str)-3,len(str)):
-            if str[i] in ".\u0964\u0965\u1361\u1362":    # sentence ending punctuation
+            if str[i] in ".\u0964\u0965\u1361\u1362!?;":    # sentence ending punctuation
                 adj += 0.16
                 if _wordcount(str) == 1:
                     adj = 1.01
-            elif str[i] in "!?;":
-                adj = 0.99
+                elif str[i] in "!?;":
+                    adj = 0.99
         lastword = _lastword(str)
         if not isCapitalized(lastword) and not lastword.isupper():
             adj += 0.24
