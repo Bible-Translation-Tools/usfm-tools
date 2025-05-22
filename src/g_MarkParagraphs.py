@@ -2,16 +2,17 @@
 # GUI interface for marking paragraphs
 #
 
-from tkinter import *
 from tkinter import ttk
 from tkinter import font
-from tkinter import filedialog
+from tkinter import StringVar, BooleanVar, W, DISABLED
 from idlelib.tooltip import Hovertip
 import g_util
 import g_step
 import os
 import subprocess
 import time
+from projectinfo import ProjectInfo
+from manifestyaml import ManifestYaml
 
 stepname = 'MarkParagraphs'   # equals the main class name in this module
 
@@ -68,7 +69,9 @@ class MarkParagraphs(g_step.Step):
 class MarkParagraphs_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
+        self.changingVars = False
 
+        self.language_code = StringVar()
         self.source_dir = StringVar()
         self.model_dir = StringVar()
         self.filename = StringVar()
@@ -78,20 +81,18 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         self.s5_only = BooleanVar(value = False)
         self.s5_only.trace_add("write", self._onChanges5)
         self.sentence_sensitive = BooleanVar(value = True)
-        for var in (self.model_dir, self.source_dir, self.filename):
-            var.trace_add("write", self._onChangeEntry)
+        self.language_code.trace_add("write", self._onChangeLanguage)
+        self.source_dir.trace_add("write", self._set_button_status)
+        self.model_dir.trace_add("write", self._set_button_status)
+        self.filename.trace_add("write", self._set_button_status)
         self.columnconfigure(3, weight=1)   # keep column 1 from expanding
         self.columnconfigure(4, minsize=115)
 
-        model_dir_label = ttk.Label(self, text="Location of model files:", width=21)
-        model_dir_label.grid(row=3, column=1, sticky=(W,E), pady=2)
-        self.model_dir_entry = ttk.Entry(self, width=43, textvariable=self.model_dir)
-        self.model_dir_entry.grid(row=3, column=2, columnspan=3, sticky=W)
-        model_dir__Tip = Hovertip(self.model_dir_entry, hover_delay=500,
-             text="Folder containing USFM files with well marked paragraphs, e.g. English UDB folder")
-        model_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindModelDir)
-        model_dir_find.grid(row=3, column=4, sticky=W)
-
+        # language_code will be used for ProjectInfo soon in verifyUSFM.
+        language_code_label = ttk.Label(self, text="Language code:", width=20)
+        language_code_label.grid(row=3, column=1, sticky="wen", pady=2)
+        language_code_entry = ttk.Entry(self, width=18, textvariable=self.language_code)
+        language_code_entry.grid(row=3, column=2, sticky=W)
         source_dir_label = ttk.Label(self, text="Location of files\n to be marked:", width=15)
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
         self.source_dir_entry = ttk.Entry(self, width=43, textvariable=self.source_dir)
@@ -99,40 +100,49 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
         src_dir_find.grid(row=4, column=4, sticky=W)
 
+        model_dir_label = ttk.Label(self, text="Location of model files:", width=21)
+        model_dir_label.grid(row=5, column=1, sticky="ew", pady=2)
+        self.model_dir_entry = ttk.Entry(self, width=43, textvariable=self.model_dir)
+        self.model_dir_entry.grid(row=5, column=2, columnspan=3, sticky=W)
+        model_dir__Tip = Hovertip(self.model_dir_entry, hover_delay=500,
+             text="Folder containing USFM files with well marked paragraphs, e.g. English UDB folder")
+        model_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindModelDir)
+        model_dir_find.grid(row=5, column=4, sticky=W)
+
         file_label = ttk.Label(self, text="File name:", width=20)
-        file_label.grid(row=5, column=1, sticky=W, pady=2)
+        file_label.grid(row=6, column=1, sticky=W, pady=2)
         self.file_entry = ttk.Entry(self, width=18, textvariable=self.filename)
-        self.file_entry.grid(row=5, column=2, sticky=W)
+        self.file_entry.grid(row=6, column=2, sticky=W)
         file_Tip = Hovertip(self.file_entry, hover_delay=500,
              text="Leave filename blank to mark all .usfm files in the folder.")
         file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
-        file_find.grid(row=5, column=3, sticky=W, padx=5)
+        file_find.grid(row=6, column=3, sticky=W, padx=5)
 
         subheadingFont = font.Font(size=10, slant='italic')     # normal size is 9
         enable_label = ttk.Label(self, text="Options:", font=subheadingFont)
-        enable_label.grid(row=6, column=1, sticky=W, pady=(4,2))
+        enable_label.grid(row=7, column=1, sticky=W, pady=(4,2))
 
         copy_nb_checkbox = ttk.Checkbutton(self, text=r'Copy \m, nb and b', variable=self.copy_nb,
                                              onvalue=True, offvalue=False)
-        copy_nb_checkbox.grid(row=7, column=1, sticky=W)
+        copy_nb_checkbox.grid(row=8, column=1, sticky=W)
         copy_nb_Tip = Hovertip(copy_nb_checkbox, hover_delay=500,
              text=r"Copy \m, \nb and \b markers from model text? (Not usually recommended)")
-        
-        self.remove_s5_checkbox = ttk.Checkbutton(self, text='Eliminate \s5', variable=self.remove_s5,
+
+        self.remove_s5_checkbox = ttk.Checkbutton(self, text=r'Eliminate \s5', variable=self.remove_s5,
                                              onvalue=True, offvalue=False)
-        self.remove_s5_checkbox.grid(row=7, column=2, sticky=W)
+        self.remove_s5_checkbox.grid(row=8, column=2, sticky=W)
         remove_s5_Tip = Hovertip(self.remove_s5_checkbox, hover_delay=500,
              text="Always recommended except for GL source texts")
 
         self.s5_only_checkbox = ttk.Checkbutton(self, text='\\s5 only',
                                                       variable=self.s5_only, onvalue=True, offvalue=False)
-        self.s5_only_checkbox.grid(row=7, column=3, sticky=W)
+        self.s5_only_checkbox.grid(row=8, column=3, sticky=W)
         s5_only_Tip = Hovertip(self.s5_only_checkbox, hover_delay=500,
              text="Mark chunks only, not paragraphs.")
 
         sentence_sensitive_checkbox = ttk.Checkbutton(self, text='Sentence sensitive',
                                                       variable=self.sentence_sensitive, onvalue=True, offvalue=False)
-        sentence_sensitive_checkbox.grid(row=7, column=4, sticky=W)
+        sentence_sensitive_checkbox.grid(row=8, column=4, sticky=W)
         sentence_sensitive_Tip = Hovertip(sentence_sensitive_checkbox, hover_delay=500,
              text="Only insert marks *between punctuated sentences.")
 
@@ -144,9 +154,16 @@ or don't run this process.")
         self.model_dir_entry.focus()
 
     def show_values(self, values):
+        self.changingVars = True
         self.values = values
-        self.source_dir.set(values.get('source_dir', fallback=""))
-        self.model_dir.set(values.get('model_dir', fallback=""))
+        code = values.get('language_code', fallback="")
+        dir = values.get('source_dir', fallback="")
+        model_dir = values.get('model_dir', fallback="")
+        self.language_code.set(code)
+        self.source_dir.set(dir)
+        self.model_dir.set(model_dir)
+        if dir and code and not model_dir:
+            self.model_dir.set( self._getCompareValue(dir, code, model_dir) )
         self.filename.set(values.get('filename', fallback=""))
         self.copy_nb.set(values.get('copy_nb', fallback=False))
         self.remove_s5.set(values.get('removes5markers', fallback=True))
@@ -162,6 +179,7 @@ or don't run this process.")
                                    cmd=self._onUndo)
         self.controller.enablebutton(4, False)
         self.controller.showbutton(5, ">>>", tip="Verify manifest", cmd=self._onNext)
+        self.changingVars = False
         self._set_button_status()
 
     def onScriptEnd(self, nIssues):
@@ -172,6 +190,17 @@ or don't run this process.")
             self.message_area.see('end')
         self.message_area['state'] = DISABLED   # prevents insertions to message area
 
+    # Called when the language code changes.
+    def _onChangeLanguage(self, *args):
+        code = self.language_code.get()
+        if code:
+            dir = self.source_dir.get()
+            model_dir = self.model_dir.get()
+            self.model_dir.set( self._getCompareValue(dir, code, model_dir) )
+            # invokes _set_button_status() implicitly
+        else:
+            self._set_button_status()
+
     def _onChanges5(self, *args):
         if remove := self.remove_s5.get():
             self.s5_only.set(False)
@@ -180,7 +209,21 @@ or don't run this process.")
             self.remove_s5.set(False)
         self.remove_s5_checkbox.state(['disabled'] if chunks_only else ['!disabled'])
 
+    def _onChangeSourceDir(self, *args):
+        self.changingVars = True
+        code = self.language_code.get()
+        dir = self.source_dir.get()
+        if os.path.isdir(dir):
+            my = ManifestYaml()
+            my.load(dir)
+            code = my.getLanguageId()
+            if code != self.language_code.get():
+                self.language_code.set(code)    # this will invoke _onChangeLanguage()
+        self.changingVars = False
+        self._set_button_status()
+
     def _save_values(self):
+        self.values['language_code'] = self.language_code.get()
         self.values['source_dir'] = self.source_dir.get()
         self.values['model_dir'] = self.model_dir.get()
         self.values['filename'] = self.filename.get()
@@ -189,7 +232,29 @@ or don't run this process.")
         self.values['s5_only'] = str(self.s5_only.get())
         self.values['sentence_sensitive'] = str(self.sentence_sensitive.get())
         self.controller.mainapp.save_values(stepname, self.values)
-        self._set_button_status()
+
+    # Validates input for MARK execution.
+    # Returns a string descirbing the first invalid input it finds.
+    def _invalidInputs(self):
+        code = self.language_code.get()
+        if not code:
+            return "Language code is required."
+        dir = self.source_dir.get()
+        model_dir = self.model_dir.get()
+        if not dir or not model_dir:
+            return "Specify locations of files."
+        if not os.path.isdir(dir):
+            return f"{dir} is not a valid folder."
+        if not os.path.isdir(model_dir):
+            return f"Model text folder ({model_dir}) is invalid."
+        namedfile = self.filename.get()
+        if namedfile:
+            filepath = os.path.join(dir, namedfile)
+            if not os.path.isfile(filepath):
+                return f"{filepath} is not a valid file."
+        if model_dir == dir:
+            return f"The two file folders can't be the same."
+        return ""
 
     def _onFindModelDir(self, *args):
         self.controller.askdir(self.model_dir)
@@ -197,8 +262,6 @@ or don't run this process.")
         self.controller.askdir(self.source_dir)
     def _onFindFile(self, *args):
         self.controller.askusfmfile(self.source_dir, self.filename)
-    def _onChangeEntry(self, *args):
-        self._set_button_status()
 
     def _onOpenIssues(self, *args):
         self._save_values()
@@ -210,11 +273,28 @@ or don't run this process.")
         self.controller.revertChanges()
         self.controller.enablebutton(4, False)
 
-    def _set_button_status(self):
-        good_model = os.path.isdir(self.model_dir.get())
-        good_source = os.path.isdir(self.source_dir.get())
-        self.controller.enablebutton(4, good_source)
-        if good_source and self.filename.get():
-            path = os.path.join(self.source_dir.get(), self.filename.get())
-            good_source = os.path.isfile(path)
-        self.controller.enablebutton(2, good_model and good_source)
+    def _set_button_status(self, *args):
+        if not self.changingVars:
+            good_source = os.path.isdir(self.source_dir.get())
+            self.controller.enablebutton(4, good_source)
+            self.controller.enablebutton(2, (self._invalidInputs() == ""))
+
+    # Only called when the language code changes.
+    # Returns the most reasonable new value for compare_dir,
+    # based on existence of project info, if any.
+    def _getCompareValue(self, dir, language_code, model):
+        change_cmp = False
+        if language_code and dir and os.path.isdir(dir):
+            if not model or model.startswith("(locate"):
+                change_cmp = True
+        if change_cmp:
+            projectInfo = ProjectInfo(dir, language_code)
+            if not projectInfo.getMainSource():
+                projectInfo.useManifest()
+            if mainsrc := projectInfo.getMainSource():
+                model = f"(locate folder containing {mainsrc['language_id']}_{mainsrc['resource_id']}, vrsn ~{mainsrc['version']})"
+                if "nspecified" in model or "nknown" in model:
+                    model = ""
+            else:
+                model = ""
+        return model
