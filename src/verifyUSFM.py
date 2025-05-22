@@ -9,7 +9,7 @@
 #   filename  (optional, checks all files if omitted)
 #   standard_chapter_title (optional)
 #   suppress[1]  - Suppress all warnings about numbers. (possible verse number in verse, space in number, number prefix/suffix, etc.)
-#   suppress[2]  - Suppress warnings about missing paragraph marker before verse 1. (needed by PTX-Print)
+#   suppress[2]  - Suppress warnings about missing paragraph marker before verse 1.
 #   suppress[3]  - Suppress most warnings about punctuation
 #   suppress[4]  - Suppress warnings about invalid placement of paragraph/poetry markers
 #   suppress[5]  - Suppress checks for verse counts
@@ -1277,7 +1277,7 @@ def verifyChapterAndVerseMarkers(text, path):
 
 def verifyParagraphCount():
     if state.chapter > 0:
-        if state.nParagraphs / state.chapter <= 2.5 and state.nPoetry / state.chapter <= 15:
+        if state.nParagraphs / state.chapter <= 2.5 and state.nPoetry / state.chapter <= 10:
             reportError(f"Low paragraph count ({state.nParagraphs + state.nPoetry}) for {state.ID}", 73.5)
 
 embeddedquotes_re = re.compile(r"\w'\w")
