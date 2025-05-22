@@ -101,8 +101,44 @@ def test_getMainSource():
     source = projectInfo.getMainSource()
     assert source['version'] == "7.6"
 
-# Before running this, remove "said_words" from mgv.json.
+def test_sync():
+    dir = r'C:\DCS\Test\test_reg'
+    language_code = 'test'
+    pi = ProjectInfo(dir, language_code)
+    pi.resetSources()
+    pi.setLanguage("")
+    n = len(pi.getSources())
+    assert n == 0
+    assert pi.getLanguageName() == ""
+
+    pi.useManifest()        # sync happens here
+    newlen = len(pi.getSources())
+    assert newlen > n
+    newname = pi.getLanguageName()
+    assert newname != ""
+    pi.setLanguage("Mangled name", "mangled direction")
+    assert pi.getLanguageName() == "Mangled name"
+    pi.addSource('bogus', 'ulllll', '99')
+    pi.save(savePI=True, saveM=False)
+
+    from manifestyaml import ManifestYaml
+    my = ManifestYaml()
+    my.load(dir)
+    assert my.getLanguageName() != "Mangled name"   # bad value wasn't saved
+    assert my.getLanguageDirection() in {'rtl','ltr'}   # bad value wasn't saved
+
+    pi.useManifest()        # sync happens again
+    assert pi.getLanguageName() == "Mangled name"   # existing name wasn't overwritten
+    assert len(pi.getSources()) == newlen + 1   # no sources were added or removed
+
+# Before running this, remove "said_words" from test.json.
+# Or, set it to an empty dict -- {}
 def test_saidwords():
+    global dir
+    dir = r'C:\DCS\Test\test_reg'
+    global language_code
+    language_code = 'test'
+
     nowords()
     addwords()
     savedwords()

@@ -67,30 +67,33 @@ class ManifestYaml:
                 # yaml.safe_dump(self.contents, file, default_flow_style=False, default_style="'")
                 yaml.safe_dump(self.contents, file)
 
-    def setLanguage(self, id, name, direction):
-        if self.contents and 'dublin_core' in self.contents:
-            self.contents['dublin_core']['language']['identifier'] = id
-            self.contents['dublin_core']['language']['title'] = name
-            self.contents['dublin_core']['language']['direction'] = direction
+    def setLanguageId(self, id):
+        if id:
+            self._setLanguageAttribute('identifier', id)
+    def setLanguageName(self, name):
+        if name:
+            self._setLanguageAttribute('title', name)
+    def setLanguageDirection(self, direction):
+        if direction in ('ltr', 'rtl'):
+            self._setLanguageAttribute('direction', direction)
+    def _setLanguageAttribute(self, attr, value):
+        try:
+            self.contents['dublin_core']['language'][attr] = value
+        except:
+            pass
 
-    # Returns (id, name, direction) tuple
-    def getLanguage(self):
-        if self.contents and 'dublin_core' in self.contents:
-            id = self.contents['dublin_core']['language']['identifier']
-            name = self.contents['dublin_core']['language']['title']
-            direction = self.contents['dublin_core']['language']['direction']
-            language = (id, name, direction)
-        else:
-            language = None
-        return language
-
-    # Returns the language id found in the manifest, or ""
     def getLanguageId(self):
-        languageId = ""
-        language = self.getLanguage()
-        if language:
-            languageId = language[0]
-        return languageId
+        return self.getLanguageAttribute('identifier')
+    def getLanguageName(self):
+        return self.getLanguageAttribute('title')
+    def getLanguageDirection(self):
+        return self.getLanguageAttribute('direction')
+    def getLanguageAttribute(self, attr):
+        try:
+            value = self.contents['dublin_core']['language'][attr]
+        except KeyError as e:
+            value = ''
+        return value
 
     # Returns the text identifier, like "ulb"
     def getResourceId(self):
@@ -132,6 +135,13 @@ class ManifestYaml:
             src = {'identifier': resource, 'language': lang, 'version': version}
             if not src in self.contents['dublin_core']['source']:
                 self.contents['dublin_core']['source'].append(src)
+
+    def getSources(self):
+        try:
+            srclist = self.contents['dublin_core']['source']
+        except KeyError as e:
+            srclist = []
+        return srclist
 
     # Converts contributor to title case and adds it to the list, if unique.
     def addContributor(self, contributor):

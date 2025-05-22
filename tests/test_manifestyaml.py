@@ -20,7 +20,7 @@ def test_nonexistent_manifest():
     assert errors and errors[0].startswith('File not found:')
     assert my.getLanguageId() + "_" + my.getResourceId() == "_"
     assert not my.contents
-    assert my.getLanguage() == None
+    assert my.getLanguageId() == ""
 
 def test_all():
     init_newfile()
@@ -42,23 +42,26 @@ def init_newfile():
             os.remove(path)
     my = ManifestYaml()
     my.create(dir)
-    my.setLanguage(language_code, language_name, 'rtl')
+    my.setLanguageId(language_code)
+    my.setLanguageName(language_name)
+    my.setLanguageDirection('rtl')
     my.save()
     assert my.contents['dublin_core']['language']['identifier'] == language_code
     my2 = ManifestYaml()
     assert my2.load(dir) == []
     assert my2.contents['dublin_core']['language']['title'] == language_name
-    language = my2.getLanguage()
-    assert language[0] == language_code
     assert my2.getLanguageId() == language_code
-    assert language[1] == language_name
+    assert my2.getLanguageName() == language_name
+    assert my2.getLanguageDirection() == "rtl"
     assert my2.getResourceId() == 'reg'     # default value
 
 # Creates a new manifest file, with contributors.
 def addContributors():
     my = ManifestYaml()
     my.create(dir)
-    my.setLanguage(language_code, language_name, 'rtl')
+    my.setLanguageId(language_code)
+    my.setLanguageName(language_name)
+    my.setLanguageDirection('rtl')
     my.addContributor('david')
     my.addContributor('David')
     assert len(my.contents['dublin_core']['contributor']) == 1

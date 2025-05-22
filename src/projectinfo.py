@@ -31,7 +31,7 @@ class ProjectInfo:
                 if not 'said_words' in self.info:
                     self.info['said_words'] = {}
         if not self.info:
-            self.info = {'language': {'id': language_code},
+            self.info = {'language': {'id': language_code, 'name': ""},
                         'source_translations': [],
                          'said_words': {} }
 
@@ -40,16 +40,44 @@ class ProjectInfo:
 
     # Loads the manifest file, if any.
     # Does not report any load errors, but creates a template yaml in that case.
-    # Sets the language code in the manifest.
-    # Controls whether the manifest is updated by subsequent calls.
-    def useManifest(self, use=True):
-        if use:
-            self.manifest = ManifestYaml()
-            errors = self.manifest.load(self.project_dir)
-            if len(errors) > 0:
-                self.manifest.create(self.project_dir)
-        else:
-            self.manifest = None
+    # Syncs the project info and manifest info.
+    def useManifest(self):
+        self.manifest = ManifestYaml()
+        errors = self.manifest.load(self.project_dir)
+        if len(errors) > 0:
+            self.manifest.create(self.project_dir)
+        self.sync()
+
+    # Syncs self.info and self.manifest if either is missing any values.
+    def sync(self):
+        if my := self.manifest:
+            # Sync language attributes
+            if not my.getLanguageId():
+                my.setLanguageId(self.info['language']['id'])
+            if not my.getLanguageName() and 'name' in self.info['language']:
+                my.setLanguageName(self.info['language']['name'])
+            elif not 'name' in self.info['language'] or not self.info['language']['name']:
+                self.info['language']['name'] = my.getLanguageName()
+
+            # Sync source translations
+            # One-way sync from MY to PI. Different projects in the same langauge
+            # may have different sources. It is helpful to combine sources from
+            # any of them into PI. Copying sources from PI into individual
+            # MY files, however, would not be valid.
+            for source in my.getSources():
+                if not self.knownSource(source['language'], source['identifier'], source['version']):
+                    self.addSource(source['language'], source['identifier'], source['version'])
+
+    # Returns True if the specified language resource exists in project info.
+    # The version parameter may be left unspecified, in which case version is not checked.
+    def knownSource(self, language_id, resource_id, version=None):
+        known = False
+        for source in self.getSources():
+            if source['language_id'] == language_id and source['resource_id'] == resource_id and\
+               (not version or source['version'] == version):
+                known = True
+                break
+        return known
 
     # Saves the current information in the project json file if savePI is True.
     # Implicitly saves the manifest file also, if it is in use, and saveM is True.
@@ -64,14 +92,19 @@ class ProjectInfo:
             self.manifest.setDates()
             self.manifest.save()
 
-    def setLanguage(self, name, direction):
+    def setLanguage(self, name, direction=""):
         self.info['language']['name'] = name
-        if self.manifest:
-            self.manifest.setLanguage(self.info['language']['id'], name, direction)
+        if my := self.manifest:
+            my.setLanguageId(self.info['language']['id'])
+            if name:
+                my.setLanguageName(name)
+            if direction:
+                my.setLanguageDirection(direction)  # this function rejects invalid directions
+
     def getLanguageCode(self):
         return self.info['language']['id']
     def getLanguageName(self):
-        return self.info['language']['name'] if 'name' in self.info['language'] else None
+        return self.info['language']['name'] if 'name' in self.info['language'] else ""
 
     # Overwrites the list of source translations
     def resetSources(self):
