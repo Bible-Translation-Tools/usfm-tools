@@ -27,7 +27,7 @@
 #   rights value is 'CC BY-SA 4.0'
 #   source has no extraneous fields
 #   source.identifier matches project type identifier above
-#   source.language is 'en' (Warning if not)
+#   source.language is 'en' or other common one (Warning if not)
 #   source.version is a string
 #   subject is one of the predefined strings and corresponds to project type identifier
 #   title is a non-empty string
@@ -717,7 +717,7 @@ def verifySource(source):
             reportError("Use a language code in source:language, not \'" + dict['language'] + '\'')
         elif dict['language'] == language_code:
             reportWarning("source:language matches target language")
-        elif dict['language'] not in {'en','hbo','el-x-koine'}:
+        elif dict['language'] not in {'en','sw','hbo','el-x-koine'}:
             reportWarning("source:language: " + dict['language'])
         verifyStringField(dict, 'version', 1)
 
