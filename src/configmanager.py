@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Config file manager
+# USFM Wizard tools config file manager
 
 from configparser import ConfigParser
 import os, platform
@@ -7,7 +7,6 @@ import io
 
 class ToolsConfigManager:
     def __init__(self):
-        # self.configpath = os.path.expanduser("~/Documents/tools_config.ini")
         match platform.system():
             case "Windows":
                 path = os.path.expanduser("~/AppData/Local/usfm_wizard")
@@ -64,8 +63,9 @@ class ToolsConfigManager:
     def default_section(self, sectionname):
         match sectionname:
             case 'MarkParagraphs':
-                sec = {'model_dir': "",
+                sec = {'language_code': "",
                     'source_dir': "",
+                    'model_dir': "",
                     'filename': "",
                     'copy_nb': False,
                     'removeS5markers': True,
@@ -92,7 +92,8 @@ class ToolsConfigManager:
                        'language_code': "",
                        'section_headings': False }
             case 'UsfmCleanup':
-                sec = {'source_dir': "",
+                sec = {'language_code': "",
+                    'source_dir': "",
                     'filename': "",
                     'standard_chapter_title': "",
                     'enable1': True,
