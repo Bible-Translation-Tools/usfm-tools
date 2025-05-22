@@ -175,15 +175,15 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.message_area['xscrollcommand'] = xs.set
 
     def show_values(self, values):
+        self.changingVars = True
         self.values = values
         code = values.get('language_code', fallback="")
         dir = values.get('source_dir', fallback="")
         cmp = values.get('compare_dir', fallback="")
-        self.changingVars = True
         self.language_code.set(code)
         self.source_dir.set(dir)
         self.compare_dir.set(cmp)
-        if dir and code:
+        if dir and code and not cmp:
             self.compare_dir.set( self._getCompareValue(dir, code, cmp) )
         self.filename.set(values.get('filename', fallback=""))
         self.std_titles.set(values.get('standard_chapter_title', fallback=""))
@@ -247,12 +247,20 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         code = self.language_code.get()
         dir = self.source_dir.get()
         cmp = self.compare_dir.get()
-        if not code or not dir:
-            objections.append("Language code and usfm file folder are required.")
-        if not os.path.isdir(dir):
+        namedfile = self.filename.get()
+
+        if not code:
+            objections.append("Language code is required.")
+        if not dir:
+            objections.append("Usfm file folder must be specified.")
+        if dir and not os.path.isdir(dir):
             objections.append(f"{dir} is not a valid folder.")
+        if dir and namedfile:
+            filepath = os.path.join(dir, namedfile)
+            if not os.path.isfile(filepath):
+                objections.append(f"{filepath} is not a valid file")
         if cmp and not os.path.isdir(cmp):
-            objections.append(f"Source text folder ({cmp}) is invalid.")
+            objections.append(f"Source text folder is invalid.")
         if cmp and cmp == dir:
             objections.append(f"The usfm file folder ({dir})\n  can't be the same as its Source text folder.")
         return objections
@@ -263,6 +271,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.controller.executeInventoryLabels()
 
     def _onFindSrcDir(self, *args):
+        msg = self._getCompareValue()
         self.controller.askdir(self.source_dir)
     def _onFindFile(self, *args):
         path = filedialog.askopenfilename(initialdir=self.source_dir.get(), title = "Select usfm file",
@@ -271,15 +280,20 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             self.filename.set(os.path.basename(path))
 
     def _onFindCmpDir(self, *args):
-        self.controller.askdir(self.compare_dir)
+        dir = self.source_dir.get()
+        code = self.language_code.get()
+        msg = self._getCompareValue(dir, code, "")
+        self.controller.askdir(self.compare_dir, msg)
 
-    # When the language code changes, set the ASCII content flag.
+    # Called when the language code changes.
     def _onChangeLanguage(self, *args):
+        self.std_titles.set("")
         code = self.language_code.get()
         if code:
             dir = self.source_dir.get()
             cmp = self.compare_dir.get()
             self.compare_dir.set( self._getCompareValue(dir, code, cmp) )
+            # invokes _set_button_status() implicitly
         else:
             self._set_button_status()
 
@@ -288,15 +302,11 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         dir = self.source_dir.get()
         code = self.language_code.get()
         if os.path.isdir(dir):
-            from manifestyaml import ManifestYaml
             my = ManifestYaml()
             my.load(dir)
             code = my.getLanguageId()
-            if code != self.language_code.get():   # to avoid xs callbacks
-                self.language_code.set(code)
-        if dir and code:
-            cmp = self.compare_dir.get()
-            self.compare_dir.set( self._getCompareValue(dir, code, cmp) )
+            if code != self.language_code.get():
+                self.language_code.set(code)    # this will invoke _onChangeLanguage()
         self.changingVars = False
         self._set_button_status()
 
@@ -337,34 +347,29 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             issuespath = os.path.join(self.source_dir.get(), "issues.txt")
             self.controller.enablebutton(3, os.path.isfile(issuespath))
 
+    # Only called when the language code changes.
     # Returns the most reasonable new value for compare_dir,
-    # based on existence of valid project info, if any.
+    # based on existence of project info, if any.
+    # The value returned may be a suggestion of the main source text, not necessarily a folder name.
     def _getCompareValue(self, dir, language_code, cmp):
-        newsrc = None
+        change_cmp = False
         if language_code and dir and os.path.isdir(dir):
             projectInfo = ProjectInfo(dir, language_code)
+            projectInfo.useManifest()
             if not cmp or cmp.startswith("(locate"):
-                newsrc = projectInfo.getMainSource()
-                if not newsrc:
-                    cmp = ""
+                change_cmp = True
             else:   # cmp is already set to a folder
-                # See whether current cmp matches a possible source for the current language
+                change_cmp = False
                 cmpYaml = ManifestYaml()
                 errors = cmpYaml.load(cmp)
                 if not errors:
-                    cmpLangId = cmpYaml.getLanguageId()
-                    cmpRsrcId = cmpYaml.getResourceId()
-                    match = False
-                    sources = projectInfo.getSources()
-                    for source in sources:
-                        if source['language_id'] == cmpLangId and source['resource_id'] == cmpRsrcId:
-                            match = True
-                            break   # good, the current cmp value is good
-                    if not match:
-                        if sources:
-                            newsrc = sources[0]
-                        else:
-                            cmp = ""
-        if newsrc:
-            cmp = f"(locate folder containing {newsrc['language_id']}_{newsrc['resource_id']}, vrsn ~{newsrc['version']})"
+                    if not projectInfo.knownSource(cmpYaml.getLanguageId(), cmpYaml.getResourceId()):
+                        change_cmp = True
+        if change_cmp:
+            if mainsrc := projectInfo.getMainSource():
+                cmp = f"(locate folder containing {mainsrc['language_id']}_{mainsrc['resource_id']}, vrsn ~{mainsrc['version']})"
+                if "nspecified" in cmp or "nknown" in cmp:
+                    cmp = ""
+            else:
+                cmp = ""
         return cmp
