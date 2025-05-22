@@ -1,5 +1,24 @@
 # Usfm Wizard Version history
 
+## 1.4.0 - 5/22/25
+* Wizard - configured to run on Linux and iOS, in addition to Windows.
+* Wizard - added a step to the Usfm2Usx process
+* verifyUsfm - make footnote warnings source text-specific.
+* verifyUsfm - report verse translations that are very short compared to source text.
+* verifyUsfm - report possible section titles by verse reference rather than line number.
+* verifyUsfm - further refinement of section title recognition. 
+* verifyUsfm - fix overcount of poetry paragraphs.
+* verifyUsfm - eliminate 'Ascii content' option from GUI; detect automatically.
+* verifyUsfm - take language code automatically from manifest.yaml.
+* verifyUsfm - source text folder dialog now suggests what folder to look for.
+* usfm_cleanup - exclude end of JHN 19:19 from section title check.
+* usfm_cleanup - improved verse number cleanup.
+* usfm_cleanup - fix most floating quotes.
+* usfm_cleanup - remove 'Capitalization fix' option from GUI.
+* usfm_cleanup - further refinement of section title markup. 
+* txt2Usfm - relax folder name requirement.
+* verifyManifest - stop warning about common source languages like 'sw'.
+
 ## 1.3.6
 * txt2Usfm - generate manifest.yaml file.
 * txt2Usfm - generate project info file with downstream benefits listed below.
