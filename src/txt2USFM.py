@@ -369,7 +369,7 @@ def mark_section_headings(section, lastchunk):
         section = mark_section_heading_lbi(section, lastchunk)
     return section
 
-verse1_re = re.compile(r'([\\p\s]*)\\v\s+1[\s]')
+verse1_re = re.compile(r'([\\p\s]*)\\v\s+1[\-\s]')
 
 # Inserts chapter label if needed.
 # Returns modified section.
