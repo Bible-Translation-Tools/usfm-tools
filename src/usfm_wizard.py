@@ -2,7 +2,7 @@
 # Wizard style, GUI interface for USFM file processing
 #
 
-import configmanager
+from configmanager import ToolsConfigManager
 import tkinter
 from tkinter import *
 from tkinter import ttk
@@ -46,7 +46,6 @@ class UsfmWizard(tkinter.Tk):
         super().__init__()
 
         self.title('USFM Wizard')
-        self.config = configmanager.ToolsConfigManager()
         mainframe = Frame(self, height=550, width=840)
         mainframe.grid(column=0, row=0, sticky="nsew")
 
@@ -160,17 +159,18 @@ class UsfmWizard(tkinter.Tk):
 
     def activate_step(self, step, copyparms=None):
         self.titleframe.step_label['text'] = step.title()
-        section = self.config.get_section(step.name())
+        config = ToolsConfigManager()
+        section = config.get_section(step.name())
         if copyparms:
             for parm in copyparms:
                 section[parm] = copyparms[parm]
-            self.config.write_section(step.name(), section)
+            config.write_section(step.name(), section)
         self.stepstack[-1].show(section)
 
     # Called by one of the GUI modules.
     # Saves the specified values in the config file.
     def save_values(self, stepname, values):
-        self.config.write_section(stepname, values)
+        ToolsConfigManager().write_section(stepname, values)
 
 # The Title_Frame implements a Label for step titles, and a Progressbar for step executions.
 # These go on row 1 of the main UsfmWizard Frame.
@@ -279,7 +279,7 @@ def read_the_docs(*args):
 def version_history(*args):
     os.startfile(r'https://wycliffeassociatesinc.sharepoint.com/:t:/s/AppDev/EZ6n4YhoemVPt8i8mlxXxFUBNsVwHfRkvBkU_8Usi_IWag?e=dUoih0')
 def about(*args):
-    configpath = wizard.config.config_path()
+    configpath = ToolsConfigManager().config_path()
     messagebox.showinfo(title='About USFM Wizard', message=f"Version {app_version}",
                         detail=f"Config file: {configpath}")
 def exit_wizard(*args):
