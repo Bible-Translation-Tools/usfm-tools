@@ -1,12 +1,23 @@
 # -*- coding: utf-8 -*-
 # USFM Wizard tools config file manager
 
-from configparser import ConfigParser
+from configparser import ConfigParser, SectionProxy
 import os, platform
 import io
 
 class ToolsConfigManager:
-    def __init__(self):
+    _instance = None
+
+    # Singleton implementation - don't override __init__()
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(ToolsConfigManager, cls).__new__(cls)
+            cls._instance._init_config()
+        return cls._instance
+
+    # Parses the config file.
+    # Creates it with default values if necessary.
+    def _init_config(self):
         match platform.system():
             case "Windows":
                 path = os.path.expanduser("~/AppData/Local/usfm_wizard")
@@ -17,47 +28,38 @@ class ToolsConfigManager:
         if not os.path.exists(path):
             os.mkdir(path)
         self.configpath = os.path.join(path, "tools_config.ini")
-        self.config = ConfigParser()
-        self._init_config()
+        self.cfgParser = ConfigParser()
+        self.cfgParser.read(self.configpath, encoding='utf-8')
+        if not self.cfgParser.sections():
+            self._make_default_config()
+            self.cfgParser.read(self.configpath, encoding='utf-8')
 
     def __repr__(self):
         return f'ToolsConfigManager({self.configpath})'
-
-    # Creates default config file if it is empty or doesn't exist.
-    # Reads the config file.
-    def _init_config(self):
-        self.config.read(self.configpath, encoding='utf-8')
-        if not self.config.sections():
-            self._make_default_config()
-            self.config.read(self.configpath, encoding='utf-8')
 
     def _make_default_config(self):
         for section in ['MarkParagraphs','Plaintext2Usfm','Ptx2Usfm','RenameParatextFiles','RevertChanges',
                         'Txt2USFM','Usfm2Usx','UsfmCleanup','Usx2Usfm','VerifyManifest','VerifyUSFM',
                         'Word2text']:
-            self.config.add_section(section)
-            self.config[section] = self.default_section(section)
+            self.cfgParser.add_section(section)
+            self.cfgParser[section] = self.default_section(section)
         with io.open(self.configpath, "tw", encoding='utf-8', newline='\n') as file:
-            self.config.write(file)
+            self.cfgParser.write(file)
 
-    # Sets config file path to a new value, if one is specified.
-    # Returns the (possibly new) config path.
-    def config_path(self, newpath = None):
-        if newpath and newpath != self.configpath:
-            self.configpath = newpath
-            self._init_config()
+    # Returns the config file path.
+    def config_path(self):
         return self.configpath
 
-    def get_section(self, sectionname):
-        if sectionname not in self.config or len(self.config[sectionname]) == 0:
+    def get_section(self, sectionname) -> SectionProxy:
+        if sectionname not in self.cfgParser or len(self.cfgParser[sectionname]) == 0:
             values = self.default_section(sectionname)
             self.write_section(sectionname, values)
-        return self.config[sectionname]     # returning local variable values is wrong
+        return self.cfgParser[sectionname]
 
     def write_section(self, sectionname, sec):
-        self.config[sectionname] = sec
+        self.cfgParser[sectionname] = sec
         with io.open(self.configpath, "tw", encoding='utf-8', newline='\n') as file:
-            self.config.write(file)
+            self.cfgParser.write(file)
 
     # Returns a default dict for the specified section.
     def default_section(self, sectionname):
