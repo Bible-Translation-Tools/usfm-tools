@@ -7,7 +7,7 @@
 # The input file(s) should be verified, correct USFM, except for unmarked text which may become section headings.
 # Ensures a paragraph mark after every section heading.
 
-import configmanager
+from configmanager import ToolsConfigManager
 import sys
 import os
 import parseUsfm
@@ -21,11 +21,12 @@ import yaml
 # import cProfile
 
 gui = None
-config = None
+config = {}
+# uncomment the line below to satisfy the type checker
+# config = ToolsConfigManager().get_section('MarkParagraphs')
 nCopied = 0     # number of paragraphs and sections copied from model
 nRemoved = 0    # number of \s5 tags removed
 issuesFile = None
-state = None
 
 # Marker types
 TEXT = 1
@@ -202,7 +203,9 @@ def identifyModel(model_dir):
 # Inserts \s5 mark if needed
 def mayInsertS5(newchapter=False):
     if not state.s5Already():
-        if (newchapter and config.getboolean('s5_only')) or (state.smarkInModel() == "s5" and not config.getboolean("removes5markers")):
+        global config
+
+        if (newchapter and config.getboolean('s5_only', fallback = False)) or (state.smarkInModel() == "s5" and not config.getboolean('removes5markers', fallback = False)):
             state.usfm.writeUsfm("s5")
             state.addS5()
             global nCopied
@@ -284,7 +287,7 @@ def takeText(t):
 def takeC(c):
     global nCopied
     if config.getboolean('s5_only'):
-        mayInsertS5(True)
+        mayInsertS5(newchapter=True)
     state.addChapter(c)
     state.usfm.writeUsfm("c", c)
 
@@ -608,6 +611,8 @@ def processFile(path):
     else:
         reportError("Model file not found; file cannot be processed: " + fname)
 
+state = State()
+
 # Processes each directory and its files one at a time
 def main(app = None):
     global gui
@@ -617,21 +622,18 @@ def main(app = None):
     global nRemoved
     nRemoved = 0
     global config
-    config = configmanager.ToolsConfigManager().get_section('MarkParagraphs')   # configmanager version
-    if config:
-        global state
-        state = State()
-        identifyModel(config['model_dir'])
-        source_dir = config['source_dir']
-        file = config['filename']    # configmanager version
-        if file:
-            path = os.path.join(source_dir, file)
-            if os.path.isfile(path):
-                processFile(path)
-            else:
-                reportError(f"File does not exist: {path}")
+    config = ToolsConfigManager().get_section('MarkParagraphs')
+    identifyModel(config['model_dir'])
+    source_dir = config['source_dir']
+    file = config['filename']    # configmanager version
+    if file:
+        path = os.path.join(source_dir, file)
+        if os.path.isfile(path):
+            processFile(path)
         else:
-            convertFolder(source_dir)
+            reportError(f"File does not exist: {path}")
+    else:
+        convertFolder(source_dir)
 
     closeIssuesFiles()
     reportStatus(f"\nDone. Introduced {nCopied} paragraphs / sections")
