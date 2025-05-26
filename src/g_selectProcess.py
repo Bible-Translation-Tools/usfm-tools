@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 # GUI interface for selecting a process to perform in the USFM Wizard.
 
-from tkinter import *
 from tkinter import ttk
 from tkinter import font
+from tkinter import StringVar, W, NORMAL, DISABLED
 from idlelib.tooltip import Hovertip
-import os
 import g_step
 
 stepname = 'SelectProcess'   # equals the main class name in this module
@@ -73,11 +72,6 @@ class Select_Frame(g_step.Step_Frame):
         self.controller.hidebutton(1,2,3,4)
         self._set_button_status()
 
-    # Caches the current selection in self.values and calls the mainapp to save in the config file.
-    def _save_values(self):
-        self.values['selection'] = self.process.get()
-        self.controller.mainapp.save_values(stepname, self.values)
-
     # Handles the radio button click event.
     def _onRbChange(self, *args):
         self.values['selection'] = self.process.get()
@@ -111,7 +105,7 @@ To be converted, the text files must meet these conditions:\n\
   * File names must be like XXX.txt or NN-XXX.txt (where XXX = book id).\n\
   * UTF-8 encoding is required.\n\
   * The first line of each file contains the book title, no longer than 40 characters.\n\
-  * Alternatively, the book title is marked by \mt or \h, anywhere prior to chapter 1.\n\
+  * Alternatively, the book title is marked by \\mt or \\h, anywhere prior to chapter 1.\n\
   * No other characters on first line.\n\
   * Chapter and verse numbers in Arabic numerals (0-9).\n\n\
 The process creates one USFM file per book, with \
@@ -126,7 +120,7 @@ For information about USX, visit https://ubsicap.github.io/usx.""")
 """This process produces the pseusdo-USX files and auxiliary files that BTT-Writer uses,
 from USFM source files. \
 This creates a “resource container” which BTT-Writer can then use as a new source text.\n\n\
-Chunk boundaries are based on \s5 markers in the USFM files. \
+Chunk boundaries are based on \\s5 markers in the USFM files. \
 The input file(s) should be verified, correct USFM. Therefore, the first step of this process is to validate the USFM files.""")
             case 'Paratext2Usfm':
                 self.message_area.insert('end',
@@ -140,8 +134,11 @@ Settings.xml file, with changes to reflect the new file names.""")
         self.message_area['state'] = DISABLED   # prevents editing of message area
 
     # Required ABC methods
+
+    # Caches the current selection in self.values and calls the mainapp to save in the config file.
     def _save_values(self):
-        pass
+        self.values['selection'] = self.process.get()
+        self.controller.mainapp.save_values(stepname, self.values)
     def _onExecute(self, *args):
         pass
     def onScriptEnd(self, nIssues):
