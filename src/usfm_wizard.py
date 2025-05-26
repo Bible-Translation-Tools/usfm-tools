@@ -152,25 +152,28 @@ class UsfmWizard(tkinter.Tk):
         return gotostep
 
     # Activates the next step, based the current process and what step we just finished.
-    def step_next(self, copyparms=None):
+    def step_next(self, copyparms={}):
         nextstep = self.steps[self.nextstepname()]
         self.stepstack.append(nextstep)
         self.activate_step(nextstep, copyparms)
 
-    def activate_step(self, step, copyparms=None):
+    def activate_step(self, step, copyparms={}):
         self.titleframe.step_label['text'] = step.title()
         config = ToolsConfigManager()
+        for parm in copyparms:
+            config.set(step.name(), parm, copyparms[parm])
+        config.set('UsfmWizard', 'step', step.name())
+        config.set('UsfmWizard', 'version', app_version)
+        config.save()
         section = config.get_section(step.name())
-        if copyparms:
-            for parm in copyparms:
-                section[parm] = copyparms[parm]
-            config.write_section(step.name(), section)
         self.stepstack[-1].show(section)
 
     # Called by one of the GUI modules.
     # Saves the specified values in the config file.
     def save_values(self, stepname, values):
-        ToolsConfigManager().write_section(stepname, values)
+        config = ToolsConfigManager()
+        config.set_section(stepname, values)
+        config.save()
 
 # The Title_Frame implements a Label for step titles, and a Progressbar for step executions.
 # These go on row 1 of the main UsfmWizard Frame.
@@ -284,7 +287,6 @@ def about(*args):
                         detail=f"Config file: {configpath}")
 def exit_wizard(*args):
     wizard.destroy()
-    # It would be nice if I killed any threads that are still running here.
 
 if __name__ == "__main__":
     wizard = UsfmWizard()

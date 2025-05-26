@@ -51,13 +51,24 @@ class ToolsConfigManager:
         return self.configpath
 
     def get_section(self, sectionname) -> SectionProxy:
-        if sectionname not in self.cfgParser or len(self.cfgParser[sectionname]) == 0:
+        if not self.cfgParser.has_section(sectionname) or len(self.cfgParser[sectionname]) == 0:
             values = self.default_section(sectionname)
-            self.write_section(sectionname, values)
+            self.set_section(sectionname, values)
+            self.save()
         return self.cfgParser[sectionname]
 
-    def write_section(self, sectionname, sec):
-        self.cfgParser[sectionname] = sec
+    def set(self, section:str, option:str, value: str|bool):
+        if not self.cfgParser.has_section(section):
+            self.cfgParser.add_section(section)
+        if isinstance(value, bool):
+            value = "True" if value else "False"
+        self.cfgParser.set(section, option, value)
+
+    def set_section(self, sectionname, values:dict):
+        self.cfgParser[sectionname] = values
+
+    # Rewrites the entire configuration file with current values.
+    def save(self):
         with io.open(self.configpath, "tw", encoding='utf-8', newline='\n') as file:
             self.cfgParser.write(file)
 
