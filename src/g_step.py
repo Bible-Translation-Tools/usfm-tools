@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # Base class for graphical user interface classes for USFM steps.
 
-from tkinter import *
 from tkinter import ttk
 from tkinter import font
 from tkinter import filedialog
+from tkinter import StringVar, DISABLED, NORMAL, Text
 from abc import ABC, abstractmethod
 import os
 import g_util
@@ -19,8 +19,9 @@ class Step(ABC):
 
     @abstractmethod
     def name(self) -> str:
-        return None
+        return ""
 
+    # Called by UsfmWizard.activeate_step()
     def show(self, values):
         self.values = values
         self.frame.show_values(values)
@@ -35,7 +36,7 @@ class Step(ABC):
         self.mainapp.step_next()
     # Advance to next step, defaulting the values of the named parameters, if any.
     def onNext(self, *parms):
-        copyparms = {parm: self.values[parm] for parm in parms} if parms else None
+        copyparms = {parm: self.values[parm] for parm in parms} if parms else {}
         self.mainapp.step_next(copyparms)
 
     # Default implementation, only for Steps that don't execute,. i.e. SelectProcess
@@ -87,6 +88,7 @@ class Step_Frame(ttk.Frame, ABC):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
+        self.values = {}
 
         # Set up message area
         self.message_area = Text(self, height=10, width=30, wrap="word")
@@ -103,7 +105,7 @@ class Step_Frame(ttk.Frame, ABC):
     def show_values(self, values):
         raise NotImplementedError("show_values() not implemented")
     @abstractmethod
-    def _save_values(self, values):
+    def _save_values(self):
         raise NotImplementedError("_save_values() not implemented")
 
     def show_progress(self, status):
