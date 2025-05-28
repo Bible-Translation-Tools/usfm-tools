@@ -38,23 +38,42 @@ class ToolsConfigManager:
         return f'ToolsConfigManager({self.configpath})'
 
     def _make_default_config(self):
-        for section in ['MarkParagraphs','Plaintext2Usfm','Ptx2Usfm','RenameParatextFiles','RevertChanges',
-                        'Txt2USFM','Usfm2Usx','UsfmCleanup','Usx2Usfm','VerifyManifest','VerifyUSFM',
-                        'Word2text']:
+        for section in ['MarkParagraphs','RevertChanges','SelectProcess',
+                        'Txt2USFM','UsfmCleanup','VerifyManifest','VerifyUSFM']:
             self.cfgParser.add_section(section)
             self.cfgParser[section] = self.default_section(section)
         with io.open(self.configpath, "tw", encoding='utf-8', newline='\n') as file:
             self.cfgParser.write(file)
 
+    # Reads the last saved version of the config file.
+    # Used by unit tests only.
+    def _reread(self):
+        self.cfgParser.read(self.configpath, encoding='utf-8')
+
     # Returns the config file path.
     def config_path(self):
         return self.configpath
 
+    def get(self, sectionname, option):
+        value = ""
+        if not self.cfgParser.has_section(sectionname) or len(self.cfgParser[sectionname]) == 0:
+            defaultvalues = self.default_section(sectionname)
+            if defaultvalues:
+                self.set_section(sectionname, defaultvalues)
+                value = self.cfgParser.get(sectionname, option, fallback="")
+        else:
+            value = self.cfgParser.get(sectionname, option, fallback="")
+        return value
+
+    def getboolean(self, sectionname, option):
+        value = self.get(sectionname, option)
+        return (value in {'True', 'true', '1'})
+
+    # Deprecated; use get() and getboolean()
     def get_section(self, sectionname) -> SectionProxy:
         if not self.cfgParser.has_section(sectionname) or len(self.cfgParser[sectionname]) == 0:
             values = self.default_section(sectionname)
             self.set_section(sectionname, values)
-            self.save()
         return self.cfgParser[sectionname]
 
     def set(self, section:str, option:str, value: str|bool):
@@ -64,8 +83,11 @@ class ToolsConfigManager:
             value = "True" if value else "False"
         self.cfgParser.set(section, option, value)
 
+    # Updates the section with the specified values.
+    # Doesn't overwrite options not specified.
     def set_section(self, sectionname, values:dict):
-        self.cfgParser[sectionname] = values
+        for value in values:
+            self.set(sectionname, value, values[value])
 
     # Rewrites the entire configuration file with current values.
     def save(self):
