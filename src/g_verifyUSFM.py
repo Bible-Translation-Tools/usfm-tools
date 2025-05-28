@@ -271,7 +271,6 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.controller.executeInventoryLabels()
 
     def _onFindSrcDir(self, *args):
-        msg = self._getCompareValue()
         self.controller.askdir(self.source_dir)
     def _onFindFile(self, *args):
         path = filedialog.askopenfilename(initialdir=self.source_dir.get(), title = "Select usfm file",
