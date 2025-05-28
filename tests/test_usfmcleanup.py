@@ -39,7 +39,7 @@ def test_add_spaces(s, expected):
         ('\\c 6 \n\\pi\n\\s3 Heading\n', '\\c 6 \n\\s3 Heading\n\\pi\n'),
         ('\\v 1 words of a verse.\n\\q2\n\\s Heading\n', '\\v 1 words of a verse.\n\\s Heading\n\\q2\n'),
         ('\n\\q2\n\\s2Heading\n', '\n\\q2\n\\s2Heading\n'),     # not a proper heading
-        ('\n\\s Heading\n\s Heading2', '\n\\s Heading\n\\s Heading2'),
+        ('\n\\s Heading\n\\s Heading2', '\n\\s Heading\n\\s Heading2'),
         ('\n\\p\n\\s Heading\n\\s Heading2', '\n\\s Heading\n\\p\n\\s Heading2'),
         ('\n\\p\n\n\\s Heading\n', '\n\\s Heading\n\\p\n'),
         ('\n\\p\n\\s First Heading\n\\v 1 verse\n\\p\n\\s1 Second Heading\n', '\n\\s First Heading\n\\p\n\\v 1 verse\n\\s1 Second Heading\n\\p\n'),
@@ -111,13 +111,14 @@ def test_fix_booktitles(s, expected):
         ("beats..", "beats."),
         ("beats...", ""),
         ('\\v 13 \' first(second', '\\v 13 \'first (second'),
-        ('\\v 13 « first(second', '\\v 13 «first (second'),
+        ('\\v 13-14 « first(second', '\\v 13-14 «first (second'),
         ('right)paren', 'right) paren'),
         ('one)two}three', 'one) two} three'),
         ('four five]. six', ''),
         ('seven)8', 'seven) 8'),
         ('सुगन्धवाला हवन ठहरे ।', 'सुगन्धवाला हवन ठहरे ।'),   # change space to non-break space \u00A0 == 0xC2 0xA0 (UTF-8)
         ('सुगन्धवाला हवन ठहरे ॥', 'सुगन्धवाला हवन ठहरे ॥'),
+        ('\\v 1 " Mulolaghe! Namungavombaghe', '\\v 1 "Mulolaghe! Namungavombaghe')
     ])
 # 1. Replaces substrings from substitutions module
 # 2. Reduces double periods to single.
@@ -141,10 +142,8 @@ def test_fix_punctuation(s, expected):
    ])
 def test_change_quote_medial(s, all, double, expected):
     if not expected:
-        expected == s
-    exp_change = (s != expected)
-    (changed, newstr) = usfm_cleanup.change_quote_medial(s, all, double)
-    assert changed == exp_change
+        expected = s
+    newstr = usfm_cleanup.change_quote_medial(s, all, double)
     assert newstr == expected
 
 floating_test_cases = [
@@ -180,25 +179,12 @@ floating_test_cases = [
     ('"EE,  " FF " GG " HH "', ''),
 ]
 
-'''
-@pytest.mark.parametrize('s, expected', floating_test_cases)
-def test_change_floating_quotes_old(s, expected):
-    if not expected:
-        expected = s
-    exp_change = (expected != s)
-    (changed, newstr) = usfm_cleanup.change_floating_quotes_old(s)
-    assert newstr == expected
-    assert changed == exp_change
-'''
-
 @pytest.mark.parametrize('s, expected', floating_test_cases)
 def test_change_floating_quotes(s, expected):
     if not expected:
         expected = s
-    exp_change = (expected != s)
-    (changed, newstr) = usfm_cleanup.change_floating_quotes(s, True, True)
+    newstr = usfm_cleanup.change_floating_quotes(s, True, True)
     assert newstr == expected
-    assert changed == exp_change
 
 @pytest.mark.parametrize('s, expected',
     [

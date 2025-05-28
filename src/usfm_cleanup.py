@@ -85,7 +85,7 @@ class State:
                 self.sverse = payload
                 self.reference = self.bookId + " " + self.schapter + ":" + payload
 
-state: State
+state = State()
 
 def shortname(longpath):
     source_dir = config['source_dir']
@@ -253,8 +253,8 @@ def fix_punctuation(str):
 
 # spacing_list is a list of compiled expressions where a space needs to be inserted
 # after the first matched character.
-spacing_list = [ re.compile(r'[\.,;:)\]][\w]'),
-                 re.compile(r'[^\s][(\[]')  ]
+spacing_list = [re.compile(r'[\.,;:)\]][\w]'),
+                re.compile(r'[^\s][(\[]') ]
 
 # Adds spaces where needed. spacing_list controls what happens.
 # spacing_list may need to be customized for every language.
@@ -369,6 +369,7 @@ q3_re = re.compile(r'[\w][.?!;:,]([«“‘’”»])[\w]')
 #   adjacent to word-forming characters on both sides.
 # Locates matching quote in the same line.
 # Inserts space before or after the quote, as appropriate.
+# Returns line, including any changes made.
 def change_quote_medial(line, all, double):
     pos = 0
     if all:   # all straight quotes can be considered quotation marks
@@ -427,6 +428,7 @@ quotefloat_re = re.compile(r'(^|\s)(["\'«“‘’”»])(\s|$)')
 
 # Removes space on right side of quote if preceded by a "said" word.
 # Removes space on one side of floating quotes if there are matching quotes.
+# Returns the line including any changes made.
 def change_floating_quotes(line, all, double):
     if quotefloat_re.search(line):    # if there exist any floating quotes in this line
         line = fix_saids(line)
@@ -695,8 +697,6 @@ def main(app = None):
     global config
     global std_titles
     global nChanged
-    global state
-    state = State()
     nChanged = 0
     gui = app
     config = configmanager.ToolsConfigManager().get_section('UsfmCleanup')
