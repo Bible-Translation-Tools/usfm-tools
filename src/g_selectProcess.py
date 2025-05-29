@@ -114,10 +114,11 @@ The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
             case 'Usx2Usfm':
                 self.message_area.insert('end',
 """This process converts Unified Scripture XML (USX) files into USFM. \
-For information about USX, visit https://ubsicap.github.io/usx.""")
+It does *not* work for pseudo-USX files, like those found in BTTW "resources containers."
+For information about USX, see https://ubsicap.github.io/usx.""")
             case 'Usfm2Usx':
                 self.message_area.insert('end',
-"""This process produces the pseusdo-USX files and auxiliary files that BTT-Writer uses,
+"""This process produces the pseudo-USX files and auxiliary files that BTT-Writer uses,
 from USFM source files. \
 This creates a “resource container” which BTT-Writer can then use as a new source text.\n\n\
 Chunk boundaries are based on \\s5 markers in the USFM files. \
