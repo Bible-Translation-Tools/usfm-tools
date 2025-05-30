@@ -31,7 +31,8 @@ issuesFile = None
 issues: dict = {}   # Can't put in State because we want to accumulate issues across all files.
 wordlist = dict()
 footnotedVerses = {}
-nFiles = 0  # number of .usfm files verified line by line
+nFiles = 0  # number of .usfm files verified
+nSectionHeadings = 0
 
 import configmanager
 import os
@@ -46,8 +47,7 @@ from projectinfo import SaidWords
 import usfm_utils
 import sentences
 import section_titles
-from datetime import date
-from datetime import datetime
+from datetime import date, datetime
 
 # Item categories
 PP = 1      # paragraph or quote
@@ -60,12 +60,12 @@ OTHER = 9
 # Manages the verify state for a single usfm file.
 class State:
     def __init__(self):
-        self.IDs = []
+        self.IDs = []       # list of book IDs that have been processed
         self.ID = ""
         self.reference = ""
         self.errorRefs = set()
-        self.sourcetext = {}    # a dict, indexed by verse reference
-        self.sourcefootnote = {}    # a dict, indexed by verse reference
+        self.sourcetext = {}    # verse-reference: verse-text
+        self.sourcefootnote = {}    # verse-reference: footnote(s)
         self.booklength_src = 1
         self.booklength = 1
         self.canContinue = True
@@ -105,6 +105,7 @@ class State:
         self.prevItemCategory = OTHER
         self.toc3 = None
         self.upperCaseReported = False
+        self.nSectionHeadings = 0
 
     def __repr__(self):
         return f'State({self.reference})'
@@ -184,10 +185,14 @@ class State:
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = QQ
 
-    def addSection(self):
+    def addSection(self, tag):
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = S
         self.inVerse = False
+        if tag != 's5':
+            global nSectionHeadings
+            nSectionHeadings += 1
+            self.nSectionHeadings += 1
 
     # Records the start of a new chunk
     def addS5(self):
@@ -556,6 +561,11 @@ def reportMixedCase():
     elif len(mcwords) >= limit:
         reportError("Too many mixed case words; reporting cancelled", 0.6)
 
+def reportSections():
+    if nFiles > 2 and nSectionHeadings > 0:
+        if nSectionHeadings < (6 if nFiles > 5 else 4):
+            reportError(f"Possible error: sparse section headings (only {nSectionHeadings}).", 0.7)
+
 # Returns sort key for the specified item.
 def wordkey(item):
     word = item[0].lstrip("'")
@@ -852,7 +862,7 @@ def takeSection(tag):
         reportSectionPrecedentErrors(tag)
     if state.currItemCategory == S:
         reportError(f"Back to back section markers after {state.reference}", 29.5)
-    state.addSection()
+    state.addSection(tag)
 
 def takeTitle(token):
     if token.isTOC3():
@@ -1277,10 +1287,12 @@ def verifyChapterAndVerseMarkers(text, path):
 #            s = s[:-1]
         reportError("Missing space after verse number: " + s + " in " + path, 74)
 
-def verifyParagraphCount():
+def verifyParagraphCounts():
     if state.chapter > 0:
         if state.nParagraphs / state.chapter <= 2.5 and state.nPoetry / state.chapter <= 10:
             reportError(f"Low paragraph count ({state.nParagraphs + state.nPoetry}) for {state.ID}", 73.5)
+        if state.nSectionHeadings == 1:
+            reportError(f"Possible error: one lone section is marked in {state.ID}", 73.6)
 
 embeddedquotes_re = re.compile(r"\w'\w")
 
@@ -1434,7 +1446,7 @@ def verifyFile(path):
         verifyChapterCount()
         verifyFootnotes()
         verifyChapterTitles()
-        verifyParagraphCount()
+        verifyParagraphCounts()
         state.addID("")
         sys.stderr.flush()
 
@@ -1453,9 +1465,13 @@ def initializeGlobals():
     global config
     global suppress
     global wordlist
+    global nFiles
+    global nSectionHeadings
 
+    nFiles = 0
+    nSectionHeadings = 0
     wordlist = dict()
-    config = configmanager.ToolsConfigManager().get_section('VerifyUSFM')   # configmanager version
+    config = configmanager.ToolsConfigManager().get_section('VerifyUSFM')
     if config:
         for i in range(1, len(suppress)):
             suppress[i] = config.getboolean('suppress'+str(i), fallback = False)
@@ -1506,6 +1522,7 @@ def main(app=None):
             verifyDir(workdir)
         if not suppress[12]:
             reportMixedCase()
+        reportSections()
         saveResults()
         reportStatus("\nDone.")
     if gui:
