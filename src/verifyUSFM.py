@@ -993,8 +993,7 @@ spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)    # spa
 # Indonesian TBI version of this expression:
 # spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’»›])', re.UNICODE)    # space before phrase-ending mark
 # Kuku REG version of this expression:
-# spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)”»›])', re.UNICODE)    # space before phrase-ending mark
-spacey2_re = re.compile(r'[\s][\[\]\(\'"«“‘’”»›][\s]', re.UNICODE)    # free floating marks
+spacey2_re = re.compile(r'[\s][\[\]\(\'"«“‘’”»›][\s]')
 spacey3_re = re.compile(r'[\(\'"«“‘’”»›][\s]', re.UNICODE)       # quote-space at beginning of verse
 spacey4_re = re.compile(r'[\s][\(\'"«“‘’”»›]$', re.UNICODE)       # quote-space at end of verse
 wordmedial_punct_re = re.compile(r'[\w][.?!;:,()\[\]"«“‘”»›][.?!;:,()\[\]\'"«“‘’”»›]*[\w]')
@@ -1230,6 +1229,9 @@ def take(token):
         takeD()
     elif token.isB():
         takeB()
+    elif token.isIDE():
+        if token.value != 'UTF-8':
+            reportError(f"Unsupported character encoding in {state.reference}: \\ide {token.value}", 64)
     elif isTitleToken(token):
         takeTitle(token)
     elif token.isUSFM():    # non-standard USFM token but is used by UnfoldingWord software
