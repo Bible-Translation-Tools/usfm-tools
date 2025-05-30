@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # inventory() counts occurrences of each chapter label in a folder of .usfm files.
 
-import configmanager
 import sys
 import os
 import io
@@ -71,15 +70,22 @@ def processFile(path):
 def inventory(app, caller):
     global gui
     gui = app
-    config = configmanager.ToolsConfigManager().get_section(caller)
-    if config:
-        labels.clear()
-        source_dir = config['source_dir']
-        if os.path.isdir(source_dir):
-            inventoryFolder(source_dir)
-        else:
-            reportError("Invalid folder: " + source_dir)
-        dumpInventory(source_dir)
-        sys.stdout.flush()
+    from configmanager import ToolsConfigManager
+    config = ToolsConfigManager()
+    labels.clear()
+    source_dir = config.get(caller, 'source_dir')
+    if os.path.isdir(source_dir):
+        inventoryFolder(source_dir)
+    else:
+        reportError(f"Invalid folder: {caller} source_dir = {source_dir}")
+    dumpInventory(source_dir)
+    sys.stdout.flush()
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
+
+def main(gui = None):
+    from configmanager import ToolsConfigManager
+    config = ToolsConfigManager()
+    caller = config.get('UsfmWizard', 'step')
+    if caller:
+        inventory(gui, caller)

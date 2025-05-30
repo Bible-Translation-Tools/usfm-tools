@@ -45,7 +45,7 @@ class UsfmCleanup(g_step.Step):
         self.frame.clear_messages()
 
     def executeInventoryLabels(self):
-        self.mainapp.execute_script("inventory_cl_2", 0)
+        self.mainapp.execute_script("inventory_chapter_labels", 0)
         self.frame.clear_messages()
 
 class UsfmCleanup_Frame(g_step.Step_Frame):

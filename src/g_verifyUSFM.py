@@ -45,7 +45,7 @@ class VerifyUSFM(g_step.Step):
         self.executed = True
 
     def executeInventoryLabels(self):
-        self.mainapp.execute_script("inventory_cl_1", 0)
+        self.mainapp.execute_script("inventory_chapter_labels", 0)
         self.frame.clear_messages()
 
 class VerifyUSFM_Frame(g_step.Step_Frame):
