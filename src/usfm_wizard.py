@@ -27,8 +27,7 @@ import g_usx2usfm
 import g_word2text
 from txt2USFM import main
 from verifyUSFM import main
-from inventory_cl_1 import main
-from inventory_cl_2 import main
+from inventory_chapter_labels import main
 from usfm_cleanup import main
 from mark_paragraphs import main
 from paratext2usfm import main
