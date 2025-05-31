@@ -503,6 +503,7 @@ def isBookFolder(path):
     return os.path.isdir(chapterPath)
 
 # Extracts information from the specified manifest.json file.
+# Returns book ID.
 def parseManifest(path):
     bookId = ""
     try:
@@ -601,9 +602,9 @@ def convertFolder(folder):
             appendToProjects(bookId, bookTitle)
         else:
             if not bookId:
-                reportError("Unable to determine book ID in " + folder)
+                reportError("Unable to determine book ID in " + shortname(folder))
             if not bookTitle:
-                reportError("Unable to determine book title in " + folder)
+                reportError("Unable to determine book title in " + shortname(folder))
     else:
         reportError(f"Book folder name ({os.path.basename(folder)}) does not match language code ({language_code})")
 

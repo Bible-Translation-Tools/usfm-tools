@@ -4,8 +4,6 @@
 # GUI interface for merging BTTW text files and converting to USFM
 
 from tkinter import ttk
-from tkinter import font
-from tkinter import filedialog
 from tkinter import StringVar, BooleanVar, W, DISABLED
 from idlelib.tooltip import Hovertip
 import os
@@ -47,8 +45,8 @@ Other things that aren't really section titles may have been marked as section t
 Therefore, it is necessary to manually verify section titles after this step.
 """
                 self.frame.show_progress(status)
-            status = f"The conversion from txt to USFM is done."
-        self.frame.show_progress(status)
+        if status:
+            self.frame.show_progress(status)
         self.frame.onScriptEnd()
 
 class Text2USFM_Frame(g_step.Step_Frame):
