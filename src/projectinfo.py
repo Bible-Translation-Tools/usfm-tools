@@ -152,7 +152,8 @@ class ProjectInfo:
     def addContributors(self, contributors):
         if self.manifest:
             for contributor in contributors:
-                self.manifest.addContributor(contributor)
+                if contributor:     # yes, it is possible to have a null contributor
+                    self.manifest.addContributor(contributor)
 
     def addProject(self, project):
         if self.manifest:
