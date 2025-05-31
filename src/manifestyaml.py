@@ -144,7 +144,7 @@ class ManifestYaml:
         return srclist
 
     # Converts contributor to title case and adds it to the list, if unique.
-    def addContributor(self, contributor):
+    def addContributor(self, contributor: str):
         candidate = contributor.title().strip()
         if candidate and not candidate in self.contents['dublin_core']['contributor']:
             self.contents['dublin_core']['contributor'].append(candidate)

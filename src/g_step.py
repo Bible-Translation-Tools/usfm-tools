@@ -2,12 +2,10 @@
 # Base class for graphical user interface classes for USFM steps.
 
 from tkinter import ttk
-from tkinter import font
 from tkinter import filedialog
 from tkinter import StringVar, DISABLED, NORMAL, Text
-from abc import ABC, abstractmethod
+from abc import ABC
 import os
-import g_util
 
 class Step(ABC):
     def __init__(self, mainframe, mainapp, stepname, title):
@@ -17,15 +15,20 @@ class Step(ABC):
         self.buttons = mainapp.buttonsframe
         self.frame = None
 
-    @abstractmethod
+    # Ensures that self.frame is non-null.
+    def _frame(self):
+        if not self.frame:  # should not occur
+            self.frame = Step_Frame(self.main_frame, self.mainapp)
+        return self.frame
+
     def name(self) -> str:
         return ""
 
-    # Called by UsfmWizard.activeate_step()
+    # Called by UsfmWizard.activate_step()
     def show(self, values):
         self.values = values
-        self.frame.show_values(values)
-        self.frame.tkraise()
+        self._frame().show_values(values)
+        self._frame().tkraise()
 
     def title(self):
         return self.steptitle
@@ -58,13 +61,13 @@ class Step(ABC):
     # Called by the main app.
     # Displays the specified string in the message area.
     def onScriptMessage(self, progress):
-        self.frame.show_progress(progress)
+        self._frame().show_progress(progress)
 
     # Called by the main app.
     def onScriptEnd(self, status: str):
         if status:
-            self.frame.show_progress(status)
-        self.frame.onScriptEnd()
+            self._frame().show_progress(status)
+        self._frame().onScriptEnd()
 
     # Prompts the user for a folder, using the parent of the specified default folder as the starting point.
     # Sets dirpath to the selected folder, or leaves it unchanged if the user cancels.
@@ -101,10 +104,8 @@ class Step_Frame(ttk.Frame, ABC):
         ys.grid(column = 6, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
 
-    @abstractmethod
     def show_values(self, values):
         raise NotImplementedError("show_values() not implemented")
-    @abstractmethod
     def _save_values(self):
         raise NotImplementedError("_save_values() not implemented")
 
@@ -137,6 +138,5 @@ class Step_Frame(ttk.Frame, ABC):
         self._save_values()
         self.controller.onExecute(self.values)
 
-    @abstractmethod
     def onScriptEnd(self):
         raise NotImplementedError("onScriptEnd() not implemented")
