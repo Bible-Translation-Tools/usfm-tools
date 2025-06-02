@@ -15,7 +15,6 @@ import sentences
 import section_titles
 import usfm_verses
 import re
-import operator
 import io
 import os
 import sys
@@ -23,7 +22,7 @@ import json
 import usfmWriter
 # from line_profiler import LineProfiler
 
-config = None
+config = configmanager.ToolsConfigManager()
 projectInfo = None
 gui = None
 
@@ -374,11 +373,11 @@ verse1_re = re.compile(r'([\\p\s]*)\\v\s+1[\-\s]')
 # Inserts chapter label if needed.
 # Returns modified section.
 def augmentChapter(section, chapterTitle):
-    chap = chapter_re.search(section)
-    if chap:
+    if chap := chapter_re.search(section):
+        label = chapterTitle.strip()
         clstr = ""
-        if chapterTitle.strip() != chap.group(1):
-            clstr = "\n\\cl " + chapterTitle.strip()
+        if label and label != chap.group(1):
+            clstr = "\n\\cl " + label
         section = section[:chap.end()].rstrip() + clstr + "\n" + section[chap.end():].lstrip()
     # Ensure \p before verse 1
     if v1 := verse1_re.search(section):
@@ -482,10 +481,10 @@ def convertFile(txtPath, chapterTitle, lastchunk):
     section = "\n" + combineLines(lines)    # fixes white space
 
     # Mark-sections-headings feature to be activated soon.
-    if config.getboolean('section_headings', fallback=False):
+    if config.getboolean('Txt2USFM', 'section_headings'):
         section = mark_section_headings(section, lastchunk)
 
-    if config.getboolean('mark_chunks', fallback=False):
+    if config.getboolean('Txt2USFM', 'mark_chunks'):
         section = mark_chunk(section)
     section = augmentChapter(section, chapterTitle)
     return section
@@ -518,8 +517,8 @@ def parseManifest(path):
             reportError("   Can't parse: " + path + ".")
         else:
             language_id = manifest['target_language']['id']
-            if config['language_code'] != language_id:
-                reportError(f"Language code ({config['language_code']}) does not match Language Id ({language_id}) in {shortname(path)}.")
+            if config.get('Txt2USFM', 'language_code') != language_id:
+                reportError(f"Language code ({config.get('Txt2USFM', 'language_code')}) does not match Language Id ({language_id}) in {shortname(path)}.")
             projectInfo.setLanguage(manifest['target_language']['name'], manifest['target_language']['direction'])
             bookId = manifest['project']['id']
             # contributors += [x.title() for x in manifest['translators']]
@@ -542,7 +541,7 @@ def getBookId(folder):
             if os.path.isfile(path):
                 bookId = parseManifest(path)
     if not bookId:
-        language_code = config['language_code']
+        language_code = config.get('Txt2USFM', 'language_code')
         matchstr = language_code + "_([a-zA-Z1-3][a-zA-Z][a-zA-Z])_"
         if okname := re.search(matchstr, os.path.basename(folder)):
             bookId = okname.group(1).upper()
@@ -584,7 +583,7 @@ def appendToProjects(bookId, bookTitle):
     projectInfo.addProject(project)
 
 def shortname(longpath):
-    source_dir = config['source_dir']
+    source_dir = config.get('Txt2USFM', 'source_dir')
     shortname = longpath
     if shortname == source_dir:
         shortname = os.path.basename(longpath)
@@ -593,7 +592,7 @@ def shortname(longpath):
     return shortname
 
 def convertFolder(folder):
-    language_code = config['language_code']
+    language_code = config.get('Txt2USFM', 'language_code')
     if language_code + '_' in os.path.basename(folder):
         bookId = getBookId(folder)
         bookTitle = getBookTitle(folder)
@@ -681,7 +680,7 @@ def convertBook(folder, bookId, bookTitle):
     reportProgress(f"CONVERTING {shortname(folder)}")
     sys.stdout.flush()
 
-    target_dir = config['target_dir']
+    target_dir = config.get('Txt2USFM', 'target_dir')
     chapters = listChapters(folder)
     # Open output USFM file for writing.
     usfmPath = os.path.join(target_dir, makeUsfmFilename(bookId))
@@ -715,18 +714,15 @@ def main(app = None):
     global gui
     gui = app
     global config
-    config = configmanager.ToolsConfigManager().get_section('Txt2USFM')   # configmanager version
-    if config:
-        source_dir = config['source_dir']
-        target_dir = config['target_dir']
+    target_dir = config.get('Txt2USFM', 'target_dir')
 
-        Path(target_dir).mkdir(exist_ok=True)
-        global projectInfo
-        projectInfo = ProjectInfo(target_dir, config['language_code'])
-        projectInfo.useManifest()
-        projectInfo.resetSources()
-        convert(source_dir, target_dir)
-        projectInfo.save()
+    Path(target_dir).mkdir(exist_ok=True)
+    global projectInfo
+    projectInfo = ProjectInfo(target_dir, config.get('Txt2USFM', 'language_code'))
+    projectInfo.useManifest()
+    projectInfo.resetSources()
+    convert(config.get('Txt2USFM', 'source_dir'), target_dir)
+    projectInfo.save()
     reportStatus("\nDone.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
