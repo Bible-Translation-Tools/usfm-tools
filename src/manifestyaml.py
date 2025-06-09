@@ -65,7 +65,7 @@ class ManifestYaml:
             self.contents['dublin_core']['contributor'].sort()
             with io.open(self.path, "tw", encoding='utf-8', newline='\n') as file:
                 # yaml.safe_dump(self.contents, file, default_flow_style=False, default_style="'")
-                yaml.safe_dump(self.contents, file)
+                yaml.safe_dump(self.contents, stream=file, allow_unicode=True, sort_keys=False)
 
     def setLanguageId(self, id):
         if id:
