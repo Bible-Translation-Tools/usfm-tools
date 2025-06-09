@@ -36,7 +36,6 @@ subs = [
     #("Saul us", "Saulus"),
     #("Saulu s", "Saulus"),
     #("Is rael", "Israel"),
-    #("", ""),
 
     # Remove \u200b and \u200c where they have no effect or don't belong.
     # \u200b is a zero-width space
@@ -72,6 +71,11 @@ subs = [
 #    (",“", ", “"),     # unsafe because of improper use of commas and quotes
     (" >>", "»"),
     (">> ", "» "),
+    (" ‹‹", " «"),
+    (":‹‹", ": «"),
+    (",‹‹", ", «"),
+    (" ››", "»"),
+    ("›› ", "» "),
 #    (" <", ", «"),
 #    (">", "»"),
 
