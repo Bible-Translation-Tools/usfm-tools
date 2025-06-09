@@ -1137,15 +1137,15 @@ def takeText(t, footnote=False):
     state.addText(t)
     addWords(t)
 
-allpunc = ".,:;!?-[]{}()<>'\"“‘’”`*/"
-quoteend_re = re.compile(r"[.,:;!?-\[\]{}()<>'\"“‘’”`*/]'$")    # punct ' EOL
-quotebegin_re = re.compile(r"'[.,:;!?-\[\]{}()<>'\"“‘’”`*/]")    # ' punct
+allpunc = ".።,፣:፥;፤!?-[]{}()<>'\"‹«“‘’”»›`*/"
+quoteend_re = re.compile(r"[.።,፣:፥;፤!?-\[\]{}()<>'\"‹«“‘’”»›`*/]'$")    # punct ' EOL
+quotebegin_re = re.compile(r"'[.።,፣:፥;፤!?-\[\]{}()<>'\"‹«“‘’”»›`*/]")    # ' punct
 notnumberinfootnote_re = re.compile(r'[^\d:\-.,]')
 
 # Parses all the words out of the t string and adds them to the wordlist[].
 def addWords(t):
     for item in t.split():
-        word = item.strip(".,:;!?+-[]{}()<>\"“‘’”*/")
+        word = item.strip(".።,፣:፥;፤!?+-[]{}()<>\"‹«“‘’”»›*/")
         if quoteend_re.search(word):
             word = word.rstrip(allpunc)
         if quotebegin_re.match(word):
