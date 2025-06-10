@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # This script converts text files containing whole books of the Bible to usfm files.
-# The input format of the text files is flexible, generally intended to support 
+# The input format of the text files is flexible, generally intended to support
 # free form translation.
 # The following are the minimum input format restrictions:
 #    Each file contains a single book of the Bible, and no extraneous text.
@@ -217,7 +217,7 @@ def takeV(s, lineno):
             vstr = vstr[:-1]
         takeVerseNumber(vstr)
         if len(s) > len(vstr):
-            state.usfm_file.writeStr(s[len(vstr):])     # normally this writes the verse text
+            state.usfm_file.writeStr(s[len(vstr):].strip())     # normally this writes the verse text
             state.addText()
     else:
         take("\\v " + s, lineno)
@@ -262,44 +262,43 @@ def takeMarkedText(tag, remainder, lineno):
     else:
         state.usfm_file.writeUsfm(tag, remainder)
 
-tag_re = re.compile(r'\\([a-z]+[1-4]?)')
-# titletag_re = re.compile(r'\\(h|mt) (.*)')
+tag_re = re.compile(r'\\[a-z]')
+cvjam_re = re.compile(r'\\([cv])[0-9\-]+ *')
+norm_re = re.compile(r'\\([a-z]+[1-4]?) *')
+
+# Returns list of (usfm tag, remainder) found in line.
+def parseLine(line):
+    trlist = []
+    tr = tag_re.search(line)
+    if not tr:
+        trlist.append(("", line))
+    elif tr.start() > 0:
+        trlist.append(("", line[0:tr.start()]))
+    endpos = 0
+    while tr:
+        pos = tr.start()
+        if cvjam := cvjam_re.match(line[pos:]):
+            tag = cvjam.group(1)
+            endpos += pos + 2
+        elif norm := norm_re.match(line[pos:]):
+            tag = norm.group(1)
+            endpos = pos + norm.end()
+        if tr := tag_re.search(line, endpos):
+            remainder = line[endpos:tr.start()]
+        else:
+            remainder = line[endpos:]
+        trlist.append((tag, remainder))
+    return trlist
 
 # Processes a single line of input.
 # The line has already been stripped of leading and trailing spaces.
 def takeLine(line, lineno):
-    mark = tag_re.search(line)
-    if not mark:
-        take(line, lineno)
-    if mark and mark.start() > 0:     # handle the text preceding the usfm tag
-        take(line[:mark.start()], lineno)
-    endpos = 0
-    while mark:
-        pos = endpos + mark.start()
-        endpos = endpos + mark.end()
-        tag = mark.group(1)
-        mark = tag_re.search(line[endpos:])
-        if mark:
-            remainder = line[endpos:endpos+mark.start()]
-        else:
-            remainder = line[endpos:]
-        # nextpos = endpos + mark.start() if mark else -1
-        # takeMarkedText(tag, line[endpos:nextpos], lineno)
-        takeMarkedText(tag, remainder, lineno)
-
-    # if line.startswith(r'\c '):
-    #     cstr = line[3:]
-    #     try:
-    #         takeChapter(cstr, int(cstr))
-    #     except ValueError as e:
-    #         state.addMarkedLine(line)
-    # elif tag := titletag_re.match(line):
-    #     state.addTitle(tag.group(2), lineno, tag.group(1))
-    # elif line.startswith(r'\s') or line.startswith(r'\rem '):
-    #     state.addMarkedLine(line)
-    # # elif line.startswith(r'\rem '):
-    # else:
-    #     take(line, lineno)
+    trlist = parseLine(line)
+    for tr in trlist:
+        if tr[0]:   # has a usfm-like tag
+            takeMarkedText(tr[0], tr[1], lineno)
+        else:   # no tag
+            take(line, lineno)
 
 # Handles the next bit of text, which may be a line or part of a line.
 # Uses recursion to handle complex lines.
