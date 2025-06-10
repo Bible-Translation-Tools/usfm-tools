@@ -6,17 +6,16 @@
 import re       # regular expression module
 import io
 import os
-# import shutil
-import codecs
-import string
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Matengo\mgv_reg.caps'
+source_dir = r'C:\DCS\Greek\SBLGNT\usfm'
+target_dir = r'C:\DCS\Greek\SBLGNT\work'    # if same as source_dir, back up original files
 nChanged = 0
-max_changes = 66
-filename_re = re.compile(r'.*\.usfm$')
-yes_backup = True
+max_changes = 80
+# filename_re = re.compile(r'[\w\-]+\.usfm$')
+filename_re = re.compile(r'.*\.usfm')
+# yes_backup = True
 
 
 # Strings to replace with
@@ -30,32 +29,37 @@ inlinekey = []
 inlinekey.append( re.compile(r'yesu', flags=re.UNICODE) )
 
 # Copies lines from input to output.
-# Modifies targeted input lines before writing them to output.
+# Modifies certain lines before writing them to output.
 # Renames the input file to a backup name.
 # Renames the output file to the original input file name.
 def convertByLine(path):
-    input = io.open(path, "tr", 1, encoding="utf-8-sig")
-    lines = input.readlines()
-    input.close()
-    if yes_backup:
+    with io.open(path, "tr", 1, encoding="utf-8-sig") as input:
+        lines = input.readlines()
+    if target_dir == source_dir:
         bakpath = path + ".orig"
         if not os.path.isfile(bakpath):
             os.rename(path, bakpath)
-    count = 0
-    output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
+
+    newpath = os.path.join(target_dir, os.path.basename(path))
+    output = io.open(newpath, "tw", buffering=1, encoding='utf-8', newline='\n')
+
+    prevline = ""
     for line in lines:
-        #count += 1
-        #if count in {3,7} and line.startswith("# ") and not line.endswith("?\n"):
-            #line = line[2:]
-        for i in range(len(inlinekey)):
-            sub = inlinekey[i].search(line)
-            while sub:
-                line = line[0:sub.start()] + "Yesu" + line[sub.end():]
-                #line = sub.group(1) + u"" + sub.group(2)
-                sub = inlinekey[i].search(line)
+        unaltered = line
+        line = convertLine(line, prevline)
         output.write(line)
+        prevline = unaltered
     output.close()
 
+w_re = re.compile(r'\\w +(\w+)\|strong="\w+" ?\\w\*')
+
+def convertLine(line, prevline):
+    w = w_re.search(line, 0)
+    while w:
+        word = w.group(1)
+        line = line[0:w.start()] + word + line[w.end():]
+        w = w_re.search(line, w.start() + len(word))
+    return line
 
 # keystring is used only in line-by-line. But it is searched against the entire file one time.
 keystring = []
@@ -63,19 +67,9 @@ keystring.append( re.compile(r'yesu', flags=re.UNICODE) )
 
 def convertFileByLines(path):
     global nChanged
-    input = io.open(path, "tr", 1, encoding="utf-8-sig")
-    str = input.read()
-    input.close()
-    convertme = False
-    for exp in keystring:
-        if exp.search(str):
-            convertme = True
-    if convertme:
-        convertByLine(path)
-        nChanged += 1
-        sys.stdout.write("Converted " + shortname(path) + "\n")
-
-prefix_re = re.compile(r'C:\\DCS')
+    convertByLine(path)
+    nChanged += 1
+    sys.stdout.write("Converted " + shortname(path) + "\n")
 
 def shortname(longpath):
     shortname = longpath
@@ -85,7 +79,7 @@ def shortname(longpath):
 
 # wholestring = re.compile(r' \\wj \\wj\*[ \n]', flags=re.UNICODE)
 #wholestring = re.compile(r'[^v] ([1-9][0-9]?)[^0-9 ,\.\n\-]', flags=re.UNICODE)
-wholestring = re.compile(r'[^v] ([1-9][0-9]?)[ \.]', flags=re.UNICODE)
+wholestring = re.compile(r'\n\\v ')
 
 # Converts the text a whole file at a time.
 # Uses wholestring, newstring[0]
@@ -93,25 +87,21 @@ def convertWholeFile(path):
     global nChanged
 
 #    found = classic_pattern(mdpath)
-    input = io.open(path, "tr", 1, encoding="utf-8-sig")
-    alltext = input.read()
-    input.close()
+    with io.open(path, "tr", encoding="utf-8-sig") as input:
+        alltext = input.read()
     found = wholestring.search(alltext)
     if found:
-#        input = io.open(mdpath, "tr", 1, encoding="utf-8-sig")
-#        alltext = input.read()
-#        input.close()
-        if yes_backup:
+        if target_dir == source_dir:
             bakpath = path + ".orig"
             if not os.path.isfile(bakpath):
                 os.rename(path, bakpath)
-        output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
+        newpath = os.path.join(target_dir, os.path.basename(path))
+        output = io.open(newpath, "tw", buffering=1, encoding='utf-8', newline='\n')
 
         # Use a loop for multiple replacements per file
         while found:
-            output.write(alltext[0:found.start()+2] + "\n\\v " + found.group(1))
-            alltext = alltext[found.end()-1:]
-            found = wholestring.search(alltext)
+            alltext = alltext[0:found.start()] + "\n\\m\n\\v " + alltext[found.end():]
+            found = wholestring.search(alltext, found.end() + 6)
         output.write(alltext)
         output.close()
         sys.stdout.write("Converted " + shortname(path) + "\n")
@@ -121,8 +111,8 @@ def convertWholeFile(path):
 #replacement = 'figs-rquestion'
 
 #sub_re = re.compile(r'<o:p> *</o:p>', re.UNICODE)
-sub_re = re.compile(r' yesu', re.UNICODE)
-replacement = " Yesu"
+sub_re = re.compile(r'\\p\n\\s5\n')
+replacement = '\\s5\n\\p\n'
 #sub_re = re.compile(r'</?o:p>', re.UNICODE)
 #sub_re = re.compile(r'<!--.*-->', re.UNICODE)
 #sub_re = re.compile(r'& *nbsp;', re.UNICODE)
@@ -131,29 +121,29 @@ replacement = " Yesu"
 #sub_re = re.compile(r'# +[\*]+(.*)[\*]+', re.UNICODE)
 
 # Stream edit the file by a simple, regular expression substitution
-# To do only one substitution per file, change the count argument to re.sub(), below.
+# To do only one substitution per file, change re.sub()'s count argument, below.
 def convertFileBySub(path):
     global nChanged
-    input = io.open(path, "tr", 1, encoding="utf-8-sig")
-    alltext = input.read()
-    input.close()
+    with io.open(path, "tr", encoding="utf-8-sig") as input:
+        alltext = input.read()
     found = sub_re.search(alltext)
     if found:
-        if yes_backup:
+        if target_dir == source_dir:
             bakpath = path + ".orig"
             if not os.path.isfile(bakpath):
                 os.rename(path, bakpath)
 
-        output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
+        newpath = os.path.join(target_dir, os.path.basename(path))
+        output = io.open(newpath, "tw", encoding='utf-8', newline='\n')
         output.write( re.sub(sub_re, replacement, alltext, count=0) )
         output.close()
         sys.stdout.write("Converted " + shortname(path) + "\n")
         nChanged += 1
 
 def convertFile(path):
-    # convertFileByLines(path)
-   # convertWholeFile(path)
-    convertFileBySub(path)
+    convertFileByLines(path)
+#    convertWholeFile(path)
+    # convertFileBySub(path)
 
 
 # Recursive routine to convert all files under the specified folder
