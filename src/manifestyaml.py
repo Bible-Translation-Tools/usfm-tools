@@ -44,11 +44,11 @@ class ManifestYaml:
         return errors
 
     # Creates a resource container manifest.yaml file in the specified folder.
-    def create(self, project_dir: str):
+    def create(self, project_dir: str, langcode):
         self.contents = {'dublin_core': {'conformsto': 'rc0.2', 'contributor': [],
 'creator': 'Bible translation community', 'description': 'An unrestricted literal Bible',
-'format': 'text/usfm', 'identifier': 'reg', 'issued': '2025-03-31',
-'language': {'direction': '', 'identifier': '', 'title': ''}, 'modified': '2025-03-31',
+'format': 'text/usfm', 'identifier': 'reg', 'issued': '2025-06-11',
+'language': {'direction': '', 'identifier': langcode, 'title': ''}, 'modified': '2025-06-11',
 'publisher': 'Wycliffe Associates', 'relation': [], 'rights': 'CC BY-SA 4.0', 'source': [],
 'subject': 'Bible', 'title': 'Bible', 'type': 'bundle', 'version': ''},
 'checking': {'checking_entity': [], 'checking_level': '1'},
@@ -91,6 +91,8 @@ class ManifestYaml:
     def getLanguageAttribute(self, attr):
         try:
             value = self.contents['dublin_core']['language'][attr]
+            if value is None:
+                value = ""
         except KeyError as e:
             value = ''
         return value

@@ -45,7 +45,7 @@ class ProjectInfo:
         self.manifest = ManifestYaml()
         errors = self.manifest.load(self.project_dir)
         if len(errors) > 0:
-            self.manifest.create(self.project_dir)
+            self.manifest.create(self.project_dir, self.getLanguageCode())
         self.sync()
 
     # Syncs self.info and self.manifest if either is missing any values.
