@@ -137,6 +137,11 @@ def getSaidWords(source_dir):
     pi = ProjectInfo(source_dir, config['language_code'])
     saidwords = pi.getWords(mincount=4)
 
+# This function is to be used only by unit tests.
+def _setSaidWords(words):
+    global saidwords
+    saidwords = words
+
 addp_re = re.compile(r'(\\s[1-5]? .*?\n)(\n*\\v )')
 
 # Add \p between section heading and verse marker, where missing.
@@ -359,31 +364,31 @@ def find_matching_openquote(line: str, pos: int, singles):
                 break
     return openpos
 
-q1_re = re.compile(r'\w[.?!;:,](["\'«“‘’”»])\w')    # adjacent punctuation where second char is a quote mark
-q2_re = re.compile(r'\w[.?!;:,](["«“‘’”»])\w')
+q1_re = re.compile(r'(\w+)[.?!;:,](["\'«“‘’”»])\w')    # adjacent punctuation where second char is a quote mark
+q2_re = re.compile(r'(\w+)[.?!;:,](["«“‘’”»])\w')
 
 # Finds sequences of phrase-ending punctuation followed by a quote,
 #   adjacent to word-forming characters on both sides.
 # Locates matching quote in the same line.
 # Inserts space before or after the quote, as appropriate.
 # Returns line, including any changes made.
-def change_quote_medial(line, all):
+def change_quote_medial(line, singles):
     pos = 0
-    if all:   # all straight quotes can be considered quotation marks
-        quotemedial_re = q1_re
-    else:    # only straight double quotes can be considered quotation marks
-        quotemedial_re = q2_re
+    quotemedial_re = q1_re if singles else q2_re
 
     bad = quotemedial_re.search(line)
     while bad:
-        pos = bad.start() + 2
-        matepos = find_matching_openquote(line, pos, all)
-        if 0 <= matepos < pos:
-            line = line[:pos+1] + ' ' + line[pos+1:]
+        pos = bad.end(1) + 1
+        if bad.group(1) in saidwords and (quotes.is_straight(line[pos], singles) or quotes.is_open(line[pos])):
+            line = line[:pos] + ' ' + line[pos:]
         else:
-            matepos = find_matching_closequote(line, pos, all, True)
-            if matepos > pos:
-                line = line[:pos] + ' ' + line[pos:]
+            matepos = find_matching_openquote(line, pos, singles)
+            if 0 <= matepos < pos:
+                line = line[:pos+1] + ' ' + line[pos+1:]
+            else:
+                matepos = find_matching_closequote(line, pos, singles, True)
+                if matepos > pos:
+                    line = line[:pos] + ' ' + line[pos:]
         bad = quotemedial_re.search(line)
         if bad and bad.start() <= pos:
             break

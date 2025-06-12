@@ -133,6 +133,7 @@ def test_fix_punctuation(s, expected):
     [
         ('first,second', True, 'first,second'),
         ('first,"second', True, 'first,"second'),
+        # ('one,"Two," three,"Four"', False, 'one, "Two," three, "Four"'),  # multiple per line not supported yet
         ("o'jole oddo,'Me", True, "o'jole oddo,' Me"),
         ("o'jole oddo,'Me", False, "o'jole oddo,'Me"),
         ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", True, "oddo, 'Me ri rossosu i'jâkikâle ~bwo, "),
@@ -141,10 +142,18 @@ def test_fix_punctuation(s, expected):
         ('fine."Then"', False, 'fine. "Then"'),
         ('"fine."Then', False, '"fine." Then'),
         ('"fine."Then"', False, '"fine." Then"'),
+        ('he said,"Go', False, 'he said, "Go'),    # said word
+        ("he said,'Stay", False, ''),
+        ("he said,'Pray", True, "he said, 'Pray"),
+        ("he said,'Pray", False, ""),
+        ("he said,»You may", True, ''),
+        ("«he said,»Then", True, "«he said,» Then"),
+        ("he said,‘Do not", False, "he said, ‘Do not"),
    ])
 def test_change_quote_medial(s, all, expected):
     if not expected:
         expected = s
+    usfm_cleanup._setSaidWords(['said', 'asked'])
     newstr = usfm_cleanup.change_quote_medial(s, all)
     assert newstr == expected
 
@@ -179,12 +188,16 @@ floating_test_cases = [
     ('“DD, “   second”', '“DD, “second”'),
     ('"EE, " FF " GG " HH', '"EE," FF "GG" HH'),
     ('"EE,  " FF " GG " HH "', ''),
+    ('he said, " Go', 'he said, "Go'),
+    ('he asked, ” Why', ''),
+    ("They said, ' Okay", "They said, 'Okay"),
 ]
 
 @pytest.mark.parametrize('s, expected', floating_test_cases)
 def test_change_floating_quotes(s, expected):
     if not expected:
         expected = s
+    usfm_cleanup._setSaidWords(['said', 'asked'])
     newstr = usfm_cleanup.change_floating_quotes(s, True)
     assert newstr == expected
 
