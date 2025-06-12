@@ -292,3 +292,18 @@ def test_promoteDoubleQuotes(s, expected):
 def test_matechar(quotechar, exp_mate):
     mate = quotes.matechar(quotechar)
     assert mate == exp_mate
+
+@pytest.mark.parametrize('quotechar, singles, exp_straight',
+    [
+        ('"', False, True),
+        ('"', True, True),
+        ('«', False, False),
+        ('6', True, False),
+        ('', True, False),
+        ("'", False, False),
+        ("'", True, True),
+        ('’', True, False),
+    ])
+def test_is_straight(quotechar, singles, exp_straight):
+    value = quotes.is_straight(quotechar, singles)
+    assert value == exp_straight

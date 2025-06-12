@@ -129,21 +129,23 @@ def test_fix_punctuation(s, expected):
         expected = s
     assert usfm_cleanup.fix_punctuation(s) == expected
 
-@pytest.mark.parametrize('s, all, double, expected',
+@pytest.mark.parametrize('s, all, expected',
     [
-        ('first,second', True, True, 'first,second'),
-        ('first,"second', True, True, 'first,"second'),
-        ("o'jole oddo,'Me", True, True, "o'jole oddo,' Me"),
-        ("o'jole oddo,'Me", False, True, "o'jole oddo,'Me"),
-        ("o'jole oddo,'Me", False, False, "o'jole oddo,'Me"),
-        ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", True, True, "oddo, 'Me ri rossosu i'jâkikâle ~bwo, "),
-        ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", False, True, "oddo,'Me ri rossosu i'jâkikâle ~bwo, "),
-        ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", False, False, "oddo,'Me ri rossosu i'jâkikâle ~bwo, "),
+        ('first,second', True, 'first,second'),
+        ('first,"second', True, 'first,"second'),
+        ("o'jole oddo,'Me", True, "o'jole oddo,' Me"),
+        ("o'jole oddo,'Me", False, "o'jole oddo,'Me"),
+        ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", True, "oddo, 'Me ri rossosu i'jâkikâle ~bwo, "),
+        ("oddo,'Me ri rossosu i'jâkikâle ~bwo, ", False, "oddo,'Me ri rossosu i'jâkikâle ~bwo, "),
+        ('fine."Then', False, ''),    # there is no matching quote to aid us
+        ('fine."Then"', False, 'fine. "Then"'),
+        ('"fine."Then', False, '"fine." Then'),
+        ('"fine."Then"', False, '"fine." Then"'),
    ])
-def test_change_quote_medial(s, all, double, expected):
+def test_change_quote_medial(s, all, expected):
     if not expected:
         expected = s
-    newstr = usfm_cleanup.change_quote_medial(s, all, double)
+    newstr = usfm_cleanup.change_quote_medial(s, all)
     assert newstr == expected
 
 floating_test_cases = [
@@ -183,7 +185,7 @@ floating_test_cases = [
 def test_change_floating_quotes(s, expected):
     if not expected:
         expected = s
-    newstr = usfm_cleanup.change_floating_quotes(s, True, True)
+    newstr = usfm_cleanup.change_floating_quotes(s, True)
     assert newstr == expected
 
 @pytest.mark.parametrize('s, expected',
@@ -345,25 +347,23 @@ def test_find_matching_closequote(line, pos, exp_matepos):
         ('““234"6789“1234””789"1234"‘789’’234‘‘789’1234"”', 1, -1),
     ])
 def test_find_matching_openquote(line, pos, exp_matepos):
-    matepos = usfm_cleanup.find_matching_openquote(line, pos, True, True)
+    matepos = usfm_cleanup.find_matching_openquote(line, pos, True)
     assert matepos == exp_matepos
 
-@pytest.mark.parametrize('line, all, double, exp_pairs',
+@pytest.mark.parametrize('line, all, exp_pairs',
     [
-    ('first\'second', True, True, []),
-    ('first, " second"', True, True, [(7,15)]),
-    ('first, " second"', False, True, [(7,15)]),
-    ('first, " second"', True, False, [(7,15)]),    # abberant case
-    ('first, " second"', False, False, []),
-    ('"first, " second"', True, True, []),
-    ('""234 " 890"', False, True, [(6,11), (0,1)]),
-    ('""234 " 890"', False, False, []),
-    ('““234"6789“1\'34””78\'"1234"‘789’’234‘‘789’1234"”\' \' ', True, True, [(47, 49), (0, 46), (36, 40), (26, 30), (20, 25), (1, 16), (10, 15)]),
-    ('““234"6789“1\'34””78\'"1234"‘789’’234‘‘789’1234"”\' \' ', False, True, [ (0, 46), (36, 40), (26, 30), (20, 25), (1, 16), (10, 15)]),
-    ('““234"6789“1\'34””78\'"1234"‘789’’234‘‘789’1234"”\' \' ', False, False, [ (0, 46), (36, 40), (26, 30), (1, 16), (10, 15)]),
+    ('first\'second', True, []),
+    ('first, " second"', True, [(7,15)]),
+    ('first, " second"', False, [(7,15)]),
+    ('"first, " second"', True, []),
+    ('""234 " 890"', False, [(6,11), (0,1)]),
+    ('"It is written: \'Do not test\'"', True, [(0,29), (16,28)]),
+    # ('"Tell him: "I am here.""', True, [(0,23), (11,22)]),  # This case is not supported yet
+    ('““234"6789“1\'34””78\'"1234"‘789’’234‘‘789’1234"”\' \' ', True, [(47, 49), (0, 46), (36, 40), (26, 30), (20, 25), (1, 16), (10, 15)]),
+    ('““234"6789“1\'34””78\'"1234"‘789’’234‘‘789’1234"”\' \' ', False, [ (0, 46), (36, 40), (26, 30), (20, 25), (1, 16), (10, 15)]),
     ])
-def test_pair_up_quotes(line, all, double, exp_pairs):
-    pairs = usfm_cleanup.pair_up_quotes(line, all, double)
+def test_pair_up_quotes(line, all, exp_pairs):
+    pairs = usfm_cleanup.pair_up_quotes(line, all)
     assert pairs == exp_pairs
     quotes = [p[0] for p in pairs] + [p[1] for p in pairs]
     assert len(set(quotes)) == len(pairs) * 2    # ensures no duplicate indexes

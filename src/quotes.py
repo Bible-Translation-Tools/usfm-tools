@@ -141,7 +141,7 @@ def _translate(s, rexp, trans):
 #     internal = bool(internalquote_re.search(str))   # too simplistic
 #     return starts ^ ends ^ internal
 
-matetrans = str.maketrans("\"'«“‘»”’", "\"'»”’«“‘")
+matetrans = str.maketrans("\"'«“‘„»”’", "\"'»”’”«“‘")
 
 # Returns the complementary quote character, or '' if invalid input.
 def matechar(quote: str):
@@ -158,14 +158,6 @@ def is_closed(quote: str):
     return quote in "»”’"
 
 # Returns True if the specified character is a straight quote.
-# @param all means single and double quotes qualify
-# @param double means double quotes qualify
-# If neither all nor double are set, this function returns False.
-def is_straight(quote: str, all, double):
-    if all:
-        rtnval = (quote in "\"'")
-    elif double:
-        rtnval = (quote == '"')
-    else:
-        rtnval = False
-    return rtnval
+# @param singles means single straight quotes qualify
+def is_straight(quote: str, singles):
+    return quote == '"' or (singles and quote == "'")
