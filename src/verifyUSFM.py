@@ -929,7 +929,7 @@ def takeV(vstr):
 reference_re = re.compile(r'[\d]+[\s]*:[\s]*[\d]+', re.UNICODE)
 bracketed_re = re.compile(r'\[ *([^\]]+) *\]', re.UNICODE)
 parenNumber_re = re.compile(r'\([\d, ]{0,11}\)')
-parenAmen_re = re.compile(r'\( *Am[ei]+n[ae\. ]*\)')
+parenAmen_re = re.compile(r'\( *[AE]m[ei]+n[aei\. ]*\)')
 
 # Returns None if nothing looking like a footnote occurs in the specified verse text.
 # In a verse that often has footnotes, even the presence of parens is flagged.
