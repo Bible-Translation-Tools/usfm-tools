@@ -4,10 +4,7 @@
 
 from configmanager import ToolsConfigManager
 import tkinter
-from tkinter import *
-from tkinter import ttk
-from tkinter import font
-from tkinter import messagebox
+from tkinter import ttk, FALSE, messagebox
 from idlelib.tooltip import Hovertip
 import os
 import re
@@ -45,7 +42,7 @@ class UsfmWizard(tkinter.Tk):
         super().__init__()
 
         self.title('USFM Wizard')
-        mainframe = Frame(self, height=550, width=840)
+        mainframe = tkinter.Frame(self, height=550, width=840)
         mainframe.grid(column=0, row=0, sticky="nsew")
 
         self.titleframe = Title_Frame(parent=mainframe)
@@ -176,7 +173,7 @@ class UsfmWizard(tkinter.Tk):
 
 # The Title_Frame implements a Label for step titles, and a Progressbar for step executions.
 # These go on row 1 of the main UsfmWizard Frame.
-class Title_Frame(Frame):
+class Title_Frame(tkinter.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.step_label = ttk.Label(self, font='TKHeadingFont')
@@ -196,10 +193,11 @@ class Title_Frame(Frame):
 # Buttons_Frame reserves a row of five buttons on the UsfmWizard main Frame.
 # The buttons are initially hidden.
 # The various Step classes populate the buttons as needed.
-class Buttons_Frame(Frame):
+class Buttons_Frame(tkinter.Frame):
     def __init__(self, parent):
         super().__init__(parent)
-        self.button = [None] * 6
+        tmpBtn = ttk.Button(self, text="Temporary", command=self.no_op)
+        self.button = [tmpBtn] * 6
         self.rowconfigure(1, minsize=30)
         for i in (2,3,4):
             self.columnconfigure(i, minsize=117)
@@ -221,7 +219,9 @@ class Buttons_Frame(Frame):
         self.show(4, text=">>>", tip="Next step")
         self.show(5, text=">>>", tip="Next step")
 
-    def show(self, psn, text="", tip=None, cmd=None):
+    def no_op(self):
+        pass
+    def show(self, psn: int, text="", tip=None, cmd=no_op):
         if psn == 5:
             stky = 'nse'
             padx=(5,0)
@@ -265,11 +265,11 @@ class Buttons_Frame(Frame):
 
 def create_menu(wizard):
     wizard.option_add('*tearOff', FALSE)  # essential to have a normal menu
-    menubar = Menu(wizard)
-    menu_file = Menu(menubar)
+    menubar = tkinter.Menu(wizard)
+    menu_file = tkinter.Menu(menubar)
     menubar.add_cascade(menu=menu_file, label='File')
     menu_file.add_command(label='Exit', command=exit_wizard)
-    menu_help = Menu(menubar)
+    menu_help = tkinter.Menu(menubar)
     menubar.add_cascade(menu=menu_help, label='Help')
     menu_help.add_command(label='Procedures', command=read_the_docs)
     menu_help.add_command(label='About', command=about)
