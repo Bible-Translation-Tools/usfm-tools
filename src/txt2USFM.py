@@ -529,15 +529,15 @@ def parseManifest(path):
         jsonFile.close()
     return bookId.upper()
 
-# Parses all manifest.json files in the current folder.
+# Parses all manifest***.json files in the current folder.
 # If more than one manifest.json, their names vary.
 # Return upper case bookId, or empty string if failed to retrieve.
 # Also parses translator names out of the manifest, adds to projectInfo.
 def getBookId(folder):
-    bookId = None
-    for file in os.listdir(folder):
-        if file.find("manifest") >= 0 and file.find(".json") >= 8:
-            path = os.path.join(folder, file)
+    bookId = ""
+    for fname in os.listdir(folder):
+        if re.match(r'manifest.*\.json$', fname):
+            path = os.path.join(folder, fname)
             if os.path.isfile(path):
                 bookId = parseManifest(path)
     if not bookId:
@@ -570,6 +570,7 @@ def getBookTitle(folder):
     return bookTitle
 
 # Appends information about the current book to the global projects list.
+# Ultimately adds to manifest.yaml.
 def appendToProjects(bookId, bookTitle):
     global projectInfo
     category = 'bible-nt'
