@@ -3,10 +3,8 @@
 # for operating the word2text.py script.
 # GUI interface for converting Word documents to text.
 
-from tkinter import *
 from tkinter import ttk
-from tkinter import font
-from tkinter import filedialog
+from tkinter import filedialog, StringVar, W, DISABLED
 from idlelib.tooltip import Hovertip
 import os
 import g_util
@@ -42,7 +40,7 @@ You will need to edit the text file(s) to conform to the requirements for the ne
         self.frame.show_progress(status)
         self.frame.onScriptEnd()
         self.enablebutton(2, True)
-                
+
 class Word2text_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
@@ -90,14 +88,13 @@ class Word2text_Frame(g_step.Step_Frame):
         self.filename.set(values['filename'])
         self.source_dir.set(values['source_dir'])
         self.target_dir.set(values['target_dir'])
-        
+
         # Create buttons
-        self.controller.showbutton(1, "<<<", cmd=self._onBack)
-        self.controller.showbutton(2, "CONVERT", tip="Run the conversion script now.", cmd=self._onExecute)
-        self.controller.showbutton(3, "Source folder",
-                                   tip="Open the folder of Word docs.", cmd=self._onOpenTextDir)
-        self.controller.showbutton(4, "Target folder", cmd=self._onOpenTargetDir)
-        self.controller.showbutton(5, ">>>", tip="Convert the text files to usfm.", cmd=self._onSkip)
+        self.controller.showbutton(1, "<<<", self._onBack)
+        self.controller.showbutton(2, "CONVERT", self._onExecute, tip="Run the conversion script now.")
+        self.controller.showbutton(3, "Source folder", self._onOpenTextDir, tip="Open the folder of Word docs.")
+        self.controller.showbutton(4, "Target folder", self._onOpenTargetDir)
+        self.controller.showbutton(5, ">>>", self._onSkip, tip="Convert the text files to usfm.")
         self._set_button_status()
 
         self.clear_show(
@@ -132,7 +129,7 @@ Word headers, footers, footnotes, styles, etc. are not supported at this time.")
         os.startfile(self.values['target_dir'])
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-        self.controller.showbutton(5, ">>>", tip="Convert the text files to usfm.", cmd=self._onNext)
+        self.controller.showbutton(5, ">>>", self._onNext, tip="Convert the text files to usfm.")
 
     def _set_button_status(self):
         good_sourcedir = os.path.isdir(self.source_dir.get())

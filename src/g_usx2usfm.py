@@ -41,7 +41,7 @@ class Usx2Usfm(g_step.Step):
         self.frame.show_progress(status)
         self.frame.onScriptEnd()
         self.enablebutton(2, True)
-                
+
 class Usx2Usfm_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
@@ -99,18 +99,18 @@ class Usx2Usfm_Frame(g_step.Step_Frame):
         self.notes.set(values.get('notes', fallback = False))
 
         # Create buttons
-        self.controller.showbutton(1, "<<<", cmd=self._onBack)
-        self.controller.showbutton(2, "CONVERT", tip="Run the conversion script now.", cmd=self._onExecute)
-        self.controller.showbutton(3, "Usx folder",
-                                   tip="Open the folder containing the files to be converted.", cmd=self._onOpenTextDir)
-        self.controller.showbutton(4, "Usfm folder", cmd=self._onOpenTargetDir)
-        self.controller.showbutton(5, ">>>", tip="Verify USFM", cmd=self._onSkip)
+        self.controller.showbutton(1, "<<<", self._onBack)
+        self.controller.showbutton(2, "CONVERT", self._onExecute, tip="Run the conversion script now.")
+        self.controller.showbutton(3, "Usx folder", self._onOpenTextDir,
+                                   tip="Open the folder containing the files to be converted.")
+        self.controller.showbutton(4, "Usfm folder", self._onOpenTargetDir)
+        self.controller.showbutton(5, ">>>", self._onSkip, tip="Verify USFM")
         self._set_button_status()
 
         self.clear_show("This process converts Unified Scripture XML (USX) files to USFM. \
 The process creates one USFM file per book, with \
 standardized names, like 41-MAT.usfm.")
-    
+
     # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
     def _save_values(self):
         self.values['filename'] = self.filename.get()
@@ -138,7 +138,7 @@ standardized names, like 41-MAT.usfm.")
         os.startfile(self.values['usfm_dir'])
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-        self.controller.showbutton(5, ">>>", tip="Verify USFM", cmd=self._onNext)
+        self.controller.showbutton(5, ">>>", self._onNext, tip="Verify USFM")
 
     def _set_button_status(self):
         good_sourcedir = os.path.isdir(self.usx_dir.get())

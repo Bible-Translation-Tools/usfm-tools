@@ -166,12 +166,11 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
             self.enable[i].set( values.get(configvalue, fallback = False))
 
         # Create buttons
-        self.controller.showbutton(1, "<<<", tip="Verify usfm", cmd=self._onBack)
-        self.controller.showbutton(2, "CLEAN", tip="Run the USFM cleanup script now.", cmd=self._onExecute)
-        self.controller.showbutton(3, "Work folder", cmd=self._onOpenSourceDir)
-        self.controller.showbutton(4, "Undo", tip="Restore any and all .usfm.orig backup files.",
-                                   cmd=self._onUndo)
-        self.controller.showbutton(5, ">>>", tip="Mark paragraphs", cmd=self._onNext)
+        self.controller.showbutton(1, "<<<", self._onBack, tip="Verify USFM")
+        self.controller.showbutton(2, "CLEAN", self._onExecute, tip="Run the USFM cleanup script now.")
+        self.controller.showbutton(3, "Work folder", self._onOpenSourceDir)
+        self.controller.showbutton(4, "Undo", self._onUndo, tip="Restore any and all .usfm.orig backup files.")
+        self.controller.showbutton(5, ">>>", self._onNext, tip="Mark paragraphs")
         self._set_button_status()
         self._onChangeTitles()
 

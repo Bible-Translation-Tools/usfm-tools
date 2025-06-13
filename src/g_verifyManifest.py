@@ -73,14 +73,11 @@ class VerifyManifest_Frame(g_step.Step_Frame):
         self.expectAscii.set(values.get('expectascii', fallback = False))
 
         # Create buttons
-        self.controller.showbutton(1, "<<<", tip="Previous step", cmd=self._onBack)
-        self.controller.showbutton(2, "VERIFY", tip="Verify readiness of manifest.yaml and the whole resource.",
-                                   cmd=self._onExecute)
-        self.controller.showbutton(3, "Open manifest", tip="Opens manifest.yaml in your default editor",
-                                   cmd=self._onOpenManifest)
-        self.controller.showbutton(4, "Open folder", tip="Opens the resource folder", cmd=self._onOpenSourceDir)
-        self.controller.showbutton(5, ">>>", tip="Not implemented")
-        self.controller.enablebutton(5, False)
+        self.controller.showbutton(1, "<<<", self._onBack, tip="Previous step")
+        self.controller.showbutton(2, "VERIFY", self._onExecute, tip="Verify readiness of manifest.yaml and the whole resource.")
+        self.controller.showbutton(3, "Open manifest", self._onOpenManifest, tip="Opens manifest.yaml in your default editor")
+        self.controller.showbutton(4, "Open folder", self._onOpenSourceDir, tip="Opens the resource folder")
+        self.controller.hidebutton(5)
         self._set_button_status()
 
     def onScriptEnd(self):

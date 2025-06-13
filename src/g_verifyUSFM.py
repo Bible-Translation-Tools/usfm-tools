@@ -192,27 +192,20 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             self.suppress[si].set( values.get(configvalue, fallback = False))
 
         # Create buttons
-        self.controller.showbutton(1, "<<<", tip="Previous step", cmd=self._onBack)
-        self.controller.showbutton(2, "VERIFY", tip="Check the USFM files now.", cmd=self._onExecute)
-        self.controller.showbutton(3, "Open issues.txt", tip="Open issues.txt file in your default editor",
-                                   cmd=self._onOpenIssues)
+        self.controller.showbutton(1, "<<<", self._onBack, tip="Previous step")
+        self.controller.showbutton(2, "VERIFY", self._onExecute, tip="Check the USFM files now.")
+        self.controller.bindButtonEvent(2, "<Enter>", self._onCheckInputs)
+        self.controller.bindButtonEvent(2, "<Leave>", self.clear_messages)
+        self.controller.showbutton(3, "Open issues.txt", self._onOpenIssues,
+                                   tip="Open issues.txt file in your default editor")
         nextstep = self.controller.mainapp.nextstepname()
         if nextstep == "Usfm2Usx":
             tip = "Convert to resource container"
         else:
             tip = "Automated USFM file cleanup"
-        self.controller.showbutton(5, ">>>", tip=tip, cmd=self._onNext)
+        self.controller.showbutton(5, ">>>", self._onNext, tip)
         self.changingVars = False
         self._set_button_status()
-
-    def _onExecute(self):
-        objections = self._invalidInputs()
-        if len(objections) == 0:
-            self._save_values()
-            self.controller.onExecute(self.values)
-        else:
-            for objection in objections:
-                self.message_area.insert('end', f"{objection}\n")
 
     def onScriptEnd(self):
         issuespath = os.path.join(self.values['source_dir'], "issues.txt")
@@ -241,8 +234,9 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.controller.mainapp.save_values(stepname, self.values)
 
     # This function does more thorough input validation than _set_button_status() does.
+    # Returns a list of incomplete or incorrect inputs.
     # The user may need this help in identifying certain incorrect input(s).
-    def _invalidInputs(self):
+    def invalidInputs(self, *args):
         objections = []
         code = self.language_code.get()
         dir = self.source_dir.get()
@@ -339,7 +333,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             self.controller.enablebutton(2, self.verify_ready)
             if good_dir:
                 title = namedfile if namedfile and good_subject else "Work folder"
-                self.controller.showbutton(4, title, tip=f"Open {title}", cmd=self._onOpenUsfm)
+                self.controller.showbutton(4, title, self._onOpenUsfm, tip=f"Open {title}")
             else:
                 self.controller.hidebutton(4)
 

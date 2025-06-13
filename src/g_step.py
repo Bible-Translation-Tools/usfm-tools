@@ -45,8 +45,8 @@ class Step(ABC):
     # Default implementation, only for Steps that don't execute,. i.e. SelectProcess
     def onExecute(self):
         pass
-    def showbutton(self, psn, text, tip=None, cmd=None):
-        self.buttons.show(psn, text, tip, cmd)
+    def showbutton(self, psn, text, cmd, tip=""):
+        self.buttons.show(psn, text, cmd, tip)
     def hidebutton(self, *psns):
         for psn in psns:
             self.buttons.hide(psn)
@@ -57,6 +57,8 @@ class Step(ABC):
             self.buttons.disable(psn)
     # def buttonenabled(self, psn):
     #     return self.buttons.enabled(psn)
+    def bindButtonEvent(self, psn, event, cmd):
+        self.buttons.bind(psn, event, cmd)
 
     # Called by the main app.
     # Displays the specified string in the message area.
@@ -114,7 +116,7 @@ class Step_Frame(ttk.Frame, ABC):
         self.message_area.see('end')
 
     # Clears all text in the message box and enable insertions.
-    def clear_messages(self):
+    def clear_messages(self, *args):
         self.message_area['state'] = NORMAL   # enables insertions to message area
         self.message_area.delete('1.0', 'end')
 
@@ -124,6 +126,20 @@ class Step_Frame(ttk.Frame, ABC):
         self.clear_messages()
         self.message_area.insert('end', message)
         self.message_area['state'] = DISABLED
+
+    # This function does thorough input validation prior to step execution, or any time.
+    # It should be overridden by subclasses
+    # The user may need this help in identifying certain incorrect input(s).
+    def invalidInputs(self, *args):
+        objections = []
+        return objections
+    # Displays any reasons why the current step cannot be executed.
+    def _onCheckInputs(self, *args):
+        objections = self.invalidInputs()
+        if len(objections) > 0:
+            self.controller.enablebutton(2, False)
+            for objection in objections:
+                self.message_area.insert('end', f"{objection}\n")
 
     def _onBack(self, *args):
         self._save_values()
@@ -135,8 +151,14 @@ class Step_Frame(ttk.Frame, ABC):
         self._save_values()
         self.controller.onNext()
     def _onExecute(self, *args):
-        self._save_values()
-        self.controller.onExecute(self.values)
+        objections = self.invalidInputs()
+        if len(objections) == 0:
+            self._save_values()
+            self.controller.onExecute(self.values)
+        else:
+            self.controller.enablebutton(2, False)
+            for objection in objections:
+                self.message_area.insert('end', f"{objection}\n")
 
     def onScriptEnd(self):
         raise NotImplementedError("onScriptEnd() not implemented")

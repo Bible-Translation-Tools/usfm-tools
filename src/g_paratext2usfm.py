@@ -70,7 +70,7 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
              text="Leave filename blank to convert all .SFM files in the project.")
         file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
         file_find.grid(row=5, column=3, sticky=W)
-        
+
     def show_values(self, values):
         self.values = values
         self.ptx_dir.set(values.get('paratext_dir', fallback=""))
@@ -78,12 +78,10 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         self.filename.set(values.get('filename', fallback=""))
 
         # Create buttons
-        self.controller.showbutton(1, "<<<", cmd=self._onBack)
-        self.controller.showbutton(2, "CONVERT", tip="Copy SFM files, rename, and correct line endings.",
-                                   cmd=self._onExecute)
-        self.controller.showbutton(3, "Ptx folder",
-                                   tip="Open the paratext project folder.", cmd=self._onOpenPtxDir)
-        self.controller.showbutton(4, "Usfm folder", cmd=self._onOpenTargetDir)
+        self.controller.showbutton(1, "<<<", self._onBack)
+        self.controller.showbutton(2, "CONVERT", self._onExecute, tip="Copy SFM files, rename, and correct line endings.")
+        self.controller.showbutton(3, "Ptx folder", self._onOpenPtxDir, tip="Open the paratext project folder.")
+        self.controller.showbutton(4, "Usfm folder", self._onOpenTargetDir)
         self.controller.hidebutton(5)
         self._set_button_status()
 
@@ -120,7 +118,7 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
                                            filetypes=[('Usfm file', '*.SFM')])
         if path:
             self.filename.set(os.path.basename(path))
-        
+
     def _onChangeEntry(self, *args):
         self._set_button_status()
 

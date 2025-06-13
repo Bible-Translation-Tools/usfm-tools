@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# Implements Txt2USFM and Text2USFM_Frame, which are the controller and frame
-# for operating the txt2USFM.py script.
+# Implements Plaintext2Usfm and Plaintext2Usfm_Frame, which are the controller and frame
+# for operating the plaintxt2usfm.py script.
 # GUI interface for merging BTTW text files and converting to USFM
 
 from tkinter import *
@@ -41,7 +41,7 @@ class Plaintext2Usfm(g_step.Step):
         self.frame.show_progress(status)
         self.frame.onScriptEnd()
         self.enablebutton(2, True)
-                
+
 class Plaintext2Usfm_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
@@ -89,20 +89,20 @@ class Plaintext2Usfm_Frame(g_step.Step_Frame):
         self.filename.set(values['filename'])
         self.source_dir.set(values['source_dir'])
         self.target_dir.set(values['target_dir'])
-        
+
         # Create buttons
-        self.controller.showbutton(1, "<<<", cmd=self._onBack)
-        self.controller.showbutton(2, "CONVERT", tip="Run the conversion script now.", cmd=self._onExecute)
-        self.controller.showbutton(3, "Source folder",
-                                   tip="Open the folder containing the files to be converted.", cmd=self._onOpenTextDir)
-        self.controller.showbutton(4, "Usfm folder", cmd=self._onOpenTargetDir)
-        self.controller.showbutton(5, ">>>", tip="Verify USFM", cmd=self._onSkip)
+        self.controller.showbutton(1, "<<<", self._onBack)
+        self.controller.showbutton(2, "CONVERT", self._onExecute, tip="Run the conversion script now.")
+        self.controller.showbutton(3, "Source folder", self._onOpenTextDir,
+                                   tip="Open the folder containing the files to be converted.")
+        self.controller.showbutton(4, "Usfm folder", self._onOpenTargetDir)
+        self.controller.showbutton(5, ">>>", self._onSkip, tip="Verify USFM")
         self._set_button_status()
 
         self.clear_show("This process converts Scripture text files to USFM. \
 To be converted, the text files must meet these conditions:\n\
   * Each file contains a single book of the Bible.\n\
-  * No extraneous text (e.g. from headers or footers).\n\
+  * No extraneous text (e.g. from Word headers and footers).\n\
   * Any sections must be premarked with \\s.\n\
   * File names must be like XXX.txt or NN-XXX.txt, where XXX=book id and NN is the book number.\n\
   * UTF-8 encoding is required.\n\
@@ -112,7 +112,7 @@ To be converted, the text files must meet these conditions:\n\
 The process creates one USFM file per book, with \
 standardized names, like 41-MAT.usfm. \
 The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
-    
+
     # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
     def _save_values(self):
         self.values['filename'] = self.filename.get()
@@ -139,7 +139,7 @@ The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
         os.startfile(self.values['target_dir'])
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-        self.controller.showbutton(5, ">>>", tip="Verify USFM", cmd=self._onNext)
+        self.controller.showbutton(5, ">>>", self._onNext, tip="Verify USFM")
 
     def _set_button_status(self):
         good_sourcedir = os.path.isdir(self.source_dir.get())

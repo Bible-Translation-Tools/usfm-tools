@@ -103,12 +103,12 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.headings.set(values.get('section_headings', fallback = False))
 
         # Create buttons
-        self.controller.showbutton(1, "<<<", cmd=self._onBack)
-        self.controller.showbutton(2, "CONVERT", tip="Run the conversion script now.", cmd=self._onExecute)
-        self.controller.showbutton(3, "Source folder",
-                                   tip="Open the folder containing the files to be converted.", cmd=self._onOpenTextDir)
-        self.controller.showbutton(4, "Usfm folder", cmd=self._onOpenTargetDir)
-        self.controller.showbutton(5, ">>>", tip="Verify USFM", cmd=self._onSkip)
+        self.controller.showbutton(1, "<<<", self._onBack)
+        self.controller.showbutton(2, "CONVERT", self._onExecute, tip="Run the conversion script now.")
+        self.controller.showbutton(3, "Source folder", self._onOpenTextDir,
+                                   tip="Open the folder containing the files to be converted.")
+        self.controller.showbutton(4, "Usfm folder", self._onOpenTargetDir)
+        self.controller.showbutton(5, ">>>", self._onSkip, tip="Verify USFM")
         self._set_button_status()
 
     # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
@@ -133,7 +133,7 @@ class Text2USFM_Frame(g_step.Step_Frame):
         os.startfile(self.values['target_dir'])
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-        self.controller.showbutton(5, ">>>", tip="Verify USFM", cmd=self._onNext)
+        self.controller.showbutton(5, ">>>", self._onNext, tip="Verify USFM")
         self._set_button_status()
 
     def _set_button_status(self):

@@ -213,15 +213,15 @@ class Buttons_Frame(tkinter.Frame):
         label4.grid(row=1, column=4, padx=50)
         label5 = ttk.Label(self, text="     ")
         label5.grid(row=1, column=5, padx=(10,0), ipady=6)
-        self.show(1, text=">>>", tip="Next step")
-        self.show(2, text=">>>", tip="Next step")
-        self.show(3, text=">>>", tip="Next step")
-        self.show(4, text=">>>", tip="Next step")
-        self.show(5, text=">>>", tip="Next step")
+        self.show(1)
+        self.show(2)
+        self.show(3)
+        self.show(4)
+        self.show(5)
 
     def no_op(self):
         pass
-    def show(self, psn: int, text="", tip=None, cmd=no_op):
+    def show(self, psn: int, text="X", cmd=no_op, tip=None):
         if psn == 5:
             stky = 'nse'
             padx=(5,0)
@@ -262,6 +262,8 @@ class Buttons_Frame(tkinter.Frame):
     #     except:
     #         en = False
     #     return en
+    def bind(self, psn, event, cmd):
+        self.button[psn].bind(event, cmd)
 
 def create_menu(wizard):
     wizard.option_add('*tearOff', FALSE)  # essential to have a normal menu

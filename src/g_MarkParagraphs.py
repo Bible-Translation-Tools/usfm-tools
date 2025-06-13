@@ -171,14 +171,14 @@ or don't run this process.")
         self.sentence_sensitive.set(values.get('sentence_sensitive', fallback=True))
 
         # Create buttons
-        self.controller.showbutton(1, "<<<", tip="Verify usfm", cmd=self._onBack)
-        self.controller.showbutton(2, "MARK", tip="Mark paragraphs now.", cmd=self._onExecute)
-        self.controller.showbutton(3, "Open issues file", tip="Open the issues file (which may be from the previous step).",
-                                   cmd=self._onOpenIssues)
-        self.controller.showbutton(4, "Undo", tip="Restore any and all .usfmorig backup files in the folder.",
-                                   cmd=self._onUndo)
+        self.controller.showbutton(1, "<<<", self._onBack, tip="Verify usfm")
+        self.controller.showbutton(2, "MARK", self._onExecute, tip="Mark paragraphs now.")
+        self.controller.showbutton(3, "Open issues file", self._onOpenIssues,
+                                   tip="Open the issues file (which may be from the previous step).")
+        self.controller.showbutton(4, "Undo", self._onUndo,
+                                   tip="Restore any and all .usfmorig backup files in the folder.")
         self.controller.enablebutton(4, False)
-        self.controller.showbutton(5, ">>>", tip="Verify manifest", cmd=self._onNext)
+        self.controller.showbutton(5, ">>>", self._onNext, tip="Verify manifest")
         self.changingVars = False
         self._set_button_status()
 
@@ -233,28 +233,54 @@ or don't run this process.")
         self.values['sentence_sensitive'] = str(self.sentence_sensitive.get())
         self.controller.mainapp.save_values(stepname, self.values)
 
-    # Validates input for MARK execution.
-    # Returns a string descirbing the first invalid input it finds.
-    def _invalidInputs(self):
+    # This function does thorough input validation prior to step execution, or any time.
+    # It should be overridden by subclasses
+    # The user may need this help in identifying certain incorrect input(s).
+    def invalidInputs(self):
+        objections = []
         code = self.language_code.get()
-        if not code:
-            return "Language code is required."
         dir = self.source_dir.get()
         model_dir = self.model_dir.get()
-        if not dir or not model_dir:
-            return "Specify locations of files."
-        if not os.path.isdir(dir):
-            return f"{dir} is not a valid folder."
-        if not os.path.isdir(model_dir):
-            return f"Model text folder ({model_dir}) is invalid."
         namedfile = self.filename.get()
+
+        if not code:
+            objections.append("Language code is required.")
+        if not dir or not model_dir:
+            objections.append("Specify locations of files.")
+        if not os.path.isdir(dir):
+            objections.append(f"{dir} is not a valid folder.")
+        if not os.path.isdir(model_dir):
+            objections.append(f"Model text folder ({model_dir}) is invalid.")
         if namedfile:
             filepath = os.path.join(dir, namedfile)
             if not os.path.isfile(filepath):
-                return f"{filepath} is not a valid file."
+                objections.append(f"{filepath} is not a valid file.")
         if model_dir == dir:
-            return f"The two file folders can't be the same."
-        return ""
+            objections.append("The two file folders can't be the same.")
+        return objections
+
+    # Validates input for MARK execution.
+    # Returns a string descirbing the first invalid input it finds.
+    # def _invalidInputs(self):
+    #     code = self.language_code.get()
+    #     if not code:
+    #         return "Language code is required."
+    #     dir = self.source_dir.get()
+    #     model_dir = self.model_dir.get()
+    #     if not dir or not model_dir:
+    #         return "Specify locations of files."
+    #     if not os.path.isdir(dir):
+    #         return f"{dir} is not a valid folder."
+    #     if not os.path.isdir(model_dir):
+    #         return f"Model text folder ({model_dir}) is invalid."
+    #     namedfile = self.filename.get()
+    #     if namedfile:
+    #         filepath = os.path.join(dir, namedfile)
+    #         if not os.path.isfile(filepath):
+    #             return f"{filepath} is not a valid file."
+    #     if model_dir == dir:
+    #         return f"The two file folders can't be the same."
+    #     return ""
 
     def _onFindModelDir(self, *args):
         self.controller.askdir(self.model_dir)
@@ -277,7 +303,7 @@ or don't run this process.")
         if not self.changingVars:
             good_source = os.path.isdir(self.source_dir.get())
             self.controller.enablebutton(4, good_source)
-            self.controller.enablebutton(2, (self._invalidInputs() == ""))
+            self.controller.enablebutton(2, len(self.invalidInputs()) == 0)
 
     # Only called when the language code changes.
     # Returns the most reasonable new value for compare_dir,

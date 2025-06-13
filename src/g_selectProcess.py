@@ -67,8 +67,7 @@ class Select_Frame(g_step.Step_Frame):
         self.values = values
         self.process.set(values['selection'])
         self._explain()
-        self.controller.showbutton(psn=5, text=">>>",
-                              tip="Begin the process you selected above.", cmd=self._onNext)
+        self.controller.showbutton(5, ">>>", self._onNext, tip="Begin the process you selected above.")
         self.controller.hidebutton(1,2,3,4)
         self._set_button_status()
 

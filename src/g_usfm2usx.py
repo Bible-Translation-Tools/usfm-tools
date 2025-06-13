@@ -120,7 +120,7 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
              text="Leave filename blank to convert all .usfm files in the folder.")
         file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
         file_find.grid(row=9, column=3, sticky=W)
-        
+
         rc_dir_label = ttk.Label(self, text="RC folder:", width=20)
         rc_dir_label.grid(row=10, column=1, sticky=W, pady=2)
         rc_dir_entry = ttk.Entry(self, width=61, textvariable=self.rc_dir)
@@ -129,7 +129,7 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
              text="BTT-Writer application data folder for Resource Containers")
         rc_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindRcDir)
         rc_dir_find.grid(row=10, column=5, sticky=W)
-        
+
     def show_values(self, values):
         self.values = values
         self.language_code.set(values.get('language_code', fallback=""))
@@ -145,9 +145,9 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         self.rc_dir.set(values.get('rc_dir', fallback=""))
 
         # Create buttons
-        self.controller.showbutton(1, "<<<", tip="Reverify original USFM file(s)", cmd=self._onBack)
-        self.controller.showbutton(2, "CONVERT", tip="Convert to USX now; overwrite existing .usx files, if any.",
-                                   cmd=self._onExecute)
+        self.controller.showbutton(1, "<<<", self._onBack, tip="Reverify original USFM file(s)")
+        self.controller.showbutton(2, "CONVERT", self._onExecute,
+                                   tip="Convert to USX now; overwrite existing .usx files, if any.")
         self.controller.hidebutton(3,4,5)
         self._set_button_status()
 
@@ -178,7 +178,7 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
                                            filetypes=[('Usfm file', '*.usfm')])
         if path:
             self.filename.set(os.path.basename(path))
-        
+
     def _onFindRcDir(self, *args):
         if not self.rc_dir.get() and os.name == 'nt':
             self.rc_dir.set(r"~\AppData\Local\BTT-Writer\library")
