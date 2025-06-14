@@ -196,7 +196,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.controller.showbutton(1, "<<<", self._onBack, tip="Previous step")
         self.controller.showbutton(2, "VERIFY", self._onExecute, tip="Check the USFM files now.")
         self.controller.bindButtonEvent(2, "<Enter>", self._onCheckInputs)
-        self.controller.bindButtonEvent(2, "<Leave>", self.clear_messages)
+        # self.controller.bindButtonEvent(2, "<Leave>", self.clear_messages)
         self.controller.showbutton(3, "Open issues.txt", self._onOpenIssues,
                                    tip="Open issues.txt file in your default editor")
         nextstep = self.controller.mainapp.nextstepname()

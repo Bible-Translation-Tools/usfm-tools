@@ -138,6 +138,7 @@ class Step_Frame(ttk.Frame, ABC):
         objections = self.invalidInputs()
         if len(objections) > 0:
             self.controller.enablebutton(2, False)
+            self.clear_messages()
             for objection in objections:
                 self.message_area.insert('end', f"{objection}\n")
 
