@@ -502,6 +502,7 @@ def isBookFolder(path):
     return os.path.isdir(chapterPath)
 
 # Extracts information from the specified manifest.json file.
+# Adds information to ProjectInfo.
 # Returns book ID.
 def parseManifest(path):
     bookId = ""
@@ -530,9 +531,8 @@ def parseManifest(path):
     return bookId.upper()
 
 # Parses all manifest***.json files in the current folder.
-# If more than one manifest.json, their names vary.
 # Return upper case bookId, or empty string if failed to retrieve.
-# Also parses translator names out of the manifest, adds to projectInfo.
+# Also parses other information out of the manifest.
 def getBookId(folder):
     bookId = ""
     for fname in os.listdir(folder):
@@ -549,8 +549,8 @@ def getBookId(folder):
 
 # Locates title.txt in either the front folder or 00 folder.
 # Extracts the first line of that file as the book title.
-# Converts to title case and returns it.
-def getBookTitle(folder):
+# If neither file exists, return the book name in English.
+def getBookTitle(folder, bookId):
     bookTitle = ""
     path = os.path.join(folder, "front/title.txt")
     if not os.path.isfile(path):
@@ -565,6 +565,9 @@ def getBookTitle(folder):
         if not bookTitle.istitle():
             bookTitle = bookTitle.title().replace("Iii", 'III')
             bookTitle = bookTitle.replace("Ii", 'II')
+    elif bookId in usfm_verses.verseCounts:
+        # As a last resort, use the English book title
+        bookTitle = usfm_verses.verseCounts[bookId]['en_name']
     else:
         reportError("   Can't open " + path + "!")
     return bookTitle
@@ -596,7 +599,7 @@ def convertFolder(folder):
     language_code = config.get('Txt2USFM', 'language_code')
     if language_code + '_' in os.path.basename(folder):
         bookId = getBookId(folder)
-        bookTitle = getBookTitle(folder)
+        bookTitle = getBookTitle(folder, bookId)
         if bookId and bookTitle:
             convertBook(folder, bookId, bookTitle)   # converts the pieces in the current folder
             appendToProjects(bookId, bookTitle)
