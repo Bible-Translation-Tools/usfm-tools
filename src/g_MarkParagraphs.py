@@ -82,7 +82,7 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         self.s5_only.trace_add("write", self._onChanges5)
         self.sentence_sensitive = BooleanVar(value = True)
         self.language_code.trace_add("write", self._onChangeLanguage)
-        self.source_dir.trace_add("write", self._set_button_status)
+        self.source_dir.trace_add("write", self._onChangeSourceDir)
         self.model_dir.trace_add("write", self._set_button_status)
         self.filename.trace_add("write", self._set_button_status)
         self.columnconfigure(3, weight=1)   # keep column 1 from expanding
