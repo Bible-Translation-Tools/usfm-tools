@@ -153,6 +153,7 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
 
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
+        self.controller.enablebutton(5, True)
 
     # Copies current values from GUI into self.values dict, and calls mainapp to save
     # them to the configuration file.

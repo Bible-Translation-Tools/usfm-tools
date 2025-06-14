@@ -139,10 +139,6 @@ Settings.xml file, with changes to reflect the new file names.""")
     def _save_values(self):
         self.values['selection'] = self.process.get()
         self.controller.mainapp.save_values(stepname, self.values)
-    def _onExecute(self, *args):
-        pass
-    def onScriptEnd(self, nIssues):
-        pass
 
     def _set_button_status(self):
         self.controller.enablebutton(5, True)

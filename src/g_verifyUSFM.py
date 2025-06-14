@@ -36,6 +36,7 @@ class VerifyUSFM(g_step.Step):
     def onExecute(self, values):
         self.enablebutton(2, False)
         self.enablebutton(3, False)
+        self.enablebutton(5, False)
         # self.values = values    # redundant, they were the same dict to begin with
         count = 1
         if not values['filename']:
@@ -212,6 +213,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         exists = os.path.isfile(issuespath)
         self.controller.enablebutton(3, exists)
         self.controller.enablebutton(2, self.verify_ready)
+        self.controller.enablebutton(5, True)
         if exists:
             if time.time() - os.path.getmtime(issuespath) < 10:     # issues.txt is recent
                 self.message_area.insert('end', "issues.txt contains the list of issues found.\n")

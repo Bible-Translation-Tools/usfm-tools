@@ -154,6 +154,7 @@ class Step_Frame(ttk.Frame, ABC):
         objections = self.invalidInputs()
         if len(objections) == 0:
             self._save_values()
+            self.controller.enablebutton(5, False)
             self.controller.onExecute(self.values)
         else:
             self.controller.enablebutton(2, False)
@@ -161,4 +162,4 @@ class Step_Frame(ttk.Frame, ABC):
                 self.message_area.insert('end', f"{objection}\n")
 
     def onScriptEnd(self):
-        raise NotImplementedError("onScriptEnd() not implemented")
+        self.controller.enablebutton(5, True)

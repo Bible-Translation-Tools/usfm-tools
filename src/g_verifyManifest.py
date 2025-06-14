@@ -25,6 +25,7 @@ class VerifyManifest(g_step.Step):
 
     def onExecute(self, values):
         self.enablebutton(2, False)
+        self.enablebutton(5, False)
         # self.values = values
         self.mainapp.execute_script("verifyManifest", 1)
         self.frame.clear_messages()
@@ -83,6 +84,7 @@ class VerifyManifest_Frame(g_step.Step_Frame):
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
         self.controller.enablebutton(2, True)
+        self.controller.enablebutton(5, True)
 
     def _save_values(self):
         self.values['source_dir'] = self.source_dir.get()

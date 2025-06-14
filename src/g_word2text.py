@@ -23,6 +23,7 @@ class Word2text(g_step.Step):
 
     def onExecute(self, values):
         self.enablebutton(2, False)
+        self.enablebutton(5, False)
         count = 1
         if not values['filename']:
             count = g_util.count_files(values['source_dir'], ".*docx$")
@@ -40,6 +41,7 @@ You will need to edit the text file(s) to conform to the requirements for the ne
         self.frame.show_progress(status)
         self.frame.onScriptEnd()
         self.enablebutton(2, True)
+        self.enablebutton(5, True)
 
 class Word2text_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):

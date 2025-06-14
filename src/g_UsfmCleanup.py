@@ -179,6 +179,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self.controller.enablebutton(2, self.cleanup_ready)
         nChanged = g_util.count_files(self.source_dir.get(), r".*\.usfm\.orig$")
         self.controller.enablebutton(4, nChanged > 0)
+        self.controller.enablebutton(5, True)
 
     def _onChangeQuotes(self, *args):
         if promote_all := self.enable[4].get():    # promote all straight quotes
