@@ -1,5 +1,6 @@
 # pytest unit tests for functions in txt2USFM.py
 
+import io
 import os
 import sys
 
@@ -239,9 +240,25 @@ def test_remove_parens(s, expected):
         ('\\c 3\n\\v 1 asdf', '3', '\\c 3\n\\p\n\\v 1 asdf'),
         ('\\c 4\n\\v 1 asdf', 'Pasal', '\\c 4\n\\cl Pasal\n\\p\n\\v 1 asdf'),
         ('\\c 5', 'Pasal 5', '\\c 5\n\\cl Pasal 5\n'),
+        ('\\c 6', '', '\\c 6\n'),
     ])
 def test_augmentChapter(section, ctitle, expected):
     if not expected:
         expected = section
     result = txt2USFM.augmentChapter(section, ctitle)
     assert result == expected
+
+# testdir = r'C:\DCS\Test\REG\zga-x-mahanji_rut_text_reg\03'
+
+# @pytest.mark.parametrize('fname, expected',
+#     [
+#         ('01.txt', "\n\\c 3\n\\v 1 U vuononu?\n\\v 2 Pwu khupukila.\n"),
+#         ('03.txt', "\n\\v 3 Pwu nukhunywa.\n\\v 4 Pwuleino eikhyakhuvomba.\"\n\\v 5 U nduvumbulile.\"\n"),
+#         ('16.txt', "\n\\v 17 Pwu ula.\n\\v 16 Akhata ngheene.\"'\n\\v 18 Pwu eileeilelo.\"\n"),
+#     ])
+# def test_combineLines(fname, expected):
+#     txtPath = os.path.join(testdir, fname)
+#     with io.open(txtPath, "tr", 1, encoding='utf-8-sig') as input:
+#         lines = input.readlines()
+#     section = "\n" + txt2USFM.combineLines(lines)
+#     assert section == expected

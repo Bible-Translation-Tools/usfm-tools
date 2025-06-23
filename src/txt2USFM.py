@@ -56,8 +56,7 @@ def reportToGui(msg, event):
 # Does preliminary cleanup on the text file, prior to conversion.
 # Calls ensureMarkers() to put in missing chapter and verse markers.
 # verserange is a list of verse number strings that should exist in the file.
-# On exit, the named file contains the improved chunk.
-# On exit, XX.txt-orig. contains the original chunk, if different.
+# Returns a string with the (possibly improved) contents of the .txt file.
 def cleanupTextFile(path, chap, verserange):
     vn_start = int(verserange[0])
     vn_end = int(verserange[-1])
@@ -80,13 +79,7 @@ def cleanupTextFile(path, chap, verserange):
         text = ensureMarkers(text, missing_chapter, vn_start, vn_end, missing_verses, missing_markers)
     #if language_code == "ior":
         #text = fixInorMarkers(text, verserange)
-
-    if text != origtext:
-        bakpath = path + ".orig"
-        if not os.path.isfile(bakpath):
-            os.rename(path, bakpath)
-        with io.open(path, "tw", encoding='utf-8', newline='\n') as output:
-            output.write(text)
+    return text
 
 # Returns True unchanged if there is no \c marker before the first verse marker.
 # Returns False if \c marker precedes first verse marker.
@@ -258,21 +251,6 @@ def fixVerseMarkers(text):
 
     return text
 
-# Does a first pass on a list of lines to eliminate unwanted line breaks,
-# tabs, and extra whitespace. Places most markers at the beginning of lines.
-# Returns single string containing newlines.
-def combineLines(lines):
-    section = ""
-    for line in lines:
-        line = line.replace("\t", " ")
-        line = line.replace("   ", " ")
-        line = line.replace("  ", " ")
-        line = line.replace(" \\", "\n\\")
-        line = line.strip()    # strip leading and trailing whitespace
-
-        section += line + '\n'
-    return section
-
 cvExpr = re.compile(r'\\[cv] +[0-9]+')
 
 # Adds chunk marker before first completed \c or \v marker.
@@ -421,7 +399,6 @@ stripcv_re = re.compile(r'\s*\\([cv])\s*\d+\s*', re.UNICODE)
 
 # Returns the string with \v markers removed at beginning of chunk.
 def stripInitialMarkers(text):
-    saveChapterMarker = ""
     marker = stripcv_re.match(text)
     while marker:
         text = text[marker.end():]
@@ -471,21 +448,23 @@ def stripInitialMarkers(text):
 #         str = text
 #     return str
 
-# Reads all the lines from the specified file and converts the text to a single
+condense_re = re.compile(r'[ \t][ \t]+')
+
+# Converts the section string to a single
 # USFM section by adding chapter label, chunk marker, and paragraph marker where needed.
 # Starts each usfm marker on a new line.
-# Fixes white space, such as converting tabs to spaces and removing trailing spaces.
-def convertFile(txtPath, chapterTitle, lastchunk):
-    with io.open(txtPath, "tr", 1, encoding='utf-8-sig') as input:
-        lines = input.readlines()
-    section = "\n" + combineLines(lines)    # fixes white space
+# Fixes white space, such as converting tabs to spaces and removing trailing spaces.def
+def convertSection(section, chapterTitle, lastchunk):
+    section = re.sub(condense_re, ' ', section)
+    section = section.replace(" \\", "\n\\")
+    section = section.replace(" \n", "\n")
 
-    # Mark-sections-headings feature to be activated soon.
     if config.getboolean('Txt2USFM', 'section_headings'):
         section = mark_section_headings(section, lastchunk)
 
     if config.getboolean('Txt2USFM', 'mark_chunks'):
         section = mark_chunk(section)
+
     section = augmentChapter(section, chapterTitle)
     return section
 
@@ -517,6 +496,8 @@ def parseManifest(path):
         except ValueError as e:
             reportError("   Can't parse: " + path + ".")
         else:
+            global projectInfo
+            assert projectInfo
             language_id = manifest['target_language']['id']
             if config.get('Txt2USFM', 'language_code') != language_id:
                 reportError(f"Language code ({config.get('Txt2USFM', 'language_code')}) does not match Language Id ({language_id}) in {shortname(path)}.")
@@ -584,6 +565,7 @@ def appendToProjects(bookId, bookTitle):
     project = { "title": bookTitle, "identifier": bookId.lower(), "sort": usfm_verses.verseCounts[bookId]["sort"], \
                 "path": "./" + makeUsfmFilename(bookId), "categories": [ category ],
                  'versification': 'ufw' }
+    assert projectInfo
     projectInfo.addProject(project)
 
 def shortname(longpath):
@@ -602,6 +584,7 @@ def convertFolder(folder):
         bookTitle = getBookTitle(folder, bookId)
         if bookId and bookTitle:
             convertBook(folder, bookId, bookTitle)   # converts the pieces in the current folder
+            # profile.print_stats()
             appendToProjects(bookId, bookTitle)
         else:
             if not bookId:
@@ -680,6 +663,8 @@ def getChapterTitle(chapterpath):
     return title
 
 # Converts all the text files in the specified folder to USFM.
+# profile = LineProfiler()
+# @profile
 def convertBook(folder, bookId, bookTitle):
     reportProgress(f"CONVERTING {shortname(folder)}")
     sys.stdout.flush()
@@ -698,9 +683,9 @@ def convertBook(folder, bookId, bookTitle):
         for i in range(len(chunks)):
             filename = chunks[i] + ".txt"
             txtPath = os.path.join(chapterpath, filename)
-            cleanupTextFile(txtPath, chap, makeVerseRange(chunks, i, bookId, int(chap)))
-            section = convertFile(txtPath, chapterTitle, i+1 >= len(chunks)).rstrip()
-            usfm.writeStr(section)
+            section = cleanupTextFile(txtPath, chap, makeVerseRange(chunks, i, bookId, int(chap)))
+            section = convertSection(section, chapterTitle, i+1 >= len(chunks)).rstrip()
+            usfm.writeStr('\n' + section)
     usfm.close()
 
 # Converts the book or books contained in the specified folder
