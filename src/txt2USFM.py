@@ -26,9 +26,7 @@ config = configmanager.ToolsConfigManager()
 projectInfo = None
 gui = None
 
-verseMarker_re = re.compile(r'[ \n\t]*\\v *([\d]{1,3})', re.UNICODE)
 verseTags_re = re.compile(r'\\v +[^1-9]', re.UNICODE)
-numbers_re = re.compile(r'[ \n]([\d]{1,3})[ \n]', re.UNICODE)
 numberstart_re = re.compile(r'([\d]{1,3})[ \n]', re.UNICODE)
 chapMarker_re = re.compile(r'\\c *[\d]{1,3}', re.UNICODE)
 
@@ -52,6 +50,9 @@ def reportToGui(msg, event):
         with gui.progress_lock:
             gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
         gui.event_generate(event, when="tail")
+
+numbers_re = re.compile(r'[ \n]([\d]{1,3})[ \n]', re.UNICODE)
+verseMarker_re = re.compile(r'[ \n\t]*\\v *([\d]{1,3})', re.UNICODE)
 
 # Does preliminary cleanup on the text file, prior to conversion.
 # Calls ensureMarkers() to put in missing chapter and verse markers.
@@ -172,47 +173,32 @@ def ensureNumbers(text, missingVerses):
         missi += 1
     return text
 
-sub0_re = re.compile(r'/v +[1-9]', re.UNICODE)      # slash v
-sub0b_re = re.compile(r'\\\\v +[1-9]', re.UNICODE)  # double backslash v
-sub1_re = re.compile(r'[^\n ]\\v ', re.UNICODE)     # no space before \v
-sub2_re = re.compile(r'[\n \.,"\'?!]\\ *v[1-9]', re.UNICODE)   # no space before verse number, possible space betw \ and v
-sub2m_re = re.compile(r'\\ *v[1-9]', re.UNICODE)       # no space before verse number, possible space betw \ and v  -- match
-sub3_re = re.compile(r'\\v +[0-9\-]+[^0-9\-\n ]', re.UNICODE)       # no space after verse number
-sub4_re = re.compile(r'(\\v +[0-9\-]+ +)\\v +[^1-9]', re.UNICODE)   # \v 10 \v The...
-sub5_re = re.compile(r'\\v( +\\v +[0-9\-]+ +)', re.UNICODE)         # \v \v 10
-sub6_re = re.compile(r'[\n ]\\ v [1-9]', re.UNICODE)           # space betw \ and v
-sub6m_re = re.compile(r'\\ v [1-9]', re.UNICODE)               # space betw \ and v -- match
-sub7_re = re.compile(r'[\n ]v [1-9]', re.UNICODE)              # missing backslash
-sub8_re = re.compile(r'(.)([\n ]*\\v [0-9\-]+ +)([\.\,\:;])', re.UNICODE)   # Punctuation after verse marker
-sub9_re = re.compile(r'(\\v [0-9\-]+ +)([\.\,\:;])', re.UNICODE)
+sub0_re = re.compile(r'[\\/]+ *[vV] *[1-9]')
+sub1_re = re.compile(r'[^\n ]\\v ')     # non-space character before \v
+sub3_re = re.compile(r'\\v +([1-9][0-9\-]*)([^0-9\-\s])')       # no space after verse number
+sub4_re = re.compile(r'(\\v +[0-9\-]+ +)\\v +[^1-9]')   # \v 10 \v The...
+sub5_re = re.compile(r'\\v\s*(\\v +[0-9\-]+ +)')         # \v \v 10
+sub7_re = re.compile(r'(^|\s)v [1-9]')              # missing backslash
+sub8_re = re.compile(r'(^|.)\s*(\\v [0-9\-]+ +)([.!?,:;)])')   # Punctuation after verse marker
 
 # Fixes malformed verse markers in a single chunk of text.
 def fixVerseMarkers(text):
     found = sub0_re.search(text)
     while found:
-        text = text[0:found.start()] + "\\" + text[found.start()+1:]
+        text = text[0:found.start()] + "\\v " + text[found.end()-1:]
         found = sub0_re.search(text, found.start()+3)
 
-    found = sub0b_re.search(text)
+    found = sub1_re.search(text)    # no space before \v
     while found:
-        text = text[0:found.start()] + text[found.start()+1:]
-        found = sub0b_re.search(text, found.start()+3)
-
-    found = sub1_re.search(text)
-    while found:
-        text = text[0:found.start()+1] + "\n" + text[found.end()-3:]
+        text = text[0:found.start()+1] + " " + text[found.end()-3:]
         found = sub1_re.search(text, found.start()+3)
-
-    if found := sub2m_re.match(text):
-        text = '\\v ' + text[found.end()-1:]
-    found = sub2_re.search(text)
-    while found:
-        text = text[0:found.start()+1] + '\n\\v ' + text[found.end()-1:]
-        found = sub2_re.search(text, found.end()+1)
 
     found = sub3_re.search(text)
     while found:
-        text = text[0:found.end()-1] + " " + text[found.end()-1:]
+        if found.group(2):
+            text = text[0:found.start()] + "\\v " + found.group(1) + " " + text[found.end()-1:]
+        else:
+            text = text[0:found.start()] + "\\v " + found.group(1)
         found = sub3_re.search(text, found.end()+1)
 
     found = sub4_re.search(text)
@@ -225,29 +211,25 @@ def fixVerseMarkers(text):
         text = text[0:found.start()] + found.group(1) + text[found.end():]
         found = sub5_re.search(text)
 
-    if found := sub6m_re.match(text):
-        text = "\\v " + text[found.end()-1:]
-    found = sub6_re.search(text)
-    while found:
-        text = text[0:found.start()] + "\n\\v " + text[found.end()-1:]
-        found = sub6_re.search(text)
-
     found = sub7_re.search(text)
     while found:
-        text = text[0:found.start()] + "\n\\v " + text[found.end()-1:]
+        if found.group(1):
+            text = text[0:found.start()] + " \\v " + text[found.end()-1:]
+        else:
+            text = "\\v " + text[found.end()-1:]
         found = sub7_re.search(text)
 
     # Move or remove the phrase-ending punctuation character found right after a verse marker.
     found = sub8_re.search(text)
     while found:
-        if found.group(1) not in {'.',',',':',';','?','!'}:
-            text = text[0:found.start()+1] + found.group(3) + found.group(2) + text[found.end():]
+        if not found.group(1):  # match starts at beginning of line
+            before_backslash = ""
+        elif found.group(1) not in ".,:;?!":
+            before_backslash = text[0:found.start()+1] + found.group(3) + " "
         else:
-            text = text[0:found.start()+1] + found.group(2) + text[found.end():]
-        found = sub8_re.search(text)
-
-    if found := sub9_re.match(text):
-        text = found.group(1) + text[found.end():]
+            before_backslash = text[0:found.start()+1] + " "    # just delete the stray punctuation
+        text = before_backslash + found.group(2) + text[found.end():].lstrip()
+        found = sub8_re.search(text, found.end()-1)
 
     return text
 
@@ -458,6 +440,7 @@ def convertSection(section, chapterTitle, lastchunk):
     section = re.sub(condense_re, ' ', section)
     section = section.replace(" \\", "\n\\")
     section = section.replace(" \n", "\n")
+    # section = fixVerseOrder(section)
 
     if config.getboolean('Txt2USFM', 'section_headings'):
         section = mark_section_headings(section, lastchunk)
@@ -641,15 +624,18 @@ def listChunks(chap):
 
 # Compiles a list of verse number strings that should be in the specified chunk
 def makeVerseRange(chunks, i, bookId, chapter):
-    verserange = [ chunks[i].lstrip('0') ]
-    if i+1 < len(chunks):
-        limit = int(chunks[i+1])
-    else:           # last chunk
-        limit = usfm_verses.verseCounts[bookId]['verses'][chapter-1] + 1
-    v = int(chunks[i]) + 1
-    while v < limit:
-        verserange.append(str(v))
-        v += 1
+    if i < len(chunks) and chapter <= usfm_verses.verseCounts[bookId]['chapters']:
+        verserange = [ chunks[i].lstrip('0') ]
+        if i+1 < len(chunks):
+            limit = int(chunks[i+1])
+        else:           # last chunk
+            limit = usfm_verses.verseCounts[bookId]['verses'][chapter-1] + 1
+        v = int(chunks[i]) + 1
+        while v < limit:
+            verserange.append(str(v))
+            v += 1
+    else:
+        verserange = []
     return verserange
 
 # Tries to find front/title.txt or 00/title.txt.

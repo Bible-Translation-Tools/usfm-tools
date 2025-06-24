@@ -87,6 +87,7 @@ def test_mark_heading_bos(section, newstr):
         ('\\v 4 Is a verse. Could Be a \\ Heading', '\\v 4 Is a verse.\n\\s Could Be a \\ Heading\n\\p\n'),
         ('\\v 3 Here is a verse. Here Is A Candidate \\f + \\ft Footnote \\f*', ''),
         ('mu syaki syange.’” Olukaado Lw’omuyofu', 'mu syaki syange.’”\n\\s Olukaado Lw’omuyofu\n\\p\n'),
+        ('\\f + \\ft Footnote.\\f* Postfootnote', ''),  # only one sentence after last usfm marker
     ])
 def test_mark_heading_eos(section, wanted):
     if not wanted:
@@ -262,3 +263,69 @@ def test_augmentChapter(section, ctitle, expected):
 #         lines = input.readlines()
 #     section = "\n" + txt2USFM.combineLines(lines)
 #     assert section == expected
+
+@pytest.mark.parametrize('path, expected',
+    [
+        (r'C:\DCS\Test\REG\amo_1pe_text_reg\00', []),
+        (r'C:\DCS\Test\REG\amo_1pe_text_reg\01', ['01','03','06','08','11','13','15','18','20','22','24']),
+    ])
+def test_listChunks(path, expected):
+    chunks = txt2USFM.listChunks(path)
+    assert chunks == expected
+
+@pytest.mark.parametrize('chunkno, chapter, expected',
+    [
+        (0, 1, ['1','2']),
+        (1, 1, ['3','4','5']),
+        (10, 1, ['24','25']),
+        (11, 1, []),
+        (0, 5, ['1','2','3','4']),
+        (0, 6, []),
+    ])
+def test_makeVerseRange(chunkno, chapter, expected):
+    path = r'C:\DCS\Test\REG\amo_1pe_text_reg\01'
+    if chapter > 1:
+        path = r'C:\DCS\Test\REG\amo_1pe_text_reg\05'
+    chunks = txt2USFM.listChunks(path)
+    verserange = txt2USFM.makeVerseRange(chunks, chunkno, '1PE', chapter)
+    assert verserange == expected
+
+@pytest.mark.parametrize('text, expected',
+    [
+        (r' Yitan\v 8 nin li.  \v9 Yisinan uremere.',  r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'),
+        (r' Yitan \v 8 nin li.  \v9 Yisinan uremere.', r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'),
+        (r' Yitan \V 8 nin li.  \V9 Yisinan uremere.', r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'),
+        (r' Yitan /v 8 nin li.  /V9 Yisinan uremere.', r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'),
+        (r' Yitan /\v 8 nin li.  \\V9 Yisinan uremere.', r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'),
+        (r' Yitan\\v 8 nin li.\\V9 Yisinan uremere.', r' Yitan \v 8 nin li. \v 9 Yisinan uremere.'),
+        (r' Yitan \V 8nin li.  \v9Yisinan uremere.\v10',  r' Yitan \v 8 nin li.  \v 9 Yisinan uremere. \v 10'),
+        (r'\V10 Kimal akara. /v11 Kiti nani. \v12',  r'\v 10 Kimal akara. \v 11 Kiti nani. \v 12'),
+        (r'\v12',  r'\v 12'),
+        (r'\V10Kimal akara. /v11Kiti nani. \v12 ',  r'\v 10 Kimal akara. \v 11 Kiti nani. \v 12 '),
+        (r'\V10Kimal akara. \v Kiti nani.',  r'\v 10 Kimal akara. \v Kiti nani.'),
+        (r'\V10 \v Kimal akara. \v11 Kiti nani.',  r'\v 10 Kimal akara. \v 11 Kiti nani.'),
+        (r'\V10 \v Kimal akara. \v \v11 Kiti nani.',  r'\v 10 Kimal akara. \v 11 Kiti nani.'),
+        (r'\ V 10 \v Kimal akara. \v \ v11 Kiti nani.',  r'\v 10 Kimal akara. \v 11 Kiti nani.'),
+        (r'\ v 10 \v Kimal akara. \ v11 Kiti nani.',  r'\v 10 Kimal akara. \v 11 Kiti nani.'),
+        (r'v 12 Meng yning. v 13 Kishono minu.  v 14', r'\v 12 Meng yning. \v 13 Kishono minu.  \v 14'),
+        (r'Yitan\v 8. nin li.  \v9) Yisinan uremere.',  r'Yitan. \v 8 nin li. \v 9 Yisinan uremere.'),
+        (r'\v 8) nin li \v9! Yisinan uremere.',  r'\v 8 nin li! \v 9 Yisinan uremere.'),
+    ])
+def test_fixVerseMarkers(text, expected):
+    if not expected:
+        expected = text
+    result = txt2USFM.fixVerseMarkers(text)
+    assert result == expected
+
+@pytest.mark.parametrize('txtpath, chap, verserange, expected',
+    [
+        (r'C:\DCS\Test\REG\amo_1pe_text_reg\05\01.txt', '05', ['1','2','3','4'],
+          '\\c 5\n\\v 1 Ndin dak.  \\v 2 Bara yinnu. \\v 3 Na mine. \\v 4  Asa.'),
+        (r'C:\DCS\Test\REG\amo_1pe_text_reg\05\05.txt', '05', ['5','6','7'],
+          '\\v 5 Nan Kutelle. \\v 6 Bara mine.'),
+        (r'C:\DCS\Test\REG\amo_1pe_text_reg\05\08.txt', '05', ['8','9'],
+          ' Yitan \\v 8 nin li.  \\v 9 Yisinan uremere.'),
+    ])
+def test_cleanupTextFile(txtpath, chap, verserange, expected):
+    section = txt2USFM.cleanupTextFile(txtpath, chap, verserange)
+    assert section == expected
