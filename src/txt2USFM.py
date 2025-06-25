@@ -64,7 +64,7 @@ def cleanupTextFile(path, chap, verserange):
     with io.open(path, "tr", encoding='utf-8-sig') as input:
         origtext = input.read()
     text = fixVerseMarkers(origtext)
-    text = fixChapterMarkers(text)
+    text = fixChapterMarkers(text, vn_start == 1)
     text = fixPunctuationSpacing(text)
 
     missing_chapter = ""
@@ -178,7 +178,7 @@ sub1_re = re.compile(r'[^\n ]\\v ')     # non-space character before \v
 sub3_re = re.compile(r'\\v +([1-9][0-9\-]*)([^0-9\-\s])')       # no space after verse number
 sub4_re = re.compile(r'(\\v +[0-9\-]+ +)\\v +[^1-9]')   # \v 10 \v The...
 sub5_re = re.compile(r'\\v\s*(\\v +[0-9\-]+ +)')         # \v \v 10
-sub7_re = re.compile(r'(^|\s)v [1-9]')              # missing backslash
+sub7_re = re.compile(r'(^|\s+)v [1-9]')              # missing backslash
 sub8_re = re.compile(r'(^|.)\s*(\\v [0-9\-]+ +)([.!?,:;)])')   # Punctuation after verse marker
 
 # Fixes malformed verse markers in a single chunk of text.
@@ -230,6 +230,35 @@ def fixVerseMarkers(text):
             before_backslash = text[0:found.start()+1] + " "    # just delete the stray punctuation
         text = before_backslash + found.group(2) + text[found.end():].lstrip()
         found = sub8_re.search(text, found.end()-1)
+
+    return text
+
+chap0_re = re.compile(r'[\\/]+ *[cC] *[1-9]')
+chap3_re = re.compile(r'\\c +([0-9]+)([^0-9\s])')       # no space after chapter number
+chap7_re = re.compile(r'(^|\s+)c [1-9]')              # missing backslash
+chap8_re = re.compile(r'\\c [0-9]+ +[.!?,:;)]')   # Punctuation after chapter marker
+
+# Fixes certain malformed chapter markers.
+def fixChapterMarkers(text, firstverse):
+    if found := chap0_re.search(text):
+        text = text[0:found.start()] + "\\c " + text[found.end()-1:]
+
+    if found := chap3_re.search(text):
+        if found.group(2):
+            text = text[0:found.start()] + "\\c " + found.group(1) + " " + text[found.end()-1:]
+        else:
+            text = text[0:found.start()] + "\\c " + found.group(1)
+
+    if firstverse:
+        if found := chap7_re.search(text):
+            if found.group(1):
+                text = text[0:found.start()] + " \\c " + text[found.end()-1:]
+            else:
+                text = "\\c " + text[found.end()-1:]
+
+    # Move or remove the phrase-ending punctuation character found right after a chapter marker.
+    if found := chap8_re.search(text):
+        text = text[0:found.end()-1] + text[found.end()-1:].strip()
 
     return text
 
@@ -367,16 +396,6 @@ def fixPunctuationSpacing(section):
         match = jammed.search(section, match.end())
     return section
 
-# Inserts space between \c and the chapter number if needed
-def fixChapterMarkers(section):
-    pos = 0
-    match = re.search('\\\\c[0-9]', section, 0)
-    while match:
-        section = section[:match.end()-1] + ' ' + section[match.end()-1:]
-        pos = match.end()
-        match = re.search('\\\\c[0-9]', section, pos)
-    return section
-
 stripcv_re = re.compile(r'\s*\\([cv])\s*\d+\s*', re.UNICODE)
 
 # Returns the string with \v markers removed at beginning of chunk.
@@ -429,6 +448,12 @@ def stripInitialMarkers(text):
 #     else:
 #         str = text
 #     return str
+
+# Many chunks contain verses numbered in reverse. This happens because it
+# is difficult to place the verse marker bubbles correctly in BTT-Writer.
+def fixVerseOrder(section):
+    # bslist = [bs.start() for bs in anyMarker_re.finditer(section)]
+    return section
 
 condense_re = re.compile(r'[ \t][ \t]+')
 

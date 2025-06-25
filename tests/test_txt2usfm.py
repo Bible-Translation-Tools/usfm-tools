@@ -307,9 +307,10 @@ def test_makeVerseRange(chunkno, chapter, expected):
         (r'\V10 \v Kimal akara. \v \v11 Kiti nani.',  r'\v 10 Kimal akara. \v 11 Kiti nani.'),
         (r'\ V 10 \v Kimal akara. \v \ v11 Kiti nani.',  r'\v 10 Kimal akara. \v 11 Kiti nani.'),
         (r'\ v 10 \v Kimal akara. \ v11 Kiti nani.',  r'\v 10 Kimal akara. \v 11 Kiti nani.'),
-        (r'v 12 Meng yning. v 13 Kishono minu.  v 14', r'\v 12 Meng yning. \v 13 Kishono minu.  \v 14'),
+        (r'v 12 Meng yning. v 13 Kishono minu.  v 14', r'\v 12 Meng yning. \v 13 Kishono minu. \v 14'),
         (r'Yitan\v 8. nin li.  \v9) Yisinan uremere.',  r'Yitan. \v 8 nin li. \v 9 Yisinan uremere.'),
         (r'\v 8) nin li \v9! Yisinan uremere.',  r'\v 8 nin li! \v 9 Yisinan uremere.'),
+        ('\\V10 Kimal akara. \nHeading\n\\v11 Kiti nani.',  '\\v 10 Kimal akara. \nHeading\n\\v 11 Kiti nani.'),
     ])
 def test_fixVerseMarkers(text, expected):
     if not expected:
@@ -317,15 +318,22 @@ def test_fixVerseMarkers(text, expected):
     result = txt2USFM.fixVerseMarkers(text)
     assert result == expected
 
-@pytest.mark.parametrize('txtpath, chap, verserange, expected',
+@pytest.mark.parametrize('section, expected',
     [
-        (r'C:\DCS\Test\REG\amo_1pe_text_reg\05\01.txt', '05', ['1','2','3','4'],
-          '\\c 5\n\\v 1 Ndin dak.  \\v 2 Bara yinnu. \\v 3 Na mine. \\v 4  Asa.'),
-        (r'C:\DCS\Test\REG\amo_1pe_text_reg\05\05.txt', '05', ['5','6','7'],
-          '\\v 5 Nan Kutelle. \\v 6 Bara mine.'),
-        (r'C:\DCS\Test\REG\amo_1pe_text_reg\05\08.txt', '05', ['8','9'],
-          ' Yitan \\v 8 nin li.  \\v 9 Yisinan uremere.'),
+        (r'\v 1 Ndin ', ''),
+        (r'\C \v 1 Ndin ', ''),
+        (r'\c 1 \v 1 Ndin ', ''),
+        (r'\ c11 \v 1 Ndin ', r'\c 11 \v 1 Ndin '),
+        (r'\ c 11 \v 1 Ndin ', r'\c 11 \v 1 Ndin '),
+        (r'\ C11 \v 1 Ndin ', r'\c 11 \v 1 Ndin '),
+        (r'\C11\v 1 Ndin', r'\c 11 \v 1 Ndin'),
+        (r'\C12 1 Ndin ', r'\c 12 1 Ndin '),
+        (r'\c33', r'\c 33'),
+        (' \n \\c11 \\v 1 Ndin ', ' \n \\c 11 \\v 1 Ndin '),
+        (' c 4 ', r' \c 4 ')
     ])
-def test_cleanupTextFile(txtpath, chap, verserange, expected):
-    section = txt2USFM.cleanupTextFile(txtpath, chap, verserange)
+def test_fixChapterMarkers(section, expected):
+    if not expected:
+        expected = section
+    section = txt2USFM.fixChapterMarkers(section, True)
     assert section == expected
