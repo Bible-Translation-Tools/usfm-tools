@@ -337,3 +337,25 @@ def test_fixChapterMarkers(section, expected):
         expected = section
     section = txt2USFM.fixChapterMarkers(section, True)
     assert section == expected
+
+@pytest.mark.parametrize('section, expected',
+    [
+        ('  ! zxcv  ;  xcvb 2  ) poiu', '! zxcv;  xcvb 2) poiu'),
+        ('the end .', 'the end.'),
+        ('1 ,000 .000', '1,000.000'),
+        ('said ,', 'said,'),
+        ('said ,"Now', 'said,"Now'),
+        ('said ," Now', 'said," Now'),
+        ('asdf ... evev .', 'asdf ... evev.'),
+        ('qwer ; evev .[poi ;]', 'qwer; evev. [poi;]'),
+        ('2 , 000 . 000', '2, 000. 000'),
+        ('!zxcv .xcvb 2)poiu', '! zxcv. xcvb 2) poiu'),
+        ('( one )two', '(one) two'),
+        ('¡  Spanish !¿ Espanol ?', '¡Spanish! ¿Espanol?'),
+        ('(  wert )[! link ](reference )', '(wert) [! link](reference)'),
+    ])
+def test_fixPunctuationSpacing(section, expected):
+    if not expected:
+        expected = section
+    section = txt2USFM.fixPunctuationSpacing(section)
+    assert section == expected

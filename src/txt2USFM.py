@@ -376,24 +376,40 @@ def augmentChapter(section, chapterTitle):
             section = section[:ipos] + "\\p\n" + section[ipos:]
     return section
 
-spacedot_re = re.compile(r'[^0-9] [.?!;:,][^\.]')    # space before clause-ending punctuation
-jammed = re.compile(r'[.?!;:,)][\w]', re.UNICODE)     # no space between clause-ending punctuation and next word -- but \w matches digits also
-
+space1_re = re.compile(r' +([.?!;:,)\]].*)')    # space before clause-ending punctuation
+jammed1_re = re.compile(r'[.?!;:,)][\w¿¡\[\()]')     # no space between clause-ending punctuation and next word -- but \w matches digits also
+space2_re = re.compile(r'[¿¡\[\(] +.*')    # space after clause-starting punctuation
+jammed2_re = re.compile(r'\w[¿¡\[\(]')        # no space before clause-starting punctuation
 # Removes extraneous space before clause ending punctuation and adds space after
 # sentence/clause end if needed.
 def fixPunctuationSpacing(section):
-    # First remove space before most punctuation
-    found = spacedot_re.search(section)
+    # Remove space before phrase-ending punctuation
+    found = space1_re.search(section)
     while found:
-        section = section[0:found.start()+1] + section[found.end()-2:]
-        found = spacedot_re.search(section)
+        remainder = found.group(1)
+        if len(remainder) <= 1 or remainder[1] != '.':
+            section = section[0:found.start()] + remainder
+        found = space1_re.search(section, found.start()+1)
 
-    # Then add space between clause-ending punctuation and next word.
-    match = jammed.search(section, 0)
+    # Remove space after phrase-starting punctuation
+    found = space2_re.search(section)
+    while found:
+        section = section[0:found.start()+1] + section[found.start()+2:]
+        found = space2_re.search(section, found.start())
+
+    # Add space between clause-ending punctuation and next word.
+    match = jammed1_re.search(section)
     while match:
-        if section[match.end()-1] not in "0123456789":
+        if not section[match.end()-1].isdigit():
             section = section[:match.start()+1] + ' ' + section[match.end()-1:]
-        match = jammed.search(section, match.end())
+        match = jammed1_re.search(section, match.end())
+
+    # Add space before clause-starting punctuation.
+    match = jammed2_re.search(section)
+    while match:
+        section = section[:match.start()+1] + ' ' + section[match.end()-1:]
+        match = jammed2_re.search(section, match.end())
+
     return section
 
 stripcv_re = re.compile(r'\s*\\([cv])\s*\d+\s*', re.UNICODE)
