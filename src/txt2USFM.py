@@ -26,7 +26,9 @@ config = configmanager.ToolsConfigManager()
 projectInfo = None
 gui = None
 
-verseTags_re = re.compile(r'\\v +[^1-9]', re.UNICODE)
+precleanup_file = None
+postcleanup_file = None
+
 numberstart_re = re.compile(r'([\d]{1,3})[ \n]', re.UNICODE)
 chapMarker_re = re.compile(r'\\c *[\d]{1,3}', re.UNICODE)
 
@@ -51,44 +53,59 @@ def reportToGui(msg, event):
             gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
         gui.event_generate(event, when="tail")
 
+def open_diagnostic_files():
+    global precleanup_file
+    global postcleanup_file
+
+    if not precleanup_file:
+        target_dir = config.get('Txt2USFM', 'target_dir')
+        path = os.path.join(target_dir, "precleanup.txt")
+        precleanup_file = io.open(path, "tw", encoding='utf-8-sig')
+    if not postcleanup_file:
+        target_dir = config.get('Txt2USFM', 'target_dir')
+        path = os.path.join(target_dir, "postcleanup.txt")
+        postcleanup_file = io.open(path, "tw", encoding='utf-8-sig')
+
+def close_diagnostic_files():
+    global precleanup_file
+    global postcleanup_file
+    if precleanup_file:
+        precleanup_file.close()
+        precleanup_file = None
+    if postcleanup_file:
+        postcleanup_file.close()
+        postcleanup_file = None
+
 numbers_re = re.compile(r'[ \n]([\d]{1,3})[ \n]', re.UNICODE)
 verseMarker_re = re.compile(r'[ \n\t]*\\v *([\d]{1,3})', re.UNICODE)
+verseTags_re = re.compile(r'\\v +[^1-9]')
 
-# Does preliminary cleanup on the text file, prior to conversion.
-# Calls ensureMarkers() to put in missing chapter and verse markers.
+# Does preliminary cleanup on the chunk of text.
 # verserange is a list of verse number strings that should exist in the file.
+# Calls ensureMarkers() to put in missing chapter and verse markers.
 # Returns a string with the (possibly improved) contents of the .txt file.
-def cleanupTextFile(path, chap, verserange):
-    vn_start = int(verserange[0])
-    vn_end = int(verserange[-1])
-    with io.open(path, "tr", encoding='utf-8-sig') as input:
-        origtext = input.read()
-    text = fixVerseMarkers(origtext)
-    text = fixChapterMarkers(text, vn_start == 1)
+def cleanupText(text, chap, verserange):
+    text = fixVerseMarkers(text)
+    text = fixChapterMarkers(text, verserange[0] == '1')
     text = fixPunctuationSpacing(text)
-
-    missing_chapter = ""
-    if vn_start == 1 and lacksChapter(text):
-        missing_chapter = chap.lstrip('0')
-    missing_verses = lackingVerses(text, verserange, numbers_re)
-    missing_markers = lackingVerses(text, verserange, verseMarker_re)
-    if missing_chapter or missing_verses or missing_markers:
-        if verseTags_re.search(text):
-            if missing_verses:
-                text = ensureNumbers(text, missing_verses)
-                missing_verses = lackingVerses(text, verserange, numbers_re)
-        text = ensureMarkers(text, missing_chapter, vn_start, vn_end, missing_verses, missing_markers)
-    #if language_code == "ior":
-        #text = fixInorMarkers(text, verserange)
+    text = fixVerses(text, verserange)
+    # #if language_code == "ior":
+    #     #text = fixInorMarkers(text, verserange)
     return text
 
-# Returns True unchanged if there is no \c marker before the first verse marker.
-# Returns False if \c marker precedes first verse marker.
+def cleanupTextFile(path, chap, verserange):
+    with io.open(path, "tr", encoding='utf-8-sig') as input:
+        text = input.read()
+    return cleanupText(text, chap, verserange)
+
+# Returns True if there is no valid chapter marker before the first verse marker.
+# Returns False if a valid chapter marker precedes first verse marker.
 def lacksChapter(text):
     verseMarker = verseMarker_re.search(text)
     if verseMarker:
         text = text[0:verseMarker.start()]
     return (not chapMarker_re.search(text))
+
 
 # Searches for the expected verse numbers in the string using the specified expression.
 # Returns list of verse numbers (marked or unmarked) missing from the string
@@ -117,13 +134,13 @@ untaggednumber_re =     re.compile(r'[^v][ \n]([\d]{1,3}[ \n])', re.UNICODE+re.D
 def ensureMarkers(text, missingChapter, vn_start, vn_end, missingVerses, missingMarkers):
     goodstr = ""
     if missingChapter:
-        goodstr = "\\c " + missingChapter + '\n'
+        goodstr = "\\c " + missingChapter + ' '
     if not (missingVerses or missingMarkers):
         goodstr += text
     else:
         chap = chapMarker_re.search(text)
         if chap:
-            goodstr += text[0:chap.end()] + '\n'
+            goodstr += text[0:chap.end()] + ' '
             text = text[chap.end():]
 
         verseAtStart = numberstart_re.match(text)
@@ -131,7 +148,7 @@ def ensureMarkers(text, missingChapter, vn_start, vn_end, missingVerses, missing
             verseAtStart = verseMarker_re.match(text)
         if not verseAtStart:
             startVV = missingStartVV(vn_start, vn_end, text)
-            text = startVV + text      # insert initial verse marker
+            text = startVV + text.lstrip()      # insert initial verse marker
         number = numberMatch_re.match(text)          # matches orphaned number at beginning of the string
         if not number:
             number = untaggednumber_re.search(text)          # finds orphaned number anywhere in string
@@ -262,6 +279,25 @@ def fixChapterMarkers(text, firstverse):
 
     return text
 
+def fixVerses(text, verserange):
+    if precleanup_file:
+        precleanup_file.write(text + '\n')
+
+    # vn_start = int(verserange[0])
+    # vn_end = int(verserange[-1])
+    # missing_markers = lackingVerses(text, verserange, verseMarker_re)
+    # if missing_markers:
+    #     if verseTags_re.search(text):
+    #         # if missing_verses:
+    #         #     text = ensureNumbers(text, missing_verses)
+    #         #     missing_verses = lackingVerses(text, verserange, numbers_re)
+    #         text = ensureMarkers(text, missing_chapter, vn_start, vn_end, missing_verses, missing_markers)
+
+    if postcleanup_file:
+        postcleanup_file.write(text + '\n')
+
+    return text
+
 cvExpr = re.compile(r'\\[cv] +[0-9]+')
 
 # Adds chunk marker before first completed \c or \v marker.
@@ -377,8 +413,8 @@ def augmentChapter(section, chapterTitle):
     return section
 
 space1_re = re.compile(r' +([.?!;:,)\]].*)')    # space before clause-ending punctuation
-jammed1_re = re.compile(r'[.?!;:,)][\w¿¡\[\()]')     # no space between clause-ending punctuation and next word -- but \w matches digits also
 space2_re = re.compile(r'[¿¡\[\(] +.*')    # space after clause-starting punctuation
+jammed1_re = re.compile(r'[.?!;:,)][\w¿¡\[\(]')  # no space between clause-ending punctuation and next word -- but \w matches digits also
 jammed2_re = re.compile(r'\w[¿¡\[\(]')        # no space before clause-starting punctuation
 # Removes extraneous space before clause ending punctuation and adds space after
 # sentence/clause end if needed.
@@ -737,11 +773,17 @@ def main(app = None):
     projectInfo = ProjectInfo(target_dir, config.get('Txt2USFM', 'language_code'))
     projectInfo.useManifest()
     projectInfo.resetSources()
+
+    if config.getboolean('Txt2USFM', 'diagnostics'):
+        open_diagnostic_files()
+
     convert(config.get('Txt2USFM', 'source_dir'), target_dir)
     projectInfo.save()
     reportStatus("\nDone.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
+
+    close_diagnostic_files()
 
 if __name__ == "__main__":
     main()

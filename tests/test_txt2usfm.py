@@ -249,21 +249,6 @@ def test_augmentChapter(section, ctitle, expected):
     result = txt2USFM.augmentChapter(section, ctitle)
     assert result == expected
 
-# testdir = r'C:\DCS\Test\REG\zga-x-mahanji_rut_text_reg\03'
-
-# @pytest.mark.parametrize('fname, expected',
-#     [
-#         ('01.txt', "\n\\c 3\n\\v 1 U vuononu?\n\\v 2 Pwu khupukila.\n"),
-#         ('03.txt', "\n\\v 3 Pwu nukhunywa.\n\\v 4 Pwuleino eikhyakhuvomba.\"\n\\v 5 U nduvumbulile.\"\n"),
-#         ('16.txt', "\n\\v 17 Pwu ula.\n\\v 16 Akhata ngheene.\"'\n\\v 18 Pwu eileeilelo.\"\n"),
-#     ])
-# def test_combineLines(fname, expected):
-#     txtPath = os.path.join(testdir, fname)
-#     with io.open(txtPath, "tr", 1, encoding='utf-8-sig') as input:
-#         lines = input.readlines()
-#     section = "\n" + txt2USFM.combineLines(lines)
-#     assert section == expected
-
 @pytest.mark.parametrize('path, expected',
     [
         (r'C:\DCS\Test\REG\amo_1pe_text_reg\00', []),
@@ -296,6 +281,7 @@ def test_makeVerseRange(chunkno, chapter, expected):
         (r' Yitan \v 8 nin li.  \v9 Yisinan uremere.', r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'),
         (r' Yitan \V 8 nin li.  \V9 Yisinan uremere.', r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'),
         (r' Yitan /v 8 nin li.  /V9 Yisinan uremere.', r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'),
+        # (' Yitan /8 nin li.  \\9 Yisinan uremere.', r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'), # not supported yet
         (r' Yitan /\v 8 nin li.  \\V9 Yisinan uremere.', r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'),
         (r' Yitan\\v 8 nin li.\\V9 Yisinan uremere.', r' Yitan \v 8 nin li. \v 9 Yisinan uremere.'),
         (r' Yitan \V 8nin li.  \v9Yisinan uremere.\v10',  r' Yitan \v 8 nin li.  \v 9 Yisinan uremere. \v 10'),
@@ -353,9 +339,55 @@ def test_fixChapterMarkers(section, expected):
         ('( one )two', '(one) two'),
         ('¡  Spanish !¿ Espanol ?', '¡Spanish! ¿Espanol?'),
         ('(  wert )[! link ](reference )', '(wert) [! link](reference)'),
+        ('(kiti asa da kitimine ba.)', ''),
     ])
 def test_fixPunctuationSpacing(section, expected):
     if not expected:
         expected = section
     section = txt2USFM.fixPunctuationSpacing(section)
     assert section == expected
+
+@pytest.mark.parametrize('section, expected',
+    [
+        ('', True),
+        ('This Fine House', True),
+        ('\n\\c 1\n\\s DER ARKEMA SIN\n\\p\n\\v 1 Der nom.', False),
+        ('\\c 1\n\\s DER ARKEMA SIN\n', False),
+        ('\\v 1 \\c 2\n\\v 1 asdf', True),
+        ('\\v \\c 2\n\\v 1 asdf', False),
+        ('\\c 6', False),
+        ('\\c \\v 2', True),
+   ])
+def test_lacksChapter(section, expected):
+    lacks = txt2USFM.lacksChapter(section)
+    assert lacks == expected
+
+range3 = ['3', '4']
+range4 = ['4', '5']
+range5 = ['5', '6', '7']
+range8 = ['8', '9']
+range10 = ['10','11']
+range17 = ['16','17','18']
+range20 = ['20','21','22']
+range33 = ['33','34','35']
+range38 = ['38','39','40']
+
+@pytest.mark.parametrize('text, verserange, expected',
+    [
+        (r'\v 3 Usetano akhambula, "Ingave uveve', range3, r'\v 3-4 Usetano akhambula, "Ingave uveve'),
+        (r'\v 5 Ufihelelelage  \v 4 Nuwohakika.  \v 6 Ulyahova.', range4, r'\v 4 Ufihelelelage  \v 5 Nuwohakika.  \v 6 Ulyahova.'),
+        (r'\v 5 \v 6 Naho Daada.  \v 6 Ululino nalwo. \v 7 Ulu nalwo.', range5, r'\v 5 Naho Daada.  \v 6 Ululino nalwo. \v 7 Ulu nalwo.'),
+        (r'\v 17 Pwu ula. \v 16 Akhata. \v 18 Pwu."', range17, r'\v 16 Pwu ula. \v 17 Akhata. \v 18 Pwu."'),
+        (r'\v 22 Omunu  \v 20 U Yiisu  \v 21 Pwu fingi.', range20, r'\v 20 Omunu  \v 21 U Yiisu  \v 22 Pwu fingi.'),
+        (r'\v 33 \v 35 Udada mwene.   \v 34 Pwu becha', range33, r'\v 33 \v 34 Udada mwene.   \v 35 Pwu becha'),
+        (r'\v 38 U Yesu ncheyo?    \v 40 Mlolage amavokho  \v 39 Avileamale', range38, r'\v 38 U Yesu ncheyo?    \v 39 Mlolage amavokho  \v 40 Avileamale'),
+        # (r'\v 8 \v 9 nin li. 9  Yisinan uremere.', range8, r''), # How it works
+        # (r'\v 8 \v 9 nin li. 9  Yisinan uremere.', range8, r'\v 8 nin li. \v 9 Yisinan uremere.'),    # How I want it to work
+        (r'\v 10 Kimal akara. \v 11 Kiti nani. 12', range10, r''),
+        (r'Nan Kutelle. \v 7 Bara mine.', range5, r'\v 5-6 Nan Kutelle. \v 7 Bara mine.'),
+    ])
+def test_fixVerses(text, verserange, expected):
+    if not expected:
+        expected = text
+    result = txt2USFM.fixVerses(text, verserange)
+    assert result == expected
