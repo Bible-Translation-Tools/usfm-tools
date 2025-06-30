@@ -77,8 +77,6 @@ def close_diagnostic_files():
         postcleanup_file = None
 
 numbers_re = re.compile(r'[ \n]([\d]{1,3})[ \n]', re.UNICODE)
-verseMarker_re = re.compile(r'[ \n\t]*\\v *([\d]{1,3})', re.UNICODE)
-verseTags_re = re.compile(r'\\v +[^1-9]')
 
 # Does preliminary cleanup on the chunk of text.
 # verserange is a list of verse number strings that should exist in the file.
@@ -86,9 +84,10 @@ verseTags_re = re.compile(r'\\v +[^1-9]')
 # Returns a string with the (possibly improved) contents of the .txt file.
 def cleanupText(text, chap, verserange):
     text = fixVerseMarkers(text)
-    text = fixChapterMarkers(text, verserange[0] == '1')
+    if verserange[0] == '1':
+        text = fixChapterMarkers(text, chap)
     text = fixPunctuationSpacing(text)
-    text = fixVerses(text, verserange)
+    text = fixVerseOrder(text, verserange)
     # #if language_code == "ior":
     #     #text = fixInorMarkers(text, verserange)
     return text
@@ -97,6 +96,8 @@ def cleanupTextFile(path, chap, verserange):
     with io.open(path, "tr", encoding='utf-8-sig') as input:
         text = input.read()
     return cleanupText(text, chap, verserange)
+
+verseMarker_re = re.compile(r'\s*\\v *([\d]{1,3})', re.UNICODE)
 
 # Returns True if there is no valid chapter marker before the first verse marker.
 # Returns False if a valid chapter marker precedes first verse marker.
@@ -181,13 +182,39 @@ def missingStartVV(vn_start, vn_end, text):
         startVV = "\\v " + str(vn_start) + "-" + str(vn) + " "
     return startVV
 
-def ensureNumbers(text, missingVerses):
-    missi = 0
-    while missi < len(missingVerses):
-        versetag = verseTags_re.search(text)
-        if versetag:
-            text = text[0:versetag.end()-1] + missingVerses[missi] + " " + text[versetag.end()-1:]
-        missi += 1
+widowtags_re = re.compile(r'\\v +[^1-9]')   # widows verse tags
+
+# def ensureNumbers(text, missingnumbers):
+#     missi = 0
+#     while missi < len(missingnumbers):
+#         versetag = widowtags_re.search(text)
+#         if versetag:
+#             text = text[0:versetag.end()-1] + missingnumbers[missi] + " " + text[versetag.end()-1:]
+#         missi += 1
+#     return text
+
+# Adds the specified verse number after the first widowed \v marker found,
+# or adds a \v before the orphan verse number if found.
+def fixWidowTag(text, vstr):
+    widowtag = widowtags_re.search(text)
+    widow_pos = -1 if not widowtag else widowtag.end() - 1
+    startc = startc_re.match(text)
+    startlook = 0 if not startc else startc.end()
+    orphanv_pos = text.find(vstr, startlook)
+    if orphanv_pos == 0 or (orphanv_pos > 0 and text[orphanv_pos-1] not in '123456789'):
+        endpos = orphanv_pos + len(vstr)
+        if endpos < len(text) and text[endpos] in '0123456789':
+            orphanv_pos = -1
+    else:
+        endpos = -1
+    if endpos > orphanv_pos > -1 and 0 < widow_pos - endpos < 6:    # reverse situation, e.g. 4 /v
+        preorphan = 0 if orphanv_pos == 0 else orphanv_pos - 1
+        marker = '\\v ' if preorphan == 0 else ' \\v '
+        text = text[0:preorphan].rstrip() + marker + vstr + ' ' + text[widow_pos:]
+    elif widow_pos > 0:
+        text = text[0:widow_pos-1] + ' ' + vstr + ' ' + text[widow_pos:]
+    elif endpos > orphanv_pos > -1:
+        text = text[0:orphanv_pos] + '\\v ' + text[orphanv_pos:]
     return text
 
 sub0_re = re.compile(r'[\\/]+ *[vV] *[1-9]')
@@ -250,15 +277,20 @@ def fixVerseMarkers(text):
 
     return text
 
-chap0_re = re.compile(r'[\\/]+ *[cC] *[1-9]')
+# chap0_re = re.compile(r'[\\/]+ *[cC] *[1-9]')
+chap0_re = re.compile(r'[\\/]+ *[cC] *')    # forward slash or capital C
+chap1_re = re.compile(r'\\c *\\')  # missing chapter number
 chap3_re = re.compile(r'\\c +([0-9]+)([^0-9\s])')       # no space after chapter number
-chap7_re = re.compile(r'(^|\s+)c [1-9]')              # missing backslash
+chap7_re = re.compile(r'(^|\s+)c\s+[1-9]')        # missing backslash
 chap8_re = re.compile(r'\\c [0-9]+ +[.!?,:;)]')   # Punctuation after chapter marker
 
-# Fixes certain malformed chapter markers.
-def fixChapterMarkers(text, firstverse):
+# Fixes missing and malformed chapter markers.
+def fixChapterMarkers(text, schap):
     if found := chap0_re.search(text):
-        text = text[0:found.start()] + "\\c " + text[found.end()-1:]
+        text = text[0:found.start()] + "\\c " + text[found.end():]
+
+    if found := chap1_re.search(text):
+        text = text[0:found.start()] + "\\c " + str(int(schap)) + text[found.end()-1:]
 
     if found := chap3_re.search(text):
         if found.group(2):
@@ -266,22 +298,62 @@ def fixChapterMarkers(text, firstverse):
         else:
             text = text[0:found.start()] + "\\c " + found.group(1)
 
-    if firstverse:
-        if found := chap7_re.search(text):
-            if found.group(1):
-                text = text[0:found.start()] + " \\c " + text[found.end()-1:]
-            else:
-                text = "\\c " + text[found.end()-1:]
+    if found := chap7_re.search(text):
+        text = text[0:found.end(1)] + "\\c " + text[found.end()-1:]
 
     # Move or remove the phrase-ending punctuation character found right after a chapter marker.
     if found := chap8_re.search(text):
         text = text[0:found.end()-1] + text[found.end()-1:].strip()
 
+    if lacksChapter(text):
+        text = "\\c " + str(int(schap)) + " " + text.lstrip()
+
     return text
 
-def fixVerses(text, verserange):
+startc_re = re.compile(r'\s*\\c +[0-9]+\s*')
+
+def fixVerseOrderBegin(text, verserange, vnumbers_found):
+    miss = -1
+    i = 0
+    while i < len(verserange) and verserange[i] not in vnumbers_found:
+        miss = i
+        i += 1
+    if miss >= 0:
+        insert = verserange[0]
+        if miss > 0:
+            insert += '-' + verserange[miss]
+        startc = startc_re.match(text)
+        insertpos = 0 if not startc else startc.end()
+        if widowv := widowv_re.search(text, insertpos):
+            insertpos = widowv.start()
+            remainpos = widowv.end() - 1
+        else:
+            remainpos = insertpos
+        text = text[0:insertpos] + '\\v ' + insert + ' ' + text[remainpos:]
+    return text
+
+vnumbers_re = re.compile(r'\\v ([1-9][0-9\-]*)')
+def find_vnumbers(text):
+    vnumbers_found = [v.group(1) for v in vnumbers_re.finditer(text)]
+    vnumbers_found = debridge(vnumbers_found)
+    return vnumbers_found
+
+widowv_re = re.compile(r'\\v +[^1-9]')
+
+# Many chunks contain verses numbered in reverse, or omit verse numbers,
+# or omit \v.
+# This all happens because it is difficult to place the verse bubbles correctly in BTTW.
+def fixVerseOrder(text, verserange):
     if precleanup_file:
         precleanup_file.write(text + '\n')
+
+    vnumbers_found = find_vnumbers(text)
+    for v in verserange:
+        if not v in vnumbers_found:
+            text = fixWidowTag(text, v)
+            vnumbers_found = find_vnumbers(text)
+
+    text = fixVerseOrderBegin(text, verserange, vnumbers_found)
 
     # vn_start = int(verserange[0])
     # vn_end = int(verserange[-1])
@@ -297,6 +369,21 @@ def fixVerses(text, verserange):
         postcleanup_file.write(text + '\n')
 
     return text
+
+vv_re = re.compile(r'([0-9]+)-([0-9]+)')
+
+def debridge(rawlist):
+    vlist = []
+    for vstr in rawlist:
+        vv_range = vv_re.search(vstr)
+        if vv_range:
+            vnStart = int(vv_range.group(1))
+            vnEnd = int(vv_range.group(2))
+            for vn in range(vnStart, vnEnd + 1):
+                vlist.append(vn)
+        else:
+            vlist.append(vstr)
+    return vlist
 
 cvExpr = re.compile(r'\\[cv] +[0-9]+')
 
@@ -412,8 +499,8 @@ def augmentChapter(section, chapterTitle):
             section = section[:ipos] + "\\p\n" + section[ipos:]
     return section
 
-space1_re = re.compile(r' +([.?!;:,)\]].*)')    # space before clause-ending punctuation
-space2_re = re.compile(r'[¿¡\[\(] +.*')    # space after clause-starting punctuation
+space1_re = re.compile(r' +([.?!;:,)\]].*)', re.DOTALL)    # space before clause-ending punctuation
+space2_re = re.compile(r'[¿¡\[\(] +.*', re.DOTALL)    # space after clause-starting punctuation
 jammed1_re = re.compile(r'[.?!;:,)][\w¿¡\[\(]')  # no space between clause-ending punctuation and next word -- but \w matches digits also
 jammed2_re = re.compile(r'\w[¿¡\[\(]')        # no space before clause-starting punctuation
 # Removes extraneous space before clause ending punctuation and adds space after
@@ -501,23 +588,15 @@ def stripInitialMarkers(text):
 #         str = text
 #     return str
 
-# Many chunks contain verses numbered in reverse. This happens because it
-# is difficult to place the verse marker bubbles correctly in BTT-Writer.
-def fixVerseOrder(section):
-    # bslist = [bs.start() for bs in anyMarker_re.finditer(section)]
-    return section
-
 condense_re = re.compile(r'[ \t][ \t]+')
 
-# Converts the section string to a single
-# USFM section by adding chapter label, chunk marker, and paragraph marker where needed.
+# Converts the section string by adding chapter, label, chunk, and p parkers where needed.
 # Starts each usfm marker on a new line.
 # Fixes white space, such as converting tabs to spaces and removing trailing spaces.def
-def convertSection(section, chapterTitle, lastchunk):
+def convertSection(section, schap, firstverse, chapterTitle, lastchunk):
     section = re.sub(condense_re, ' ', section)
     section = section.replace(" \\", "\n\\")
     section = section.replace(" \n", "\n")
-    # section = fixVerseOrder(section)
 
     if config.getboolean('Txt2USFM', 'section_headings'):
         section = mark_section_headings(section, lastchunk)
@@ -746,8 +825,9 @@ def convertBook(folder, bookId, bookTitle):
         for i in range(len(chunks)):
             filename = chunks[i] + ".txt"
             txtPath = os.path.join(chapterpath, filename)
-            section = cleanupTextFile(txtPath, chap, makeVerseRange(chunks, i, bookId, int(chap)))
-            section = convertSection(section, chapterTitle, i+1 >= len(chunks)).rstrip()
+            verserange = makeVerseRange(chunks, i, bookId, int(chap))
+            section = cleanupTextFile(txtPath, chap, verserange)
+            section = convertSection(section, chap, verserange[0],chapterTitle, i+1 >= len(chunks)).rstrip()
             usfm.writeStr('\n' + section)
     usfm.close()
 

@@ -306,8 +306,9 @@ def test_fixVerseMarkers(text, expected):
 
 @pytest.mark.parametrize('section, expected',
     [
-        (r'\v 1 Ndin ', ''),
-        (r'\C \v 1 Ndin ', ''),
+        (r'\v 1 Ndin ', r'\c 1 \v 1 Ndin '),
+        (r'\v 5 asdf asdf', r'\c 1 \v 5 asdf asdf'),    # sic
+        (r'\C \v 1 Ndin ', r'\c 1 \v 1 Ndin '),
         (r'\c 1 \v 1 Ndin ', ''),
         (r'\ c11 \v 1 Ndin ', r'\c 11 \v 1 Ndin '),
         (r'\ c 11 \v 1 Ndin ', r'\c 11 \v 1 Ndin '),
@@ -316,12 +317,12 @@ def test_fixVerseMarkers(text, expected):
         (r'\C12 1 Ndin ', r'\c 12 1 Ndin '),
         (r'\c33', r'\c 33'),
         (' \n \\c11 \\v 1 Ndin ', ' \n \\c 11 \\v 1 Ndin '),
-        (' c 4 ', r' \c 4 ')
+        (' c 4 \\v 1 asdf', r' \c 4 \v 1 asdf'),
     ])
 def test_fixChapterMarkers(section, expected):
     if not expected:
         expected = section
-    section = txt2USFM.fixChapterMarkers(section, True)
+    section = txt2USFM.fixChapterMarkers(section, '01')
     assert section == expected
 
 @pytest.mark.parametrize('section, expected',
@@ -362,6 +363,7 @@ def test_lacksChapter(section, expected):
     lacks = txt2USFM.lacksChapter(section)
     assert lacks == expected
 
+range1 = ['1', '2', '3', '4']
 range3 = ['3', '4']
 range4 = ['4', '5']
 range5 = ['5', '6', '7']
@@ -371,6 +373,24 @@ range17 = ['16','17','18']
 range20 = ['20','21','22']
 range33 = ['33','34','35']
 range38 = ['38','39','40']
+
+@pytest.mark.parametrize('text, vstr, expected',
+    [
+        (r'Nan Kutelle. \v 7 Bara mine.', '5', ''),
+        (r'\v Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono', '5', r'\v 5 Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono'),
+        (r'\v 5 Kuwu ati. \v Umong nsono." \v Bara nono', '6', r'\v 5 Kuwu ati. \v 6 Umong nsono." \v Bara nono'),
+        (r'\v 10 Iwa, kube. \n 11 Bara na ', '11', r'\v 10 Iwa, kube. \n \v 11 Bara na '),
+        (r'\v 10 Iwa, kube. \n Bara na ', '11', r'\v 10 Iwa, kube. \n Bara na '),
+        (r'1 \v Yesu nlira. \v 2 A aworo \v 3 nan', '1', r'\v 1 Yesu nlira. \v 2 A aworo \v 3 nan'),
+        (r'1 \v Yesu nlira. \v 2 A aworo \v 3 nan', '4', r'1 \v 4 Yesu nlira. \v 2 A aworo \v 3 nan'),
+        (r'end. 1 \v Yesu nlira. \v 2 A aworo ', '1', r'end. \v 1 Yesu nlira. \v 2 A aworo '),
+        (r'\c 1 1 \v Yesu nlira. \v 2 A aworo ', '1', r'\c 1 \v 1 Yesu nlira. \v 2 A aworo '),
+    ])
+def test_fixWidowTag(text, vstr, expected):
+    if not expected:
+        expected = text
+    result = txt2USFM.fixWidowTag(text, vstr)
+    assert result == expected
 
 @pytest.mark.parametrize('text, verserange, expected',
     [
@@ -385,9 +405,18 @@ range38 = ['38','39','40']
         # (r'\v 8 \v 9 nin li. 9  Yisinan uremere.', range8, r'\v 8 nin li. \v 9 Yisinan uremere.'),    # How I want it to work
         (r'\v 10 Kimal akara. \v 11 Kiti nani. 12', range10, r''),
         (r'Nan Kutelle. \v 7 Bara mine.', range5, r'\v 5-6 Nan Kutelle. \v 7 Bara mine.'),
+        (r'\v 6 Nan Kutelle. \v 7 Bara mine.', range5, r'\v 5 \v 6 Nan Kutelle. \v 7 Bara mine.'),
+        (r'\c 2 Nan Kutelle. \v 4 Bara mine.', range1, r'\c 2 \v 1-3 Nan Kutelle. \v 4 Bara mine.'),
+        (r'\v Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono', range5, r'\v 5 Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono'),
+        (r'\v 5 Kuwu ati. \v Umong nsono." \v Bara nono', range5, r'\v 5 Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono'),
+        (r'\v 10 Iwa, kube. \n 11 Bara na ', range10, r'\v 10 Iwa, kube. \n \v 11 Bara na '),
+        (r'\v 10 Iwa, kube. \n Bara na ', range10, r'\v 10 Iwa, kube. \n Bara na '),
+        (r'1 \v Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf', range1, r'\v 1 Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf'),
+        (r'end. 1 \v Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf', range1, r'end. \v 1 Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf'),
+        (r'\c 1 1 \v Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf', range1, r'\c 1 \v 1 Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf'),
     ])
-def test_fixVerses(text, verserange, expected):
+def test_fixVerseOrder(text, verserange, expected):
     if not expected:
         expected = text
-    result = txt2USFM.fixVerses(text, verserange)
+    result = txt2USFM.fixVerseOrder(text, verserange)
     assert result == expected
