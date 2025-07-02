@@ -34,7 +34,7 @@ footnotedVerses = {}
 nFiles = 0  # number of .usfm files verified
 nSectionHeadings = 0
 
-import configmanager
+from configmanager import ToolsConfigManager
 import os
 from pathlib import Path
 import sys
@@ -387,7 +387,8 @@ def get_timestamp(path):
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        workdir = config['source_dir']
+        config = ToolsConfigManager()
+        workdir = config.get('VerifyUSFM', 'source_dir')
         path = os.path.join(workdir, "issues.txt")
         if os.path.exists(path):
             timestamp = get_timestamp(path)
@@ -395,7 +396,7 @@ def openIssuesFile():
             if not os.path.exists(bakpath):
                 os.rename(path, bakpath)
         issuesFile = io.open(path, "tw", encoding='utf-8', newline='\n')
-        issuesFile.write(f"Issues detected by verifyUSFM, {date.today()}, {workdir}\n-------------------\n")
+        issuesFile.write(f"Issues detected by verifyUSFM version {config.get('UsfmWizard', 'version')}, {date.today()}, {workdir}\n-------------------\n")
     return issuesFile
 
 # Returns the longest common substring at the start of s1 and s2
@@ -1471,7 +1472,7 @@ def initializeGlobals():
     nFiles = 0
     nSectionHeadings = 0
     wordlist = dict()
-    config = configmanager.ToolsConfigManager().get_section('VerifyUSFM')
+    config = ToolsConfigManager().get_section('VerifyUSFM')
     if config:
         for i in range(1, len(suppress)):
             suppress[i] = config.getboolean('suppress'+str(i), fallback = False)
