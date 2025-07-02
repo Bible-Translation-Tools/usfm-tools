@@ -80,14 +80,13 @@ numbers_re = re.compile(r'[ \n]([\d]{1,3})[ \n]', re.UNICODE)
 
 # Does preliminary cleanup on the chunk of text.
 # verserange is a list of verse number strings that should exist in the file.
-# Calls ensureMarkers() to put in missing chapter and verse markers.
 # Returns a string with the (possibly improved) contents of the .txt file.
 def cleanupText(text, chap, verserange):
     text = fixVerseMarkers(text)
     if verserange[0] == '1':
         text = fixChapterMarkers(text, chap)
     text = fixPunctuationSpacing(text)
-    text = fixVerseOrder(text, verserange)
+    text = fixVerseOrder(text, chap, verserange)
     # #if language_code == "ior":
     #     #text = fixInorMarkers(text, verserange)
     return text
@@ -107,95 +106,14 @@ def lacksChapter(text):
         text = text[0:verseMarker.start()]
     return (not chapMarker_re.search(text))
 
-
-# Searches for the expected verse numbers in the string using the specified expression.
-# Returns list of verse numbers (marked or unmarked) missing from the string
-def lackingVerses(str, verserange, expr_re):
-    missing_verses = []
-    numbers = expr_re.findall(str)
-#    if len(numbers) < len(verserange):     # not enough verse numbers
-    versenumbers_found = []
-    for vn in numbers:
-        if vn in verserange:
-            versenumbers_found.append(vn)
-    for verse in verserange:
-        if not verse in versenumbers_found:
-            missing_verses.append(verse)
-    return missing_verses
-
-numberMatch_re = re.compile(r'[ \n\t]*([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
-untaggednumber_re =     re.compile(r'[^v][ \n]([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
-
-# Writes chapter marker at beginning of file if needed.
-# Write initial verse marker and number at beginning of file if needed.
-# Finds orphaned verse numbers and inserts \v before them.
-# missingVerses is a list of verse numbers (in string format) not found in the string
-# missingMarkers is a list of verse markers (e.g. "\v 1") not found in the string
-# Returns corrected string.
-def ensureMarkers(text, missingChapter, vn_start, vn_end, missingVerses, missingMarkers):
-    goodstr = ""
-    if missingChapter:
-        goodstr = "\\c " + missingChapter + ' '
-    if not (missingVerses or missingMarkers):
-        goodstr += text
-    else:
-        chap = chapMarker_re.search(text)
-        if chap:
-            goodstr += text[0:chap.end()] + ' '
-            text = text[chap.end():]
-
-        verseAtStart = numberstart_re.match(text)
-        if (missingVerses or missingMarkers) and not verseAtStart:
-            verseAtStart = verseMarker_re.match(text)
-        if not verseAtStart:
-            startVV = missingStartVV(vn_start, vn_end, text)
-            text = startVV + text.lstrip()      # insert initial verse marker
-        number = numberMatch_re.match(text)          # matches orphaned number at beginning of the string
-        if not number:
-            number = untaggednumber_re.search(text)          # finds orphaned number anywhere in string
-        while number:
-            # verse = number.group(1)
-            verse = number.group(1)[0:-1]
-            if verse in missingMarkers:         # outputs \v then the number
-                goodstr += text[0:number.start(1)] + "\\v " + number.group(1)
-            else:
-                goodstr += text[0:number.end()]   # leave untagged number as is and move on
-            text = text[number.end():]
-            number = untaggednumber_re.search(text)
-        goodstr += text
-    return goodstr
-
-# Generates a string like "\v 1"  or "\v 1-3" which should be prepended to the specified text
-# start_vn is the starting verse number
-def missingStartVV(vn_start, vn_end, text):
-    firstVerseFound = verseMarker_re.search(text)
-    if firstVerseFound:
-        firstVerseNumberFound = int(firstVerseFound.group(1))
-    else:
-        firstVerseNumberFound = 999
-    vn = vn_start
-    while vn < firstVerseNumberFound - 1 and vn < vn_end:
-        vn += 1
-    if vn_start == vn:
-        startVV = "\\v " + str(vn_start) + " "
-    else:
-        startVV = "\\v " + str(vn_start) + "-" + str(vn) + " "
-    return startVV
-
+# numberMatch_re = re.compile(r'[ \n\t]*([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
+# untaggednumber_re =     re.compile(r'[^v][ \n]([\d]{1,3}[ \n])', re.UNICODE+re.DOTALL)
 widowtags_re = re.compile(r'\\v +[^1-9]')   # widows verse tags
 
-# def ensureNumbers(text, missingnumbers):
-#     missi = 0
-#     while missi < len(missingnumbers):
-#         versetag = widowtags_re.search(text)
-#         if versetag:
-#             text = text[0:versetag.end()-1] + missingnumbers[missi] + " " + text[versetag.end()-1:]
-#         missi += 1
-#     return text
-
 # Adds the specified verse number after the first widowed \v marker found,
-# or adds a \v before the orphan verse number if found.
-def fixWidowTag(text, vstr):
+# or adds a \v before the orphan verse number if found,
+# or reverses a situation where the stranded \v is preceded by the verse number.
+def fixStrandedTag(text, vstr):
     widowtag = widowtags_re.search(text)
     widow_pos = -1 if not widowtag else widowtag.end() - 1
     startc = startc_re.match(text)
@@ -311,8 +229,13 @@ def fixChapterMarkers(text, schap):
     return text
 
 startc_re = re.compile(r'\s*\\c +[0-9]+\s*')
+widowv_re = re.compile(r'\s*\\v +[^1-9]')
+vv_re = re.compile(r'([0-9]+)-([0-9]+)')
+vmarker_whole_re = re.compile(r'\s*\\v +([1-9][0-9\-]*)')
 
-def fixVerseOrderBegin(text, verserange, vnumbers_found):
+# Inserts missing verse marker or bridge at the beginning of a string.
+def insertMissingVerseMarkers(text, verserange):
+    vnumbers_found = find_vnumbers(text)
     miss = -1
     i = 0
     while i < len(verserange) and verserange[i] not in vnumbers_found:
@@ -324,54 +247,84 @@ def fixVerseOrderBegin(text, verserange, vnumbers_found):
             insert += '-' + verserange[miss]
         startc = startc_re.match(text)
         insertpos = 0 if not startc else startc.end()
-        if widowv := widowv_re.search(text, insertpos):
+        if vmarker := vmarker_whole_re.match(text, insertpos):
+            if not '-' in vmarker.group(1):
+                insert = verserange[miss] + '-' + vmarker.group(1)
+                remainpos = vmarker.end()
+            else:
+                insertpos = -1
+        elif widowv := widowv_re.search(text, insertpos):
             insertpos = widowv.start()
             remainpos = widowv.end() - 1
         else:
             remainpos = insertpos
-        text = text[0:insertpos] + '\\v ' + insert + ' ' + text[remainpos:]
+        if insertpos >= 0:
+            vtag = '\\v ' if insertpos == 0 else ' \\v '
+            text = text[0:insertpos].rstrip() + vtag + insert + ' ' + text[remainpos:].lstrip()
     return text
 
 vnumbers_re = re.compile(r'\\v ([1-9][0-9\-]*)')
+
 def find_vnumbers(text):
     vnumbers_found = [v.group(1) for v in vnumbers_re.finditer(text)]
     vnumbers_found = debridge(vnumbers_found)
     return vnumbers_found
 
-widowv_re = re.compile(r'\\v +[^1-9]')
+# Returns the integer value of the first verse number in the string.
+def firstInt(vstr):
+    try:
+        if bridge := vv_re.match(vstr):
+            vn = int(bridge.group(1))
+        else:
+            vn = int(vstr)
+    except ValueError as e:
+        vn = 0
+    return vn
 
-# Many chunks contain verses numbered in reverse, or omit verse numbers,
-# or omit \v.
+# Makes the verses numbers in ascending order.
+def reorderVerseMarkers(text):
+    origmarkers = [v for v in vnumbers_re.finditer(text)]
+    vnumbers_orig = [firstInt(v.group(1)) for v in origmarkers]
+    sorted_list = sorted(vnumbers_orig)
+    if not sorted_list or sorted_list[-1] - sorted_list[0] >= len(sorted_list): # beyond repair
+        return text
+
+    if sorted_list != vnumbers_orig:
+        i = len(sorted_list) - 1
+        while i >= 0:
+            pos = origmarkers[i].start() + 3
+            endpos = origmarkers[i].end()
+            xi = vnumbers_orig.index(sorted_list[i])
+            text = text[0:pos] + origmarkers[xi].group(1) + " " + text[endpos:].lstrip()
+            i -= 1
+    return text
+
+# Many chunks contain verses numbered in reverse, or omit verse numbers, etc.
 # This all happens because it is difficult to place the verse bubbles correctly in BTTW.
-def fixVerseOrder(text, verserange):
+def fixVerseOrder(text, chap, verserange):
     if precleanup_file:
         precleanup_file.write(text + '\n')
 
     vnumbers_found = find_vnumbers(text)
-    for v in verserange:
-        if not v in vnumbers_found:
-            text = fixWidowTag(text, v)
-            vnumbers_found = find_vnumbers(text)
+    skipchunk = False
+    for v in vnumbers_found:
+        if not v in verserange:
+            skipchunk = True
+            reportError(f"Verse number '{v}' out of range {verserange} in chapter {chap}")
 
-    text = fixVerseOrderBegin(text, verserange, vnumbers_found)
-
-    # vn_start = int(verserange[0])
-    # vn_end = int(verserange[-1])
-    # missing_markers = lackingVerses(text, verserange, verseMarker_re)
-    # if missing_markers:
-    #     if verseTags_re.search(text):
-    #         # if missing_verses:
-    #         #     text = ensureNumbers(text, missing_verses)
-    #         #     missing_verses = lackingVerses(text, verserange, numbers_re)
-    #         text = ensureMarkers(text, missing_chapter, vn_start, vn_end, missing_verses, missing_markers)
+    if not skipchunk:
+        for v in verserange:
+            if not v in vnumbers_found:
+                text = fixStrandedTag(text, v)
+        text = insertMissingVerseMarkers(text, verserange)
+        text = reorderVerseMarkers(text)
 
     if postcleanup_file:
         postcleanup_file.write(text + '\n')
 
     return text
 
-vv_re = re.compile(r'([0-9]+)-([0-9]+)')
-
+# Returns a list of individual verse numbers represented in the rawlist.
 def debridge(rawlist):
     vlist = []
     for vstr in rawlist:
@@ -380,7 +333,7 @@ def debridge(rawlist):
             vnStart = int(vv_range.group(1))
             vnEnd = int(vv_range.group(2))
             for vn in range(vnStart, vnEnd + 1):
-                vlist.append(vn)
+                vlist.append(str(vn))
         else:
             vlist.append(vstr)
     return vlist
@@ -503,6 +456,7 @@ space1_re = re.compile(r' +([.?!;:,)\]].*)', re.DOTALL)    # space before clause
 space2_re = re.compile(r'[¿¡\[\(] +.*', re.DOTALL)    # space after clause-starting punctuation
 jammed1_re = re.compile(r'[.?!;:,)][\w¿¡\[\(]')  # no space between clause-ending punctuation and next word -- but \w matches digits also
 jammed2_re = re.compile(r'\w[¿¡\[\(]')        # no space before clause-starting punctuation
+
 # Removes extraneous space before clause ending punctuation and adds space after
 # sentence/clause end if needed.
 def fixPunctuationSpacing(section):
@@ -537,13 +491,22 @@ def fixPunctuationSpacing(section):
 
 stripcv_re = re.compile(r'\s*\\([cv])\s*\d+\s*', re.UNICODE)
 
-# Returns the string with \v markers removed at beginning of chunk.
-def stripInitialMarkers(text):
-    marker = stripcv_re.match(text)
-    while marker:
-        text = text[marker.end():]
-        marker = stripcv_re.match(text)
-    return text
+'''
+The next few functions are specific to a situation where
+the verse markers are listed at the beginning of the
+chunk but are empty, immediately followed by the first verse, followed by the next verse number and
+verse, followed by the next verse number and verse, and so on.
+This goes back to the Inor language, which was first processed in 2020.
+I think that subsequent improvements have rendered these functions unnecessary.
+So delete them when that is proven.
+'''
+# # Returns the string with \v markers removed at beginning of chunk.
+# def stripInitialMarkers(text):
+#     marker = stripcv_re.match(text)
+#     while marker:
+#         text = text[marker.end():]
+#         marker = stripcv_re.match(text)
+#     return text
 
 # Returns True if the string contains all the verse numbers in verserange and there are no \v tags
 # def fitsInorPattern(str, verserange):

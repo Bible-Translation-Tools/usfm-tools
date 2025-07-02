@@ -297,6 +297,7 @@ def test_makeVerseRange(chunkno, chapter, expected):
         (r'Yitan\v 8. nin li.  \v9) Yisinan uremere.',  r'Yitan. \v 8 nin li. \v 9 Yisinan uremere.'),
         (r'\v 8) nin li \v9! Yisinan uremere.',  r'\v 8 nin li! \v 9 Yisinan uremere.'),
         ('\\V10 Kimal akara. \nHeading\n\\v11 Kiti nani.',  '\\v 10 Kimal akara. \nHeading\n\\v 11 Kiti nani.'),
+        (r'\v5 Bara nene acine. \v7 Andi aleli ba.', r'\v 5 Bara nene acine. \v 7 Andi aleli ba.'),
     ])
 def test_fixVerseMarkers(text, expected):
     if not expected:
@@ -363,16 +364,14 @@ def test_lacksChapter(section, expected):
     lacks = txt2USFM.lacksChapter(section)
     assert lacks == expected
 
-range1 = ['1', '2', '3', '4']
-range3 = ['3', '4']
-range4 = ['4', '5']
-range5 = ['5', '6', '7']
-range8 = ['8', '9']
-range10 = ['10','11']
-range17 = ['16','17','18']
-range20 = ['20','21','22']
-range33 = ['33','34','35']
-range38 = ['38','39','40']
+@pytest.mark.parametrize('text, expected',
+    [
+        (r'\v 1', ['1']),
+        (r'\v 1-2', ['1','2']),
+    ])
+def test_find_vnumbers(text, expected):
+    vnumbers_found = txt2USFM.find_vnumbers(text)
+    assert vnumbers_found == expected
 
 @pytest.mark.parametrize('text, vstr, expected',
     [
@@ -385,27 +384,82 @@ range38 = ['38','39','40']
         (r'1 \v Yesu nlira. \v 2 A aworo \v 3 nan', '4', r'1 \v 4 Yesu nlira. \v 2 A aworo \v 3 nan'),
         (r'end. 1 \v Yesu nlira. \v 2 A aworo ', '1', r'end. \v 1 Yesu nlira. \v 2 A aworo '),
         (r'\c 1 1 \v Yesu nlira. \v 2 A aworo ', '1', r'\c 1 \v 1 Yesu nlira. \v 2 A aworo '),
+        (r'elevator 9 10 escalator', '10', r'elevator 9 \v 10 escalator'),
+        (r'3 Usetano akhambula, "Ingave uveve', '3', r'\v 3 Usetano akhambula, "Ingave uveve'),
+        (r'4 Usetano akhambula, "Ingave uveve', '4', r'\v 4 Usetano akhambula, "Ingave uveve'),
     ])
-def test_fixWidowTag(text, vstr, expected):
+def test_fixStrandedTag(text, vstr, expected):
     if not expected:
         expected = text
-    result = txt2USFM.fixWidowTag(text, vstr)
+    result = txt2USFM.fixStrandedTag(text, vstr)
+    assert result == expected
+
+range1 = ['1', '2', '3', '4']
+range3 = ['3', '4']
+range4 = ['4', '5']
+range5 = ['5', '6', '7']
+range8 = ['8', '9']
+range8b = ['8', '9', '10']
+range10 = ['10','11']
+range17 = ['16','17','18']
+range20 = ['20','21','22']
+range33 = ['33','34','35']
+range38 = ['38','39','40']
+range41 = ['41']
+
+@pytest.mark.parametrize('text, verserange, expected',
+    [
+        (r'\v 3 Usetano akhambula, "Ingave uveve', range3, r''),
+        (r'\v 4 Usetano akhambula, "Ingave uveve', range3, r'\v 3-4 Usetano akhambula, "Ingave uveve'),
+        (r'\v Usetano akhambula, "Ingave uveve', range3, r'\v 3-4 Usetano akhambula, "Ingave uveve'),
+        (r'Usetano akhambula, "Ingave uveve', range3, r'\v 3-4 Usetano akhambula, "Ingave uveve'),
+        (r'Usetano akhambula, \v 5 "Ingave uveve', range3, r'\v 3-4 Usetano akhambula, \v 5 "Ingave uveve'),
+        (r'Usetano akhambula, \v 4 "Ingave uveve', range3, r'\v 3 Usetano akhambula, \v 4 "Ingave uveve'),
+        (r'5 Usetano akhambula, "Ingave uveve', range3, r'\v 3-4 5 Usetano akhambula, "Ingave uveve'),
+        (r'\v 9-10 Bara ba. Bara nani.', range8b, r''),  # leave alone if verse bridge is present
+        (r'\c 2 Nan Kutelle. \v 4 Bara mine.', range1, r'\c 2 \v 1-3 Nan Kutelle. \v 4 Bara mine.'),
+    ])
+def test_insertMissingVerseMarkers(text, verserange, expected):
+    if not expected:
+        expected = text
+    result = txt2USFM.insertMissingVerseMarkers(text, verserange)
+    assert result == expected
+
+@pytest.mark.parametrize('text, expected',
+    [
+        (r'\v 5 Ufihelelelage  \v 4 Nuwohakika.  \v 6 Ulyahova.', r'\v 4 Ufihelelelage  \v 5 Nuwohakika.  \v 6 Ulyahova.'),
+        (r'\v 17 Pwu ula. \v 16 Akhata. \v 18 Pwu."', r'\v 16 Pwu ula. \v 17 Akhata. \v 18 Pwu."'),
+        (r'\v 22 Omunu  \v 20 U Yiisu  \v 21 Pwu fingi.', r'\v 20 Omunu  \v 21 U Yiisu  \v 22 Pwu fingi.'),
+        (r'\v 33 \v 35 Udada mwene.   \v 34 Pwu becha', r'\v 33 \v 34 Udada mwene.   \v 35 Pwu becha'),
+        (r'\v 38 U Yesu ncheyo?  \v 40 Mlolage  \v 39 Avileamale', r'\v 38 U Yesu ncheyo?  \v 39 Mlolage  \v 40 Avileamale'),
+        (r'\v 10 Kimal akara. \v 11 Kiti nani. 12', r''),
+        (r'\v 10 Kimal akara. \v 9 Kiti nani. 12', r'\v 9 Kimal akara. \v 10 Kiti nani. 12'),
+        (r'\c 2 \v 2 Nan Kutelle. \v 4 Bara mine.', r''),
+        (r'\v 10-11 Kimal akara. \v 9 Kiti nani. \v 8 asdf', r'\v 8 Kimal akara. \v 9 Kiti nani. \v 10-11 asdf'),
+        (r'\v 10-11 Kimal akara. \v 9 Kiti nani. \v 8 asdf', r'\v 8 Kimal akara. \v 9 Kiti nani. \v 10-11 asdf'),
+        (r'\v 28 Iwa e masu . \v 12 Gwana b. \v 13 Anit vat.', r''),
+        # (r'\v 6 \v 7 \v 5 Kubi ko na iwa zuro kiti kirum', r'\v 5 Kubi ko na iwa zuro kiti \v 6 \v 7'),  # future
+    ])
+def test_reorderVerseMarkers(text, expected):
+    if not expected:
+        expected = text
+    result = txt2USFM.reorderVerseMarkers(text)
     assert result == expected
 
 @pytest.mark.parametrize('text, verserange, expected',
     [
-        (r'\v 3 Usetano akhambula, "Ingave uveve', range3, r'\v 3-4 Usetano akhambula, "Ingave uveve'),
-        (r'\v 5 Ufihelelelage  \v 4 Nuwohakika.  \v 6 Ulyahova.', range4, r'\v 4 Ufihelelelage  \v 5 Nuwohakika.  \v 6 Ulyahova.'),
-        (r'\v 5 \v 6 Naho Daada.  \v 6 Ululino nalwo. \v 7 Ulu nalwo.', range5, r'\v 5 Naho Daada.  \v 6 Ululino nalwo. \v 7 Ulu nalwo.'),
+        (r'\v 3 Usetano akhambula, "Ingave uveve', range3, r''),
+        (r'\v 6 Ufihelelelage  \v 5 Nuwohakika.  \v 7 Ulyahova.', range5, r'\v 5 Ufihelelelage  \v 6 Nuwohakika.  \v 7 Ulyahova.'),
+        (r'\v 5 \v 6 Naho Daada.  \v 6 Ululino nalwo. \v 7 Ulu nalwo.', range5, r''),
         (r'\v 17 Pwu ula. \v 16 Akhata. \v 18 Pwu."', range17, r'\v 16 Pwu ula. \v 17 Akhata. \v 18 Pwu."'),
         (r'\v 22 Omunu  \v 20 U Yiisu  \v 21 Pwu fingi.', range20, r'\v 20 Omunu  \v 21 U Yiisu  \v 22 Pwu fingi.'),
         (r'\v 33 \v 35 Udada mwene.   \v 34 Pwu becha', range33, r'\v 33 \v 34 Udada mwene.   \v 35 Pwu becha'),
         (r'\v 38 U Yesu ncheyo?    \v 40 Mlolage amavokho  \v 39 Avileamale', range38, r'\v 38 U Yesu ncheyo?    \v 39 Mlolage amavokho  \v 40 Avileamale'),
         # (r'\v 8 \v 9 nin li. 9  Yisinan uremere.', range8, r''), # How it works
-        # (r'\v 8 \v 9 nin li. 9  Yisinan uremere.', range8, r'\v 8 nin li. \v 9 Yisinan uremere.'),    # How I want it to work
+        # (r'\v 8 \v 9 nin li. 9  Yisinan uremere.', range8, r'\v 8 nin li. \v 9 Yisinan uremere.'),  # future
         (r'\v 10 Kimal akara. \v 11 Kiti nani. 12', range10, r''),
         (r'Nan Kutelle. \v 7 Bara mine.', range5, r'\v 5-6 Nan Kutelle. \v 7 Bara mine.'),
-        (r'\v 6 Nan Kutelle. \v 7 Bara mine.', range5, r'\v 5 \v 6 Nan Kutelle. \v 7 Bara mine.'),
+        (r'\v 6 Nan Kutelle. \v 7 Bara mine.', range5, r'\v 5-6 Nan Kutelle. \v 7 Bara mine.'),
         (r'\c 2 Nan Kutelle. \v 4 Bara mine.', range1, r'\c 2 \v 1-3 Nan Kutelle. \v 4 Bara mine.'),
         (r'\v Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono', range5, r'\v 5 Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono'),
         (r'\v 5 Kuwu ati. \v Umong nsono." \v Bara nono', range5, r'\v 5 Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono'),
@@ -414,9 +468,24 @@ def test_fixWidowTag(text, vstr, expected):
         (r'1 \v Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf', range1, r'\v 1 Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf'),
         (r'end. 1 \v Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf', range1, r'end. \v 1 Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf'),
         (r'\c 1 1 \v Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf', range1, r'\c 1 \v 1 Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf'),
+        (r'Usetano akhambula, "Ingave uveve', range5, r'\v 5-7 Usetano akhambula, "Ingave uveve'),
+        (r'Usetano akhambula, "Ingave uveve', range41, r'\v 41 Usetano akhambula, "Ingave uveve'),
+        (r'\v 8 Bara ba. \v 9 Bara nani.', range8b, r''),
+        (r'\v 3 Bara nene acine. \v 5 Andi aleli ba.', range4, r'\v 3 Bara nene acine. \v 5 Andi aleli ba.'),
+        # (r'\v 6 \v 7 \v 5 Kubi ko na iwa zuro kiti kirum', range5, r'\v 5 Kubi ko na iwa zuro kiti kirum')  # future
     ])
 def test_fixVerseOrder(text, verserange, expected):
     if not expected:
         expected = text
-    result = txt2USFM.fixVerseOrder(text, verserange)
+    result = txt2USFM.fixVerseOrder(text, '01', verserange)
+    assert result == expected
+
+@pytest.mark.parametrize('text, verserange, expected',
+    [
+        (r'\v3 Bara nene acine. \v5 Andi aleli ba.', range4, r'\v 3 Bara nene acine. \v 5 Andi aleli ba.'),
+    ])
+def test_cleanupText(text, verserange, expected):
+    if not expected:
+        expected = text
+    result = txt2USFM.cleanupText(text, '08', verserange)
     assert result == expected
