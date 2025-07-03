@@ -88,7 +88,7 @@ class ProjectInfo:
                 json.dump(self.info, json_file, indent=4)
         if saveM and self.manifest:
             if mainsource := self.getMainSource():
-                self.manifest.setVersion(mainsource['version'])
+                self.manifest.setVersion(mainsource['version'] + ".1")
             self.manifest.setDates()
             self.manifest.save()
 
@@ -155,6 +155,7 @@ class ProjectInfo:
                 if contributor:     # yes, it is possible to have a null contributor
                     self.manifest.addContributor(contributor)
 
+    # Adds or replaces the project information in the manifest.
     def addProject(self, project):
         if self.manifest:
             self.manifest.addProject(project)
