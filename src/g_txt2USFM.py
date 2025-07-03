@@ -44,7 +44,6 @@ Some section titles may have been missed because they didn't meet all the criter
 Other things that aren't really section titles may have been marked as section titles because they did meet the criteria. \
 Therefore, it is necessary to manually verify section titles after this step.
 """
-                self.frame.show_progress(status)
         if status:
             self.frame.show_progress(status)
         self.frame.onScriptEnd()
