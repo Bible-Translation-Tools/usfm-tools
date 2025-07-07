@@ -8,7 +8,7 @@
 # Promote straight quotes to open and closed quotes. (optional)
 # Capitalizes first word in sentences.
 
-import configmanager
+from configmanager import ToolsConfigManager
 import re       # regular expression module
 import io
 import os
@@ -23,7 +23,6 @@ import usfmWriter
 from datetime import date
 
 gui = None
-config = {}
 enable = [True]*9
 '''
 enable[1] to add space after periods, around parens, etc.
@@ -35,7 +34,7 @@ enable[6] to remove \\s5 markers
 enable[7] to mark section titles
 enable[8] to fix chapter titles
 '''
-std_titles = ""
+std_title = ""
 nChanged = 0
 aligned_usfm = False
 needcaps = True
@@ -88,7 +87,7 @@ class State:
 state = State()
 
 def shortname(longpath):
-    source_dir = config['source_dir']
+    source_dir = ToolsConfigManager().get('UsfmCleanup', 'source_dir')
     shortname = str(longpath)
     if shortname.startswith(source_dir):
         shortname = os.path.relpath(shortname, source_dir)
@@ -123,7 +122,7 @@ def reportToGui(event, msg):
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        source_dir = config['source_dir']
+        source_dir = ToolsConfigManager().get('UsfmCleanup', 'source_dir')
         if os.path.isdir(source_dir):
             path = os.path.join(source_dir, "issues.txt")
             issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
@@ -134,7 +133,7 @@ def openIssuesFile():
 def getSaidWords(source_dir):
     from projectinfo import ProjectInfo
     global saidwords
-    pi = ProjectInfo(source_dir, config['language_code'])
+    pi = ProjectInfo(source_dir, ToolsConfigManager().get('UsfmCleanup', 'language_code'))
     saidwords = pi.getWords(mincount=4)
 
 # This function is to be used only by unit tests.
@@ -568,19 +567,18 @@ def capitalizeAsNeeded(str):
     needcaps = sentences.endsSentence(str, checkquotes = True)
     return str
 
-cl_pattern = re.compile(r'(.*)([\d]+)(.*)')
+cl_pattern = re.compile(r'(.*?)(\d+)(.*)')
 
-def fix_chapter_label(label):
-    global schapter
-    global std_titles
+def fix_chapter_label(label, schapter):
+    global std_title
     lab = cl_pattern.match(label.strip())
     if lab:
-        part1 = std_titles + " " if len(lab.group(1)) > 0 else ""
-        part2 = state.schapter if lab.group(2).isascii() else lab.group(2)
+        part1 = std_title + " " if len(lab.group(1)) > 0 else ""
+        part2 = schapter if lab.group(2).isascii() else lab.group(2)
         if len(lab.group(3)) > 0 and len(lab.group(1)) > 0:
             part3 = lab.group(3)
         else:
-            part3 = " " + std_titles if len(lab.group(3)) > 0 else ""
+            part3 = " " + std_title if len(lab.group(3)) > 0 else ""
         label = f"{part1}{part2}{part3}"
     return label
 
@@ -589,7 +587,7 @@ def fix_chapter_label(label):
 def takeCL(label, usfm):
     origlabel = label
     if enable[8]:
-        label = fix_chapter_label(label)
+        label = fix_chapter_label(label, state.schapter)
     usfm.writeUsfm("cl", label)
     return (label != origlabel)
 
@@ -633,18 +631,20 @@ def take(token, usfm):
 def convert_by_token(path):
     changes = 0
     with io.open(path, "tr", 1, encoding="utf-8-sig") as input:
-        str = input.read(-1)
-
-    state.initBook()
-    usfm = usfmWriter.usfmWriter(path)
-    usfm.setInlineTags({"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"})
-    global needcaps
-    needcaps = True
-    tokens = parseUsfm.parseString(str)
-    for token in tokens:
-        changes += take(token, usfm)
-    usfm.close()
-    # sys.stdout.write(f"{changes} strings in {path} were changed by convert_by_token()\n")
+        contents = input.read(-1)
+    if '\u00A0' in contents:
+        reportError("Text contains no-break spaces, which pyparsing does not support. Cleanup will be partial.")
+    else:
+        state.initBook()
+        usfm = usfmWriter.usfmWriter(path)
+        usfm.setInlineTags({"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"})
+        global needcaps
+        needcaps = True
+        tokens = parseUsfm.parseString(contents)
+        for token in tokens:
+            changes += take(token, usfm)
+        usfm.close()
+        # sys.stdout.write(f"{changes} strings in {path} were changed by convert_by_token()\n")
     return (changes > 0)
 
 # Corrects issues in the USFM file
@@ -695,22 +695,26 @@ def convertFolder(folder):
             elif entry.lower().endswith("sfm"):
                 convertFile(path)
 
+# For unit testing only - test fix_chapter_title()
+def set_std_title(title):
+    global std_title
+    std_title = title
+
 def main(app = None):
     global gui
-    global config
-    global std_titles
+    global std_title
     global nChanged
     nChanged = 0
     gui = app
-    config = configmanager.ToolsConfigManager().get_section('UsfmCleanup')
+    config = ToolsConfigManager()
 
-    if config:
-        std_titles = config['standard_chapter_title']
-        source_dir = config['source_dir']
+    std_title = ToolsConfigManager().get('UsfmCleanup', 'standard_chapter_title')
+    source_dir = config.get('UsfmCleanup', 'source_dir')
+    if source_dir:
         getSaidWords(source_dir)
         for i in range(1, len(enable)):
-            enable[i] = config.getboolean('enable'+str(i), fallback = True)
-        file = config['filename']
+            enable[i] =config.getboolean('UsfmCleanup', 'enable'+str(i))
+        file = config.get('UsfmCleanup', 'filename')
         if file:
             path = os.path.join(source_dir, file)
             if os.path.isfile(path):
