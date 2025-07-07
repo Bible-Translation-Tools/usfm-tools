@@ -9,7 +9,7 @@
 # Capitalizes first word in sentences.
 
 from configmanager import ToolsConfigManager
-import re       # regular expression module
+import re
 import io
 import os
 import shutil
@@ -607,6 +607,8 @@ def takeText(s, usfm):
         s = quotes.promoteQuotes(s)
     elif enable[3]:
         s = quotes.promoteDoubleQuotes(s)
+    if state.prevMarker == 'text':
+        usfm.newline()
     usfm.writeStr(s)
     return (s != origstr)
 
@@ -708,12 +710,12 @@ def main(app = None):
     gui = app
     config = ToolsConfigManager()
 
-    std_title = ToolsConfigManager().get('UsfmCleanup', 'standard_chapter_title')
+    std_title = config.get('UsfmCleanup', 'standard_chapter_title')
     source_dir = config.get('UsfmCleanup', 'source_dir')
     if source_dir:
         getSaidWords(source_dir)
         for i in range(1, len(enable)):
-            enable[i] =config.getboolean('UsfmCleanup', 'enable'+str(i))
+            enable[i] = config.getboolean('UsfmCleanup', 'enable'+str(i))
         file = config.get('UsfmCleanup', 'filename')
         if file:
             path = os.path.join(source_dir, file)
