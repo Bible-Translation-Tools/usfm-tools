@@ -18,19 +18,17 @@ import sentences
 import usfm_verses
 import usfmWriter
 import yaml
+import section_titles
 # import cProfile
 
 gui = None
-config = {}
-# uncomment the line below to satisfy the type checker
-# config = ToolsConfigManager().get_section('MarkParagraphs')
+s5_only = False
+removes5markers = True
+sentence_sensitive = True
+copy_nb = False
 nCopied = 0     # number of paragraphs and sections copied from model
 nRemoved = 0    # number of \s5 tags removed
 issuesFile = None
-
-# Marker types
-TEXT = 1
-OTHER = 9
 
 class State:
     def __init__(self):
@@ -50,6 +48,7 @@ class State:
         self.sections_model = []
         self.expectText = False
         self.legacyBackup = False
+        self.prevTokenType = self.currTokenType = ''
 
     def __repr__(self):
         return f'State({self.reference})'
@@ -57,8 +56,8 @@ class State:
     def addFile(self, fname):
         self.reset_data(fname)
         ## Open output USFM file for writing.
-        global config
-        tmpPath = os.path.join(config['source_dir'], fname + ".tmp")
+        source_dir = ToolsConfigManager().get('MarkParagraphs', 'source_dir')
+        tmpPath = os.path.join(source_dir, fname + ".tmp")
         self.usfm = usfmWriter.usfmWriter(tmpPath)
 
     def addID(self, id):
@@ -121,6 +120,10 @@ class State:
 
     def addFootnote(self):
         self.expectText = True
+
+    def saveTokenType(self, type):
+        self.prevTokenType = self.currTokenType
+        self.currTokenType = type
 
     def needP(self):
         return self.needPmarker
@@ -203,9 +206,10 @@ def identifyModel(model_dir):
 # Inserts \s5 mark if needed
 def mayInsertS5(newchapter=False):
     if not state.s5Already():
-        global config
+        global s5_only
+        global removes5markers
 
-        if (newchapter and config.getboolean('s5_only', fallback = False)) or (state.smarkInModel() == "s5" and not config.getboolean('removes5markers', fallback = False)):
+        if (newchapter and s5_only) or (state.smarkInModel() == "s5" and not removes5markers):
             state.usfm.writeUsfm("s5")
             state.addS5()
             global nCopied
@@ -240,7 +244,8 @@ def takeP(tag, value, nexttoken):
         state.usfm.writeUsfm(tag, value)
 
 def takeS5():
-    if not state.s5Already() and not config.getboolean('removeS5markers', fallback=True):
+    global removes5markers
+    if not state.s5Already() and not removes5markers:
         state.usfm.writeUsfm("s5", None)
         state.addS5()
     else:
@@ -255,12 +260,14 @@ vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 def takeV(v):
     global nCopied
+    global s5_only
+
     mayInsertS5()
     state.addVerse(v)
-    if not state.pAlready(current=True) and not config.getboolean('s5_only') and (not state.isMidSentence() or not config.getboolean('sentence_sensitive', fallback=True)):
+    if not state.pAlready(current=True) and not s5_only and (not state.isMidSentence() or not sentence_sensitive):
         if pmark := state.pmarkInModel():
             state.usfm.writeUsfm(pmark)
-            state.addP(state.verse)    # added 8/9/24
+            state.addP(state.verse)
             nCopied += 1
     if not state.pAlready(current=True) and state.needP() == state.verse:  # occasioned by chapter or section heading
         state.usfm.writeUsfm("p")
@@ -270,23 +277,27 @@ def takeV(v):
 
 def takeText(t):
     global nCopied
+    global sentence_sensitive
     smark = None
-    if not state.expectingText() and (not state.isMidSentence() or not config.getboolean('sentence_sensitive', fallback=True)):
+    if not state.expectingText() and (not state.isMidSentence() or not sentence_sensitive):
         smark = state.smarkInModel()
-    if smark and smark != "s5":
+    if smark and smark != "s5" and section_titles.is_possible_heading(t):
         state.usfm.writeUsfm(smark, t)
         nCopied += 1
-        state.addP(state.bridge+1)           # PTXprint wants a paragraph or poetry mark after section heading
+        state.addP(state.bridge+1)
         state.usfm.writeUsfm("p")
     else:
+        if state.prevTokenType == 'text':
+            state.usfm.newline()
         state.usfm.writeStr(t)
         state.addText( sentences.endsSentence(t) )
 
 # Output chapter
 # If we are copying \s5 markers, insert one before every chapter
 def takeC(c):
-    global nCopied
-    if config.getboolean('s5_only'):
+    global s5_only
+
+    if s5_only:
         mayInsertS5(newchapter=True)
     state.addChapter(c)
     state.usfm.writeUsfm("c", c)
@@ -294,6 +305,7 @@ def takeC(c):
 # Handles the specified token from the input file.
 # Inserts paragraph and section markers where needed from model.
 def take(token, nexttoken):
+    state.saveTokenType(token.type)
     if token.isV():
         takeV(token.value)
     elif token.isTEXT():
@@ -334,7 +346,7 @@ or token.isADDS() or token.isADDE() or token.isPNS() or token.isPNE()
 def isParagraph(token, scanning):
     pmark = token.isP() or token.isM() or token.isPI() or token.isPC() or token.isNB() or token.isB() \
         or token.is_ip() or token.is_iot() or token.is_io() or token.is_io2()
-    if scanning and (token.isNB() or token.isB() or token.isM()) and not config.getboolean('copy_nb', fallback=False):
+    if scanning and (token.isNB() or token.isB() or token.isM()) and not copy_nb:
         pmark = False
     return pmark
 
@@ -441,9 +453,9 @@ def renameUsfmFiles(usfmpath):
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        global config
-        if os.path.isdir(config['source_dir']):
-            path = os.path.join(config['source_dir'], "issues.txt")
+        source_dir = ToolsConfigManager().get('MarkParagraphs', 'source_dir')
+        if os.path.isdir(source_dir):
+            path = os.path.join(source_dir, "issues.txt")
             issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
             issuesFile.write("Issues detected by MarkParagraphs:\n------------------------------------\n")
     return issuesFile
@@ -584,21 +596,22 @@ def scanModelFile(modelpath, fname):
                 scan(token)
     return success
 
-def countParagraphs(path):
-    with io.open(path, "tr", 1, encoding="utf-8-sig") as input:
-        str = input.read(-1)
-    nchapters = str.count("\\c ")
-    nparagraphs = str.count("\\p") + str.count("\\nb") + str.count("\\li")
-    npoetry = str.count("\\q")
-    return (nchapters, nparagraphs, npoetry)
+# def countParagraphs(path):
+#     with io.open(path, "tr", 1, encoding="utf-8-sig") as input:
+#         str = input.read(-1)
+#     nchapters = str.count("\\c ")
+#     nparagraphs = str.count("\\p") + str.count("\\nb") + str.count("\\li")
+#     npoetry = str.count("\\q")
+#     return (nchapters, nparagraphs, npoetry)
 
 def processFile(path):
     global config
     fname = os.path.basename(path)
-    (nChapters, nParagraphs, nPoetry) = countParagraphs(path)
+    # (nChapters, nParagraphs, nPoetry) = countParagraphs(path)
 
     #if nParagraphs / nChapters < 2.5 and nPoetry / nChapters < 15:
-    model_path = os.path.join(config['model_dir'], fname)
+    model_dir = ToolsConfigManager().get('MarkParagraphs', 'model_dir')
+    model_path = os.path.join(model_dir, fname)
     if os.path.isfile(model_path):
         # cmd = f"scanModelFile( r'{model_path}', '{fname}' )"
         # cProfile.run(cmd)
@@ -621,11 +634,19 @@ def main(app = None):
     nCopied = 0
     global nRemoved
     nRemoved = 0
-    global config
-    config = ToolsConfigManager().get_section('MarkParagraphs')
-    identifyModel(config['model_dir'])
-    source_dir = config['source_dir']
-    file = config['filename']    # configmanager version
+    global s5_only
+    global removes5markers
+    global sentence_sensitive
+    global copy_nb
+
+    config = ToolsConfigManager()
+    s5_only = config.getboolean('MarkParagraphs', 's5_only')
+    removes5markers = config.getboolean('MarkParagraphs', 'removes5markers')
+    sentence_sensitive = config.getboolean('MarkParagraphs', 'sentence_sensitite')
+    copy_nb = config.getboolean('MarkParagraphs', 'copy_nb')
+    identifyModel(config.get('MarkParagraphs', 'model_dir'))
+    source_dir = config.get('MarkParagraphs', 'source_dir')
+    file = config.get('MarkParagraphs', 'filename')
     if file:
         path = os.path.join(source_dir, file)
         if os.path.isfile(path):
