@@ -1,8 +1,24 @@
 # Usfm Wizard Version history
 
+## 1.4.2
+* usfm_cleanup - preserve line breaks and no-break spaces.
+
+## 1.4.1 - 7/2/25
+* plaintext2Usfm - support more different chapter and verse markers, to facilitate conversions from Word.
+* txt2Usfm - default to English book title when title.txt is missing.
+* tx2Usfm - suppress blank \cl lines.
+* txt2Usfm - 35% performance improvement
+* txt2Usfm - improved correction of corrupt chapter and verse markers
+* txt2Usfm - improved correction of spacing around punctuation
+* verifyUsfm - validate \ide field.
+* verifyUsfm - report too-sparse section headings.
+* verifyUsfm - improve Ethiopic word definition.
+* verifyUsfm GUI - display reasons why the VERIFY button is disabled.
+* usfm_cleanup - further quotes cleanup.
+
 ## 1.4.0 - 5/22/25
 * Wizard - configured to run on Linux and iOS, in addition to Windows.
-* Wizard - added a step to the Usfm2Usx process
+* Wizard - added a step to the Usfm2Usx process.
 * verifyUsfm - make footnote warnings source text-specific.
 * verifyUsfm - report verse translations that are very short compared to source text.
 * verifyUsfm - report possible section titles by verse reference rather than line number.
