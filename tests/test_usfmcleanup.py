@@ -380,3 +380,47 @@ def test_pair_up_quotes(line, all, exp_pairs):
     assert pairs == exp_pairs
     quotes = [p[0] for p in pairs] + [p[1] for p in pairs]
     assert len(set(quotes)) == len(pairs) * 2    # ensures no duplicate indexes
+
+@pytest.mark.parametrize('label, testtitle, schapter, expected',
+    [
+    ('chapter 1', "بەشی", '1', 'بەشی 1'),
+    ('بەشی ٣', "بەشی", '1', 'بەشی ٣'),
+    ('بەشی ١٠', "بەشی", '11', 'بەشی ١٠'),
+    ('بەشی ١٠', "بەشی", '10', 'بەشی ١٠'),
+    ('chap 12', 'chapter', '23', 'chapter 23'),
+    ])
+def test_fix_chapter_label(label, testtitle, schapter, expected):
+    # Set standard_chapter_title in the config file before running this test
+    if not expected:
+        expected = label
+    usfm_cleanup.set_std_title(testtitle)
+    result = usfm_cleanup.fix_chapter_label(label, schapter)
+    assert result == expected
+
+# The order of these tests is important, because the unit under tests remembers
+# whether the previous string ended a sentence.
+@pytest.mark.parametrize('text, expected',
+    [('Sentence 1. next sentence 2.', 'Sentence 1. Next sentence 2.'),
+     ('sentence\ncontinuation.', 'Sentence\ncontinuation.'),
+     ('hyphenated-word', 'Hyphenated-word'),
+     ('sentence 1. next sentence 2.', 'sentence 1. Next sentence 2.'),
+     ('sentence\ncontinuation.', 'Sentence\ncontinuation.'),
+     ('hyphenated-word', 'Hyphenated-word'),
+     ('b-', 'b-'),
+     ('মহিমার মত হব’।” সদাপ্রভু বলেন, এস! এস! ', ''),
+     ('end. ŋina a kenet na merenyejin ti', 'End. Ŋina a kenet na merenyejin ti'),
+     ('single.', ''),
+     ('single', 'Single'),
+     ('they said, "go...', ''),
+     ('they said, "go...', 'They said, "go...'),
+     ('"go," they said.', '"Go," they said.'),
+     ('dashing?-', 'Dashing?-'),
+     ('quoting. ‘', ''),
+     ('closed then open!"“', 'Closed then open!"“'),
+     ('starts a new sentence', 'Starts a new sentence'),
+    ])
+def test_capitalizeAsNeeded(text, expected):
+    if not expected:
+        expected = text
+    result = usfm_cleanup.capitalizeAsNeeded(text)
+    assert result == expected
