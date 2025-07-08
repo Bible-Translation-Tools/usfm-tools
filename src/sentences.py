@@ -5,7 +5,7 @@
 
 import re
 
-endsentence_re = re.compile(r'[.?!\u0964\u0965\u1361\u1362][^\w]*$')
+endsentence_re = re.compile(r'([.?!\u0964\u0965\u1361\u1362])[^\w]*$')
 badquoted_re = re.compile(r'[?!\u1361\u1362]+[«“‘\-\u2014\u2013]')
 
 """
@@ -18,17 +18,17 @@ Special characters:
 \u2014 is an em dash
 """
 
-# Returns True if the specified text ends with sentence-ending punctuation.
-# However, an open quote mark following any of !?፡። introduces some uncertainty.
+# Returns the sentence-ending punctuation mark if the text ends a sentence.
+# Returns '' if the text does not end with sentence-ending punctuation.
+# An open quote mark following any of !?፡። introduces some uncertainty.
 # So if checkquotes is True, this function returns:
-#    False when opening quotes follow the sentence-ending punctuation
-#    True when closed quotes, straight quotes or no quotes follow the sentence-ending punctuation.
-def endsSentence(str, checkquotes=False):
-    ending = endsentence_re.search(str)
-    if ending and checkquotes:
-        ends = (badquoted_re.match(str[ending.start():ending.start()+3]) == None)
-    else:
-        ends = (ending != None)
+#    '' when an opening quote or dash follows the sentence-ending punctuation
+def endsSentence(s, checkquotes=False):
+    ends = ''
+    if ending := endsentence_re.search(s):
+        ends = ending.group(1)
+        if checkquotes and badquoted_re.match(s[ending.start():ending.start()+3]):
+            ends = ''
     return ends
 
 firstword_re = re.compile(r'(\w+-\w+|\w+)')

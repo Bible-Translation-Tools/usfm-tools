@@ -486,7 +486,7 @@ def mark_sections(line):
         changed = True
 
     mark_sections.prevline = line
-    mark_sections.sentenceended = changed or sentences.endsSentence(line, checkquotes=True)
+    mark_sections.sentenceended = changed or (sentences.endsSentence(line, checkquotes=True) != '')
     return (changed, line)
 
 vperiod_re = re.compile(r'\\v +[\d\-]+([).])([^\s]?)')
@@ -561,11 +561,15 @@ def takeFootnote(key, value, usfm):
         in_footnote = False
     usfm.writeUsfm(key, value)
 
-def capitalizeAsNeeded(str):
+# Capitalizes the first word of each sentence in the string.
+# Capitalizes the first word in the string if needcaps is True.
+# Returns the string with changes as needed.
+# As a side effect, sets the global needcaps variable.
+def capitalizeAsNeeded(s):
     global needcaps
-    str = sentences.capitalize(str, needcaps)
-    needcaps = sentences.endsSentence(str, checkquotes = True)
-    return str
+    s = sentences.capitalize(s, needcaps)
+    needcaps = (sentences.endsSentence(s, checkquotes = True) != '')
+    return s
 
 cl_pattern = re.compile(r'(.*?)(\d+)(.*)')
 
@@ -665,7 +669,7 @@ def convertFile(path):
     changed1 = convert_wholefile(path)
     changed2 = changed4 = False
     if not corrupt_file:
-        changed2 = convert_by_line(path)
+        changed2 = convert_by_line(path)  # marks section titles
         if enable[7] and changed2:   # sections may have been added
             convert_wholefile(path)
         changed4 = False
