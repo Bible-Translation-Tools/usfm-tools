@@ -649,8 +649,8 @@ class IMT3Token(UsfmToken):
     def is_imt3(self): return True
 
 class IEToken(UsfmToken):
-    def renderOn(self, printer):  return printer.render_ie(self)
-    def is_ie(self):              return True
+    def renderOn(self, printer):  return printer.renderIE(self)
+    def isIE(self):              return True
 
 class MSToken(UsfmToken):
     def renderOn(self, printer):
@@ -922,11 +922,6 @@ class FDCStartToken(UsfmToken):
 class FDCEndToken(UsfmToken):
     def renderOn(self, printer): return printer.renderFDC_E(self)
     def isFDCE(self):      return True
-
-class IEToken(UsfmToken):
-    def renderOn(self, printer):
-        return printer.renderIE(self)
-    def isIE(self):      return True
 
 class ITStartToken(UsfmToken):
     def renderOn(self, printer): return printer.renderIT_S(self)
