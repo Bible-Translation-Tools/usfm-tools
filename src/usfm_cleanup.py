@@ -638,19 +638,16 @@ def convert_by_token(path):
     changes = 0
     with io.open(path, "tr", 1, encoding="utf-8-sig") as input:
         contents = input.read(-1)
-    if '\u00A0' in contents:
-        reportError("Text contains no-break spaces, which pyparsing does not support. Cleanup will be partial.")
-    else:
-        state.initBook()
-        usfm = usfmWriter.usfmWriter(path)
-        usfm.setInlineTags({"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"})
-        global needcaps
-        needcaps = True
-        tokens = parseUsfm.parseString(contents)
-        for token in tokens:
-            changes += take(token, usfm)
-        usfm.close()
-        # sys.stdout.write(f"{changes} strings in {path} were changed by convert_by_token()\n")
+    state.initBook()
+    usfm = usfmWriter.usfmWriter(path)
+    usfm.setInlineTags({"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"})
+    global needcaps
+    needcaps = True
+    tokens = parseUsfm.parseString(contents)
+    for token in tokens:
+        changes += take(token, usfm)
+    usfm.close()
+    # sys.stdout.write(f"{changes} strings in {path} were changed by convert_by_token()\n")
     return (changes > 0)
 
 # Corrects issues in the USFM file
