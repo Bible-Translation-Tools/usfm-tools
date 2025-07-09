@@ -151,6 +151,9 @@ def matechar(quote: str):
         mate = ''
     return mate
 
+def is_quote(quote: str):
+    return (quote in "\"'«“‘»”’")
+
 def is_open(quote: str):
     return quote in "«“‘"
 

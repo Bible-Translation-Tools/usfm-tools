@@ -14,6 +14,7 @@ import parseUsfm
 import io
 import re
 import shutil
+import quotes
 import sentences
 import usfm_verses
 import usfmWriter
@@ -46,6 +47,8 @@ class State:
         self.reference = fname
         self.paragraphs_model = []
         self.sections_model = []
+        self.endPunctuation = ''
+        self.lastText = ''
         self.expectText = False
         self.legacyBackup = False
         self.prevTokenType = self.currTokenType = ''
@@ -106,9 +109,14 @@ class State:
         self.s5chapter = self.chapter
         self.s5verse = self.bridge
 
-    def addText(self, endsSentence):
+    def addText(self, text):
         self.expectText = False
-        self.midSentence = not endsSentence
+        self.midSentence = not sentences.endsSentence(text)
+        self.lastText = text
+
+    # Returns True if the last recorded text ends with any kind of quote mark.
+    def endsWithQuote(self):
+        return self.lastText and quotes.is_quote(self.lastText[-1])
 
     def addVerse(self, v):
         v1 = v.split('-')[0]
@@ -138,32 +146,39 @@ class State:
     def s5Already(self):
         return (self.s5verse == self.bridge and self.s5chapter == self.chapter)
 
-    # Returns the paragraph mark that occurred in the model file at the current location.
+    # Returns the paragraph mark that occurred in the model file at the current location,
+    # and the punctuation ending the preceding sentence.
     def pmarkInModel(self):
-        pmark = None
+        pmark = punct = None
         for pp in self.paragraphs_model:
             if pp['chapter'] == self.chapter and pp['verse'] == self.verse and pp['located']:
                 pmark = pp['mark']
+                punct = pp['endPunc']
                 break
-        return pmark
+        return (pmark, punct)
 
     # Returns True immediately after a verse or paragraph marker or footnote.
     def expectingText(self):
         return self.verse > 0 and self.expectText
 
-    # Returns the section mark that occurred in the model file at the current location.
+    # Returns the section mark that occurred in the model file at the current location,
+    # and the punctuation ending the preceding sentence.
     def smarkInModel(self):
-        smark = None
+        smark = punct = None
         for s in self.sections_model:
             if s['chapter'] == self.chapter and s['verse'] == self.verse and s['located']:
                 smark = s['mark']
+                punct = s['endPunc']
                 break
-        return smark
+        return (smark, punct)
 
     # Returns True if current verse is the last verse in a chapter
     def isEndOfChapter(self):
         chaps = usfm_verses.verseCounts[self.ID]['verses']
         return (self.verse >= chaps[self.chapter-1])
+
+    def terminateSentence(self):
+        self.midSentence = False
 
     # Returns True if the most recent text does not end a sentence.
     def isMidSentence(self):
@@ -203,13 +218,23 @@ def identifyModel(model_dir):
         version = core['version']
         state.identifyModel(f"{language} {identifier} version {version}")
 
+def mayTerminateLastSentence(punct):
+    if punct and state.isMidSentence() and not state.endsWithQuote():
+        state.usfm.writeStr(punct)
+        state.terminateSentence()
+
 # Inserts \s5 mark if needed
 def mayInsertS5(newchapter=False):
     if not state.s5Already():
         global s5_only
         global removes5markers
 
-        if (newchapter and s5_only) or (state.smarkInModel() == "s5" and not removes5markers):
+        smark = ''
+        if not removes5markers and not (newchapter and s5_only):
+            (smark, punct) = state.smarkInModel()
+
+        if (newchapter and s5_only) or (smark == "s5" and not removes5markers):
+            mayTerminateLastSentence(punct)
             state.usfm.writeUsfm("s5")
             state.addS5()
             global nCopied
@@ -264,11 +289,14 @@ def takeV(v):
 
     mayInsertS5()
     state.addVerse(v)
-    if not state.pAlready(current=True) and not s5_only and (not state.isMidSentence() or not sentence_sensitive):
-        if pmark := state.pmarkInModel():
-            state.usfm.writeUsfm(pmark)
-            state.addP(state.verse)
-            nCopied += 1
+    if not state.pAlready(current=True) and not s5_only:
+        (pmark, punct) = state.pmarkInModel()
+        if pmark:
+            if punct or not state.isMidSentence() or not sentence_sensitive:
+                mayTerminateLastSentence(punct)
+                state.usfm.writeUsfm(pmark)
+                state.addP(state.verse)
+                nCopied += 1
     if not state.pAlready(current=True) and state.needP() == state.verse:  # occasioned by chapter or section heading
         state.usfm.writeUsfm("p")
         state.addP(state.verse)
@@ -279,18 +307,23 @@ def takeText(t):
     global nCopied
     global sentence_sensitive
     smark = None
+    t = t.strip()
     if not state.expectingText() and (not state.isMidSentence() or not sentence_sensitive):
-        smark = state.smarkInModel()
+        (smark, punct) = state.smarkInModel()
+
+    ####### This is the case where t might be a section heading on a line by itself #######
     if smark and smark != "s5" and section_titles.is_possible_heading(t):
+        mayTerminateLastSentence(punct)
         state.usfm.writeUsfm(smark, t)
         nCopied += 1
         state.addP(state.bridge+1)
         state.usfm.writeUsfm("p")
+    ################# This is the normal case ################
     else:
         if state.prevTokenType == 'text':
-            state.usfm.newline()
+            state.usfm.newline()    # preserve the line break
         state.usfm.writeStr(t)
-        state.addText( sentences.endsSentence(t) )
+        state.addText(t)
 
 # Output chapter
 # If we are copying \s5 markers, insert one before every chapter
@@ -525,6 +558,7 @@ def scanPQ(type):
     p['chapter'] = state.chapter
     p['verse'] = 0      # verse unknown
     p['located'] = False
+    p['endPunc'] = state.endPunctuation
     if len(state.paragraphs_model) > 0:
         pp = state.paragraphs_model[-1]
         if not pp['located']:
@@ -539,6 +573,7 @@ def scanS(type):
     section['chapter'] = state.chapter
     section['verse'] = state.verse
     section['located'] = True
+    section['endPunc'] = state.endPunctuation
     state.sections_model.append(section)
 
 # Removes the last paragraph mark from the list if it is not already located to
@@ -571,6 +606,7 @@ def scan(token):
         scanV(token.value)
     elif token.isTEXT():
         scanText()
+        state.endPunctuation = sentences.endsSentence(token.value)
     elif isParagraph(token, scanning=True) or isPoetry(token):
         scanPQ(token.type)
     elif isSection(token):

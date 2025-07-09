@@ -5,9 +5,6 @@
 
 import re
 
-endsentence_re = re.compile(r'([.?!\u0964\u0965\u1361\u1362])[^\w]*$')
-badquoted_re = re.compile(r'[?!\u1361\u1362]+[«“‘\-\u2014\u2013]')
-
 """
 Special characters:
 \u0964 is the Devangari Danda । character that terminates a sentence.
@@ -17,6 +14,8 @@ Special characters:
 \u2013 is an en dash
 \u2014 is an em dash
 """
+endsentence_re = re.compile(r'([.?!\u0964\u0965\u1361\u1362])[^\w]*$')
+badquoted_re = re.compile(r'[?!\u1361\u1362]+[«“‘\-\u2014\u2013]')
 
 # Returns the sentence-ending punctuation mark if the text ends a sentence.
 # Returns '' if the text does not end with sentence-ending punctuation.
