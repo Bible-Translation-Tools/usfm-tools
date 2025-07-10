@@ -27,8 +27,9 @@ s5_only = False
 removes5markers = True
 sentence_sensitive = True
 copy_nb = False
-nCopied = 0     # number of paragraphs and sections copied from model
-nRemoved = 0    # number of \s5 tags removed
+nChanges = 0  # number of changes made
+    # includes paragraphs, sections, and terminating punctuation copied from model,
+    # and the number of \s5 markers removed.
 issuesFile = None
 
 class State:
@@ -222,6 +223,8 @@ def mayTerminateLastSentence(punct):
     if punct and state.isMidSentence() and not state.endsWithQuote():
         state.usfm.writeStr(punct)
         state.terminateSentence()
+        global nChanges
+        nChanges += 1
 
 # Inserts \s5 mark if needed
 def mayInsertS5(newchapter=False):
@@ -237,8 +240,8 @@ def mayInsertS5(newchapter=False):
             mayTerminateLastSentence(punct)
             state.usfm.writeUsfm("s5")
             state.addS5()
-            global nCopied
-            nCopied += 1
+            global nChanges
+            nChanges += 1
 
 # Write character style tags to the file with or without a newline as appropriate
 def takeStyle(key):
@@ -259,7 +262,7 @@ def takeID(id):
     state.addID( id[0:3].upper() )
     state.usfm.writeUsfm("rem", f"Paragraph marks have been added, using {state.model} as a model.")
 
-# Copies paragraph marker to output unless output already has a paragraph there.
+# Copies paragraph marker to output unless one was aleady added.
 # Insert \s5 first, if needed.
 def takeP(tag, value, nexttoken):
     if nexttoken.isV():
@@ -274,8 +277,8 @@ def takeS5():
         state.usfm.writeUsfm("s5", None)
         state.addS5()
     else:
-        global nRemoved
-        nRemoved += 1
+        global nChanges
+        nChanges += 1
 
 def takeS(tag, value):
     state.addS(tag)
@@ -284,7 +287,7 @@ def takeS(tag, value):
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 def takeV(v):
-    global nCopied
+    global nChanges
     global s5_only
 
     mayInsertS5()
@@ -296,15 +299,15 @@ def takeV(v):
                 mayTerminateLastSentence(punct)
                 state.usfm.writeUsfm(pmark)
                 state.addP(state.verse)
-                nCopied += 1
+                nChanges += 1
     if not state.pAlready(current=True) and state.needP() == state.verse:  # occasioned by chapter or section heading
         state.usfm.writeUsfm("p")
         state.addP(state.verse)
-        nCopied += 1
+        nChanges += 1
     state.usfm.writeUsfm("v", v)
 
 def takeText(t):
-    global nCopied
+    global nChanges
     global sentence_sensitive
     smark = None
     t = t.strip()
@@ -315,7 +318,7 @@ def takeText(t):
     if smark and smark != "s5" and section_titles.is_possible_heading(t):
         mayTerminateLastSentence(punct)
         state.usfm.writeUsfm(smark, t)
-        nCopied += 1
+        nChanges += 1
         state.addP(state.bridge+1)
         state.usfm.writeUsfm("p")
     ################# This is the normal case ################
@@ -328,8 +331,12 @@ def takeText(t):
 # Output chapter
 # If we are copying \s5 markers, insert one before every chapter
 def takeC(c):
-    global s5_only
+    (mark, punct) = state.smarkInModel()
+    if not punct:
+        (mark, punct) = state.pmarkInModel()
+    mayTerminateLastSentence(punct)
 
+    global s5_only
     if s5_only:
         mayInsertS5(newchapter=True)
     state.addChapter(c)
@@ -413,16 +420,13 @@ def isParseable(str, usfmpath, fname):
 
 # Returns False if the usfm file is not parseable.
 def convertFile(usfmpath, fname):
-    global nCopied
-    startn = nCopied
-    global nRemoved
-    startnRemoved = nRemoved
+    global nChanges
+    startn = nChanges
     if not state.fname:
         reportError("Internal error: State is not initialized")  # first pass (scan) sets the state
         sys.exit(-1)
     with io.open(usfmpath, "tr", 1, encoding="utf-8-sig") as input:
         str = input.read(-1)
-
     sys.stdout.flush()
     success = isParseable(str, usfmpath, fname)
     if success:
@@ -435,7 +439,7 @@ def convertFile(usfmpath, fname):
             token = nexttoken
         take(token, token)
         state.usfmClose()
-        if nCopied > startn or nRemoved > startnRemoved:
+        if nChanges > startn:
             renameUsfmFiles(usfmpath)
         else:
             sys.stdout.write(f"  No changes to {fname}\n")
@@ -641,11 +645,7 @@ def scanModelFile(modelpath, fname):
 #     return (nchapters, nparagraphs, npoetry)
 
 def processFile(path):
-    global config
     fname = os.path.basename(path)
-    # (nChapters, nParagraphs, nPoetry) = countParagraphs(path)
-
-    #if nParagraphs / nChapters < 2.5 and nPoetry / nChapters < 15:
     model_dir = ToolsConfigManager().get('MarkParagraphs', 'model_dir')
     model_path = os.path.join(model_dir, fname)
     if os.path.isfile(model_path):
@@ -666,10 +666,8 @@ state = State()
 def main(app = None):
     global gui
     gui = app
-    global nCopied
-    nCopied = 0
-    global nRemoved
-    nRemoved = 0
+    global nChanges
+    nChanges = 0
     global s5_only
     global removes5markers
     global sentence_sensitive
@@ -693,7 +691,9 @@ def main(app = None):
         convertFolder(source_dir)
 
     closeIssuesFiles()
-    reportStatus(f"\nDone. Introduced {nCopied} paragraphs / sections")
+    reportStatus(f"\nDone.")
+    if nChanges > 0:
+        reportStatus("Changes were made.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 
