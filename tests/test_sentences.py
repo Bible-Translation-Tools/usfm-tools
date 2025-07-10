@@ -43,7 +43,8 @@ def test_capitalize(str, startsSentence, expected):
      ('BB-CC', 'BB-CC'),
      ('D--C', 'D'),
      ('E-F-G', 'E-F'),
-     ('F-.G', 'F')
+     ('F-.G', 'F'),
+     ('دەزانن؟»', 'دەزانن'),
     ])
 def test_firstword(str, expected):
     import sentences
@@ -61,6 +62,7 @@ def test_firstword(str, expected):
      ('First. More-sentences! Even-more more! -Yet- more.', ['More-sentences', 'Even-more', 'Yet']),
      ('F-.G', ['G']),
      ('F-.G-H', ['G-H']),
+     ('ڕابوەستێت؟ ڕابوەستێت؟', ['ڕابوەستێت']),
     ])
 def test_nextfirstwords(str, expected):
     import sentences
@@ -88,6 +90,7 @@ def test_nextfirstwords(str, expected):
      ('Quoted sentence!‘ does not make a sentence! Why?', [0,44]),
      ('মহিমার মত হব’।” সদাপ্রভু বলেন, এস! এস! ', [0,16,35]),
      ('Hyphenated-words in sentence! Should-work! -Why-?', [0,30,44]),
+     ('ڕابوەستێت؟ ڕابوەستێت؟', [0,11]),
     ])
 def test_nextstartpos(str, result):
     import sentences
@@ -116,6 +119,7 @@ def test_nextstartpos(str, result):
      ('Quoted sentence!" does make a sentence! Why?', 3),
      ('Quoted sentence!‘ does not make a sentence! Why?', 2),
      ('মহিমার মত হব’।” সদাপ্রভু বলেন, এস! এস! ', 3),
+     (' ڕابوەستێت؟  ڕابوەستێت؟  ڕابوەستێت', 3),
     ])
 def test_sentenceCount(str, expected):
     import sentences
@@ -151,6 +155,7 @@ def test_sentenceCount(str, expected):
      ('Incorrectly quoted sentence!‘', True, ''),
      ('মহিমার মত হব’।”', False, '।'),
      ('মহিমার মত হব’।”', True, '।'),
+     ('لەبەردەمیدا ڕابوەستێت؟', True, '؟')
     ])
 def test_endsSentence(str, checkquotes, expected):
     import sentences

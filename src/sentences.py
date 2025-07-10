@@ -14,8 +14,8 @@ Special characters:
 \u2013 is an en dash
 \u2014 is an em dash
 """
-endsentence_re = re.compile(r'([.?!\u0964\u0965\u1361\u1362])[^\w]*$')
-badquoted_re = re.compile(r'[?!\u1361\u1362]+[«“‘\-\u2014\u2013]')
+endsentence_re = re.compile(r'([.?!\u0964\u0965\u1361\u1362\u061F])[^\w]*$')
+badquoted_re = re.compile(r'[?!\u1361\u1362\u061F]+[«“‘\-\u2014\u2013]')
 
 # Returns the sentence-ending punctuation mark if the text ends a sentence.
 # Returns '' if the text does not end with sentence-ending punctuation.
@@ -39,7 +39,7 @@ def firstword(str):
         word = first.group(1)
     return word
 
-endsent_re = re.compile(r'[.?!\u0964\u0965\u1361\u1362].*?(\w+-\w+|\w+)', re.DOTALL)
+endsent_re = re.compile(r'[.?!\u0964\u0965\u1361\u1362\u061F].*?(\w+-\w+|\w+)', re.DOTALL)
 
 # Generator function to yield the first word in each sentence in str,
 # ***not counting*** the first word in the string, even if it starts a sentence.
