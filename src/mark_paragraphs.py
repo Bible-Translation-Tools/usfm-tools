@@ -2,7 +2,7 @@
 # This script converts one or more valid .usfm files by adding paragraph marks.
 # The model used for marking paragraphs are the USFM files in model_dir.
 # Inserts paragraph marker after each chapter marker if needed, before verse 1.
-# Does not insert paragraph marks in the middle of sentences, unless the sentence_sensitive config setting is False.
+# Also terminates sentences before a paragraph break, with punctuation from model text.
 # Marks unmarked text as section headings where present in model.
 # The input file(s) should be verified, correct USFM, except for unmarked text which may become section headings.
 # Ensures a paragraph mark after every section heading.
@@ -113,11 +113,7 @@ class State:
     def addText(self, text):
         self.expectText = False
         self.midSentence = not sentences.endsSentence(text)
-        self.lastText = text
-
-    # Returns True if the last recorded text ends with any kind of quote mark.
-    def endsWithQuote(self):
-        return self.lastText and quotes.is_quote(self.lastText[-1])
+        self.lastText = text.rstrip()
 
     def addVerse(self, v):
         v1 = v.split('-')[0]
@@ -219,8 +215,14 @@ def identifyModel(model_dir):
         version = core['version']
         state.identifyModel(f"{language} {identifier} version {version}")
 
+punctuated_re = re.compile(r'\W\s*$')
+
+# Returns True if the string ends with a punctuation mark.
+def punctuated(s):
+    return (punctuated_re.search(s) != None)
+
 def mayTerminateLastSentence(punct):
-    if punct and state.isMidSentence() and not state.endsWithQuote():
+    if punct and state.isMidSentence() and not punctuated(state.lastText):
         state.usfm.writeStr(punct)
         state.terminateSentence()
         global nChanges
@@ -680,7 +682,8 @@ def main(app = None):
     config = ToolsConfigManager()
     s5_only = config.getboolean('MarkParagraphs', 's5_only')
     removes5markers = config.getboolean('MarkParagraphs', 'removes5markers')
-    sentence_sensitive = config.getboolean('MarkParagraphs', 'sentence_sensitite')
+    sentence_sensitive = config.getboolean('MarkParagraphs', 'sentence_sensitive')
+    # reportStatus(f"sentence_sensitive is {sentence_sensitive}")
     copy_nb = config.getboolean('MarkParagraphs', 'copy_nb')
     identifyModel(config.get('MarkParagraphs', 'model_dir'))
     source_dir = config.get('MarkParagraphs', 'source_dir')
