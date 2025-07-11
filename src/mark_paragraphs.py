@@ -481,7 +481,11 @@ def renameUsfmFiles(usfmpath):
     tmppath = usfmpath + ".tmp"
     if os.path.isfile(tmppath):
         if os.path.isfile(usfmpath):
-            os.remove(usfmpath)
+            try:
+                os.remove(usfmpath)
+            except PermissionError as e:
+                reportError(f"Cannot convert {usfmpath}: {e.strerror}")
+                return
         os.rename(tmppath, usfmpath)
 
 # If issues.txt file is not already open, opens it for writing.
