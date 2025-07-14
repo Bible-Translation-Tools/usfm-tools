@@ -78,6 +78,7 @@ class State:
         self.verse = 0
         self.bridge = 0
         self.reference = self.ID[0:3].upper() + " chapter " + c
+        self.lastText = ''
         self.expectText = False
         self.needPmarker = 1    # need \p or \q before verse 1
 
@@ -86,10 +87,12 @@ class State:
     def addP(self, nextverse):
         self.pChapter = self.chapter
         self.pVerse = nextverse
+        self.lastText = ''
         self.expectText = True
         self.needPmarker = 0
 
     def addQ(self):
+        self.lastText = ''
         self.expectText = True
         self.needPmarker = 0
 
@@ -97,6 +100,7 @@ class State:
     # Do not use this method for \s5 markers.
     def addS(self, tag):
         self.midSentence = False    # fair assumption
+        self.lastText = ''
         self.expectText = False
         # self.sChapter = self.chapter
         # self.sVerse = self.bridge
@@ -105,6 +109,7 @@ class State:
 
     def addS5(self):
         self.midSentence = False
+        self.lastText = ''
         self.expectText = False
         self.sTag = "s5"
         self.s5chapter = self.chapter
@@ -125,6 +130,7 @@ class State:
 
     def addFootnote(self):
         self.expectText = True
+        self.lastText = ''
 
     def saveTokenType(self, type):
         self.prevTokenType = self.currTokenType
@@ -143,8 +149,8 @@ class State:
     def s5Already(self):
         return (self.s5verse == self.bridge and self.s5chapter == self.chapter)
 
-    # Returns the paragraph mark that occurred in the model file at the current location,
-    # and the punctuation ending the preceding sentence.
+    # Returns the paragraph mark that occurred in the model text at the current location,
+    # and the punctuation ending the preceding sentence in the model text.
     def pmarkInModel(self):
         pmark = punct = None
         for pp in self.paragraphs_model:
@@ -215,16 +221,17 @@ def identifyModel(model_dir):
         version = core['version']
         state.identifyModel(f"{language} {identifier} version {version}")
 
-punctuated_re = re.compile(r'\W\s*$')
+punctuated_re = re.compile(r'[^\w\s]\s*$')
 
 # Returns True if the string ends with a punctuation mark.
 def punctuated(s):
     return (punctuated_re.search(s) != None)
 
 def mayTerminateLastSentence(punct):
-    if punct and state.isMidSentence() and not punctuated(state.lastText):
+    if punct and state.lastText and not punctuated(state.lastText):
         state.usfm.writeStr(punct)
         state.terminateSentence()
+        # reportStatus(f"Added punctuation at {state.reference}")
         global nChanges
         nChanges += 1
 
@@ -297,8 +304,9 @@ def takeV(v):
     if not state.pAlready(current=True) and not s5_only:
         (pmark, punct) = state.pmarkInModel()
         if pmark:
-            if punct or not state.isMidSentence() or not sentence_sensitive:
+            if punct and not isPoetry(pmark):
                 mayTerminateLastSentence(punct)
+            if isPoetry(pmark) or not state.isMidSentence() or not sentence_sensitive:
                 state.usfm.writeUsfm(pmark)
                 state.addP(state.verse)
                 nChanges += 1
@@ -316,7 +324,7 @@ def takeText(t):
     if not state.expectingText() and (not state.isMidSentence() or not sentence_sensitive):
         (smark, punct) = state.smarkInModel()
 
-    ####### This is the case where t might be a section heading on a line by itself #######
+    ####### This is the case where the model has a section heading, and t might be a section heading on a line by itself #######
     if smark and smark != "s5" and section_titles.is_possible_heading(t):
         mayTerminateLastSentence(punct)
         state.usfm.writeUsfm(smark, t)
@@ -354,9 +362,9 @@ def take(token, nexttoken):
         takeText(token.value)
     elif token.isC():
         takeC(token.value)
-    elif isParagraph(token, scanning=False):
+    elif isParagraph(token.type, scanning=False):
         takeP(token.type, token.value, nexttoken)
-    elif isPoetry(token):
+    elif isPoetry(token.type):
         # takeQ(token.type, token.value, nexttoken)
         takeP(token.type, token.value, nexttoken)
     elif token.isS5():
@@ -385,17 +393,14 @@ def isCharacterStyle(token):
     return token.isBDS() or token.isBDE() or token.isITS() or token.isITE() or token.isBDITS() or token.isBDITE() \
 or token.isADDS() or token.isADDE() or token.isPNS() or token.isPNE()
 
-def isParagraph(token, scanning):
-    pmark = token.isP() or token.isM() or token.isPI() or token.isPC() or token.isNB() or token.isB() \
-        or token.is_ip() or token.is_iot() or token.is_io() or token.is_io2()
-    if scanning and (token.isNB() or token.isB() or token.isM()) and not copy_nb:
-        pmark = False
-    return pmark
+def isParagraph(mark, scanning):
+    isp = mark in {'p', 'm', 'pi', 'pc', 'nb', 'b', 'ip', 'iot', 'io', 'io2'}
+    if isp and scanning and not copy_nb and mark in {'nb', 'b', 'm'}:
+        isp = False
+    return isp
 
-def isPoetry(token):
-    return token.isQ() or token.isQ1() or token.isQ2() or token.isQ3() or \
-token.isQA() or token.isSP() or token.isQR() or token.isQC() or token.isD() or\
-token.isQSS()
+def isPoetry(mark):
+    return mark in {'q', 'q1', 'q2', 'q3', 'qa', 'qr', 'qc', 'qss', 'd', 'sp'}
 
 def isSection(token):
     return token.isS() or token.isS2() or token.isS3() or token.isS4() or token.isS5() \
@@ -617,7 +622,7 @@ def scan(token):
     elif token.isTEXT():
         scanText()
         state.endPunctuation = sentences.endsSentence(token.value)
-    elif isParagraph(token, scanning=True) or isPoetry(token):
+    elif isParagraph(token.type, scanning=True) or isPoetry(token.type):
         scanPQ(token.type)
     elif isSection(token):
         scanS(token.type)
@@ -683,7 +688,6 @@ def main(app = None):
     s5_only = config.getboolean('MarkParagraphs', 's5_only')
     removes5markers = config.getboolean('MarkParagraphs', 'removes5markers')
     sentence_sensitive = config.getboolean('MarkParagraphs', 'sentence_sensitive')
-    # reportStatus(f"sentence_sensitive is {sentence_sensitive}")
     copy_nb = config.getboolean('MarkParagraphs', 'copy_nb')
     identifyModel(config.get('MarkParagraphs', 'model_dir'))
     source_dir = config.get('MarkParagraphs', 'source_dir')
