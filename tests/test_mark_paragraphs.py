@@ -1,0 +1,26 @@
+# pytest unit tests for functions in plaintext2usfm.py
+
+import os
+import sys
+import pytest
+
+tests_path = os.path.dirname(os.path.realpath(__file__))
+src_path = os.path.join(os.path.dirname(tests_path), "src")
+sys.path.append(src_path)
+import mark_paragraphs
+
+@pytest.mark.parametrize('s, result',
+    [
+        ('5', False),
+        ('', False),
+        ('MATTHEW-', True),
+        ('avlede Azor; ', True),
+        ("ኧያእቆቢ ኧችን፤", True),
+        ("ኧያእቆቢ ኧችን", False),
+        ("دەرناکات،", True),   # Arabic comma
+        (" دەبن؟", True),      # Arabic question mark
+        ("ኖኦራአአር ኢሽሬ፤", True),
+        ("spaces  ", False),
+    ])
+def test_punctuated(s, result):
+    assert mark_paragraphs.punctuated(s) == result

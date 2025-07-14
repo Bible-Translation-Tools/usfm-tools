@@ -134,6 +134,7 @@ def test_is_heading(str, expected):
     ('(Single).', False),
     ('(Single)', False),
     ('"Hosana!', False),
+    ('گریان و شیوەنێکی گەورە! ڕاخێل  نەمابوون!»', False),
     ])
 def test_is_possibleheading(str, expected):
     import section_titles
