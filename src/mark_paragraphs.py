@@ -21,6 +21,7 @@ import usfmWriter
 import yaml
 import section_titles
 from datetime import datetime
+import unicodedata
 # import cProfile
 
 gui = None
@@ -41,6 +42,8 @@ class State:
     # Resets the state data for the next Bible book
     def reset_data(self, fname):
         self.fname = fname
+        self.modelBlock = ''   # Unicode block of model text
+        self.block = ''     # Unicode block of text being modified
         self.chapter = self.verse = 0
         self.bridge = 0
         self.pChapter = self.pVerse = 0
@@ -58,6 +61,7 @@ class State:
     def __repr__(self):
         return f'State({self.reference})'
 
+    # Called only during the scanning phase, not the marking phase
     def addFile(self, fname):
         self.reset_data(fname)
         ## Open output USFM file for writing.
@@ -116,6 +120,7 @@ class State:
         self.s5chapter = self.chapter
         self.s5verse = self.bridge
 
+    # Called only during the marking phase, not the scanning phase
     def addText(self, text):
         self.expectText = False
         self.midSentence = not sentences.endsSentence(text)
@@ -196,6 +201,15 @@ class State:
     def identifyModel(self, identity):
         self.model = identity
 
+    def setModelBlock(self, block:str):
+        self.modelBlock = block
+    def getModelBlock(self):
+        return self.modelBlock
+    def setBlock(self, block:str):
+        self.block = block
+    def getBlock(self):
+        return self.block
+
 # Loads the specified yaml file and reports errors.
 # Returns the contents of the file if no errors.
 def parseYaml(path):
@@ -229,7 +243,7 @@ def punctuated(s):
     return (punctuated_re.search(s) != None)
 
 def mayTerminateLastSentence(punct):
-    if punct and state.lastText and not punctuated(state.lastText):
+    if punct and state.getBlock() == state.getModelBlock() and state.lastText and not punctuated(state.lastText):
         state.usfm.writeStr(punct)
         state.terminateSentence()
         # reportStatus(f"Added punctuation at {state.reference}")
@@ -324,6 +338,11 @@ def takeText(t):
     t = t.strip()
     if not state.expectingText() and (not state.isMidSentence() or not sentence_sensitive):
         (smark, punct) = state.smarkInModel()
+    if not state.getBlock() and state.verse > 0 and len(t) > 10:
+        state.setBlock(unicodeBlock(t))
+        if state.getBlock() != state.getModelBlock():
+            reportStatus(f"The script is {state.getBlock()} but the model is {state.getModelBlock()}. \
+Sentence termination functionality is disabled.")
 
     ####### This is the case where the model has a section heading, and t might be a section heading on a line by itself #######
     if smark and smark != "s5" and section_titles.is_possible_heading(t):
@@ -566,6 +585,16 @@ def reportStatus(msg):
         gui.event_generate('<<ScriptMessage>>', when="tail")
     print(msg)
 
+# Returns the first word of the Unicode name of most of the characters in the string.
+# This is not exactly the same as the Unicode Block, but better.
+def unicodeBlock(text):
+    blocks = {}
+    for char in text:
+        if char.strip():
+            block_name = unicodedata.name(char, "Unknown").split()[0]
+            blocks[block_name] = blocks.get(block_name, 0) + 1
+    primary_block = max(blocks, key=lambda key: blocks[key])
+    return primary_block
 
 # Sets the chapter number in the state object
 # If there is still a tentative paragraph mark, remove it.
@@ -605,12 +634,15 @@ def scanS(type):
 
 # Removes the last paragraph mark from the list if it is not already located to
 # a specific verse, because it apparently occurs in the middle of a verse.
-def scanText():
+def scanText(text):
     if len(state.paragraphs_model) > 0:
         pp = state.paragraphs_model[-1]
         if not pp['located']:
             reportError(f"Paragraph mark (\\{pp['mark']}) within {state.reference} not copied", False)
             state.paragraphs_model.remove(pp)
+    state.endPunctuation = sentences.endsSentence(text) # endPunctuation is a temporary holding place
+    if not state.getModelBlock() and state.verse > 0 and len(text) > 10:
+        state.setModelBlock(unicodeBlock(text))
 
 # v is the verse number or range
 # Assign the verse number to the preceding paragraph mark, if any.
@@ -632,8 +664,7 @@ def scan(token):
     elif token.isV():
         scanV(token.value)
     elif token.isTEXT():
-        scanText()
-        state.endPunctuation = sentences.endsSentence(token.value)
+        scanText(token.value)
     elif isParagraph(token.type, scanning=True) or isPoetry(token.type):
         scanPQ(token.type)
     elif isSection(token):
