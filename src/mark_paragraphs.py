@@ -341,8 +341,8 @@ def takeText(t):
     if not state.getBlock() and state.verse > 0 and len(t) > 10:
         state.setBlock(unicodeBlock(t))
         if state.getBlock() != state.getModelBlock():
-            reportStatus(f"The script is {state.getBlock()} but the model is {state.getModelBlock()}. \
-Sentence termination functionality is disabled.")
+            reportStatus(f"The script is {state.getBlock()} but the model is {state.getModelBlock()}, \
+so sentence termination functionality is disabled.")
 
     ####### This is the case where the model has a section heading, and t might be a section heading on a line by itself #######
     if smark and smark != "s5" and section_titles.is_possible_heading(t):
@@ -428,17 +428,19 @@ def isSection(token):
 
 backslash_re = re.compile(r'\\\s')
 jammed_re = re.compile(r'(\\v +[-0-9]+[^-\s0-9])', re.UNICODE)
-usfmcode_re = re.compile(r'(\\[^a-z\+])', re.UNICODE)
+usfmcode_re = re.compile(r'(\\[^a-z\+\s])', re.UNICODE)
 
 def isParseable(str, usfmpath, fname):
     parseable = True
     if backslash_re.search(str):
-        reportError(f"{fname} contains stranded backslash(es) followed by space or newline")
+        reportError(f"{fname} contains stranded backslash(es) followed by space or end of line")
+        parseable = False
+
     if bad := jammed_re.search(str):
         reportError(f"{fname} contains verse number(s) not followed by space: {bad.group(1)}")
         parseable = True   # let it convert because the bad spots are easier to locate in the converted USFM
-    if badcode := usfmcode_re.search(str):
-        reportError(f"{fname} contains foreign usfm code(s): {badcode.group(1)}")
+    for badcode in re.finditer(usfmcode_re, str):
+        reportError(f"{fname} contains foreign usfm code: {badcode.group(1)}")
         parseable = False
     if os.path.getsize(usfmpath) < 1000:
         reportError(f"{usfmpath} is incomplete, too small")
