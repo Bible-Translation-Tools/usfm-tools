@@ -14,12 +14,13 @@ import parseUsfm
 import io
 import re
 import shutil
-import quotes
+# import quotes
 import sentences
 import usfm_verses
 import usfmWriter
 import yaml
 import section_titles
+from datetime import datetime
 # import cProfile
 
 gui = None
@@ -495,17 +496,28 @@ def renameUsfmFiles(usfmpath):
                 return
         os.rename(tmppath, usfmpath)
 
+# Returns the modified date/time of the specified file, formatted as a string.
+def get_timestamp(path):
+    mtime = os.path.getmtime(path)
+    dt = datetime.fromtimestamp(mtime)
+    s = dt.strftime("%Y%m%d%H%M")
+    return s[2:]
+
 # If issues.txt file is not already open, opens it for writing.
-# Overwrites existing issues.txt file, if any.
+# First saves existing issues.txt file to another name.
 # Returns new file pointer.
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        source_dir = ToolsConfigManager().get('MarkParagraphs', 'source_dir')
-        if os.path.isdir(source_dir):
-            path = os.path.join(source_dir, "issues.txt")
-            issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
-            issuesFile.write("Issues detected by MarkParagraphs:\n------------------------------------\n")
+        workdir = ToolsConfigManager().get('MarkParagraphs', 'source_dir')
+        path = os.path.join(workdir, "issues.txt")
+        if os.path.exists(path):
+            timestamp = get_timestamp(path)
+            bakpath = os.path.join(workdir, f"issues-{timestamp}.txt")
+            if not os.path.exists(bakpath):
+                os.rename(path, bakpath)
+        issuesFile = io.open(path, "tw", encoding='utf-8', newline='\n')
+        issuesFile.write("Issues detected by MarkParagraphs:\n------------------------------------\n")
     return issuesFile
 
 #def openReportFile():
