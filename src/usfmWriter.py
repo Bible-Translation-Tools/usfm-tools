@@ -32,7 +32,7 @@ class usfmWriter:
     # Technical debt: the beginning of the string should be checked for inline tags. Currently
     # this function places all leading usfm markers on a new line.
     def writeStr(self, s):
-        if s:
+        if s and self._file:
             if not self._newlined and s[0] == '\\':
                 s = "\n" + s
             elif not self._spaced and s[0] not in '.?!;:,)’”»›\n ':
@@ -45,21 +45,23 @@ class usfmWriter:
 
     # Writes a usfm tagged value, insert newline if needed
     def writeUsfm(self, key, value=None):
-        if key in self._inline_tags:
-            intro = "\\" if (self._newlined or self._spaced) else " \\"
-        else:
-            intro = "\\" if self._newlined else "\n\\"
-        self._file.write(f"{intro}{key}")
-        self._spaced = False
-        self._newlined = False
-        if value:
-            self.writeStr(value)
-            if key == 'v':
-                self.writeStr(" ")  # ensure correct verse marker even when next char is phrase-ending
+        if self._file:
+            if key in self._inline_tags:
+                intro = "\\" if (self._newlined or self._spaced) else " \\"
+            else:
+                intro = "\\" if self._newlined else "\n\\"
+            self._file.write(f"{intro}{key}")
+            self._spaced = False
+            self._newlined = False
+            if value:
+                self.writeStr(value)
+                if key == 'v':
+                    self.writeStr(" ")  # ensure correct verse marker even when next char is phrase-ending
 
     # Inserts the specified number of line breaks (defualt 1) into the file.
     def newline(self, n=1):
-        for i in range(n):
-            self._file.write("\n")
-        self._spaced = True
-        self._newlined = True
+        if self._file:
+            for i in range(n):
+                self._file.write("\n")
+            self._spaced = True
+            self._newlined = True
