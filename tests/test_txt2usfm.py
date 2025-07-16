@@ -277,6 +277,18 @@ def test_makeVerseRange(chunkno, chapter, expected):
 
 @pytest.mark.parametrize('text, expected',
     [
+        (r'\v8', ''),
+        (r'\V8Afo', ''),
+        (r'\v 8Afo eni. \v 9 Newarafi', r'\v 8 Afo eni. \v 9 Newarafi'),
+    ])
+def test_addSpaceAfterVerseNo(text, expected):
+    if not expected:
+        expected = text
+    result = txt2USFM.addSpaceAfterVerseNo(text)
+    assert result == expected
+
+@pytest.mark.parametrize('text, expected',
+    [
         (r' Yitan\v 8 nin li.  \v9 Yisinan uremere.',  r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'),
         (r' Yitan \v 8 nin li.  \v9 Yisinan uremere.', r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'),
         (r' Yitan \V 8 nin li.  \V9 Yisinan uremere.', r' Yitan \v 8 nin li.  \v 9 Yisinan uremere.'),
@@ -298,6 +310,7 @@ def test_makeVerseRange(chunkno, chapter, expected):
         (r'\v 8) nin li \v9! Yisinan uremere.',  r'\v 8 nin li! \v 9 Yisinan uremere.'),
         ('\\V10 Kimal akara. \nHeading\n\\v11 Kiti nani.',  '\\v 10 Kimal akara. \nHeading\n\\v 11 Kiti nani.'),
         (r'\v5 Bara nene acine. \v7 Andi aleli ba.', r'\v 5 Bara nene acine. \v 7 Andi aleli ba.'),
+        (r'\v 8Afo eni. \v 9 Newarafi', r'\v 8 Afo eni. \v 9 Newarafi'),
     ])
 def test_fixVerseMarkers(text, expected):
     if not expected:
@@ -368,6 +381,7 @@ def test_lacksChapter(section, expected):
     [
         (r'\v 1', ['1']),
         (r'\v 1-2', ['1','2']),
+        (r'\v 3 Usetano akhambula, "Ingave uveve \v 4', ['3','4']),
     ])
 def test_find_vnumbers(text, expected):
     vnumbers_found = txt2USFM.find_vnumbers(text)
@@ -409,7 +423,8 @@ range41 = ['41']
 
 @pytest.mark.parametrize('text, verserange, expected',
     [
-        (r'\v 3 Usetano akhambula, "Ingave uveve', range3, r''),
+        (r'random text', range41, r'\v 41 random text'),
+        (r'\v 3 Usetano akhambula, "Ingave uveve', range3, r'\v 3 Usetano akhambula, "Ingave uveve \v 4'),
         (r'\v 4 Usetano akhambula, "Ingave uveve', range3, r'\v 3-4 Usetano akhambula, "Ingave uveve'),
         (r'\v Usetano akhambula, "Ingave uveve', range3, r'\v 3-4 Usetano akhambula, "Ingave uveve'),
         (r'Usetano akhambula, "Ingave uveve', range3, r'\v 3-4 Usetano akhambula, "Ingave uveve'),
@@ -483,6 +498,10 @@ def test_fixVerseOrder(text, verserange, expected):
 @pytest.mark.parametrize('text, verserange, expected',
     [
         (r'\v3 Bara nene acine. \v5 Andi aleli ba.', range4, r'\v 3 Bara nene acine. \v 5 Andi aleli ba.'),
+        (r'8Afo eni. 9 Newarafi', range8, r'\v 8 Afo eni. \v 9 Newarafi'),
+        (r'9Afo eni. 8 Newarafi', range8, r'\v 8 Afo eni. \v 9 Newarafi'),
+        (r'\c 1 \v 1 \v 2 Teni Jut weci', ['1','2'], r'\c 1 \v 1-2 Teni Jut weci' ),
+        (r'\c 1 \v 1 \v 2 Teni \v 3 Jut \v 4 weci', ['1','2'], r'\c 1 \v 1-2 Teni \v 3 Jut \v 4 weci' ),
     ])
 def test_cleanupText(text, verserange, expected):
     if not expected:

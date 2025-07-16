@@ -136,12 +136,23 @@ def fixStrandedTag(text, vstr):
     return text
 
 sub0_re = re.compile(r'[\\/]+ *[vV] *[1-9]')
-sub1_re = re.compile(r'[^\n ]\\v ')     # non-space character before \v
-sub3_re = re.compile(r'\\v +([1-9][0-9\-]*)([^0-9\-\s])')       # no space after verse number
+sub1_re = re.compile(r'\S\\v ')     # non-space character before \v
+sub3_re = re.compile(r'\\v\s*([1-9][0-9\-]*)([^0-9\-\s])')    # no space after verse number
 sub4_re = re.compile(r'(\\v +[0-9\-]+ +)\\v +[^1-9]')   # \v 10 \v The...
 sub5_re = re.compile(r'\\v\s*(\\v +[0-9\-]+ +)')         # \v \v 10
 sub7_re = re.compile(r'(^|\s+)v [1-9]')              # missing backslash
 sub8_re = re.compile(r'(^|.)\s*(\\v [0-9\-]+ +)([.!?,:;)])')   # Punctuation after verse marker
+
+# Fix missing space after any marked verse numbers.
+def addSpaceAfterVerseNo(text):
+    found = sub3_re.search(text)
+    while found:
+        if found.group(2):
+            text = text[0:found.start()] + "\\v " + found.group(1) + " " + text[found.end()-1:]
+        else:
+            text = text[0:found.start()] + "\\v " + found.group(1)
+        found = sub3_re.search(text, found.end()+1)
+    return text
 
 # Fixes malformed verse markers in a single chunk of text.
 def fixVerseMarkers(text):
@@ -155,13 +166,7 @@ def fixVerseMarkers(text):
         text = text[0:found.start()+1] + " " + text[found.end()-3:]
         found = sub1_re.search(text, found.start()+3)
 
-    found = sub3_re.search(text)
-    while found:
-        if found.group(2):
-            text = text[0:found.start()] + "\\v " + found.group(1) + " " + text[found.end()-1:]
-        else:
-            text = text[0:found.start()] + "\\v " + found.group(1)
-        found = sub3_re.search(text, found.end()+1)
+    text = addSpaceAfterVerseNo(text)
 
     found = sub4_re.search(text)
     while found:
@@ -233,7 +238,7 @@ widowv_re = re.compile(r'\s*\\v +[^1-9]')
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 vmarker_whole_re = re.compile(r'\s*\\v +([1-9][0-9\-]*)')
 
-# Inserts missing verse marker or bridge at the beginning of a string.
+# Inserts missing verse marker or bridge at the beginning or end of a string.
 def insertMissingVerseMarkers(text, verserange):
     vnumbers_found = find_vnumbers(text)
     miss = -1
@@ -261,10 +266,15 @@ def insertMissingVerseMarkers(text, verserange):
         if insertpos >= 0:
             vtag = '\\v ' if insertpos == 0 else ' \\v '
             text = text[0:insertpos].rstrip() + vtag + insert + ' ' + text[remainpos:].lstrip()
+
+    # If last verse in range is missing, append it to the text
+    if verserange and verserange[-1] not in find_vnumbers(text):
+        text = text.rstrip() + " \\v " + verserange[-1]
     return text
 
 vnumbers_re = re.compile(r'\\v ([1-9][0-9\-]*)')
 
+# Returns list of verse numbers/bridges preceded by \v .
 def find_vnumbers(text):
     vnumbers_found = [v.group(1) for v in vnumbers_re.finditer(text)]
     vnumbers_found = debridge(vnumbers_found)
@@ -318,6 +328,7 @@ def fixVerseOrder(text, chap, verserange):
                 text = fixStrandedTag(text, v)
         text = insertMissingVerseMarkers(text, verserange)
         text = reorderVerseMarkers(text)
+        text = addSpaceAfterVerseNo(text)
 
     if postcleanup_file:
         postcleanup_file.write(text + '\n')
@@ -496,9 +507,9 @@ The next few functions are specific to a situation where
 the verse markers are listed at the beginning of the
 chunk but are empty, immediately followed by the first verse, followed by the next verse number and
 verse, followed by the next verse number and verse, and so on.
-This goes back to the Inor language, which was first processed in 2020.
-I think that subsequent improvements have rendered these functions unnecessary.
-So delete them when that is proven.
+See Inor (ior) language, Matt 13:36-39 for example.
+This code goes back to 2020, and is not very good. But as of 7/14/25, the code is still useful for Inor.
+I have not encountered the situation in any other language.
 '''
 # # Returns the string with \v markers removed at beginning of chunk.
 # def stripInitialMarkers(text):
