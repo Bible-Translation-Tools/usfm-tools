@@ -1,7 +1,13 @@
 # Usfm Wizard Version history
 
 ## 1.4.2
-* usfm_cleanup - preserve line breaks and no-break spaces.
+* txt2Usfm - incremental improvements around verse numbering.
+* usfm_cleanup - preserve line breaks.
+* mark_paragraphs - preserve line breaks.
+* mark_paragraphs - incremental improvements in marking section titles.
+* mark_paragraphs - in most cases, it now copies paragraph ending punctuation from model text where missing.
+* mark_paragraphs - bug fixes
+* all tools - recognize Arabic question mark ؟
 
 ## 1.4.1 - 7/2/25
 * plaintext2Usfm - support more different chapter and verse markers, to facilitate conversions from Word.
