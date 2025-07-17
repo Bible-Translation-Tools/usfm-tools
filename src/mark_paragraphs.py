@@ -389,27 +389,32 @@ def take(token, nexttoken):
         takeP(token.type, token.value, nexttoken)
     elif token.isS5():
         takeS5()
-    elif isSection(token):
+    elif isSection(token.type):
         takeS(token.type, token.value)
     elif token.isID():
         takeID(token.value)
-    elif isFootnote(token):
+    elif isFootnote(token.type):
         takeFootnote(token.type, token.value)
-    elif isCharacterStyle(token):
+    elif isCharacterStyle(token.type):
         takeStyle(token.type)
     else:
         takeAsIs(token.type, token.value)
 
 # Returns true if token is part of a cross reference
-def isCrossRef(token):
-    return token.isX_S() or token.isX_E() or token.isXO() or token.isXT()
+# def isCrossRef(token):
+#     return token.isX_S() or token.isX_E() or token.isXO() or token.isXT()
 
 # Returns true if token is part of a footnote or cross reference
-def isFootnote(token):
-    return token.isF_S() or token.isF_E() or token.isFR() or token.isFT() or token.isFP() or \
-token.isFE_S() or token.isFE_E() or token.isRQS() or token.isRQE()
+def isFootnote(mark):
+    return mark in {'f', 'f*', 'fe', 'fe*', 'fl', 'fm', 'fm*', 'fp', 'fq', 'fqa', 'fr', 'ft', 'fv', 'fv*', 'rq', 'rq*'}
 
-def isCharacterStyle(token):
+def isCharacterStyle(mark):
+    return mark in {'add', 'add*', 'bd', 'bd*', 'bdit', 'bdit*', 'bk', 'bk*', 'dc', 'dc*',
+                    'em', 'em*', 'it', 'it*', 'k', 'k*',
+                    'nd', 'nd*', 'no', 'no*', 'ndx', 'ndx*', 'ord', 'ord*',
+                    'pn', 'pn*', 'pro', 'pro*', 'qt', 'qt*',
+                    'sc', 'sc*', 'sig', 'sig*', 'sls', 'sls*', 'tl', 'tl*',
+                    'w', 'w*', 'wg', 'wg*', 'wh', 'wh*', 'wj', 'wj*'}
     return token.isBDS() or token.isBDE() or token.isITS() or token.isITE() or token.isBDITS() or token.isBDITE() \
 or token.isADDS() or token.isADDE() or token.isPNS() or token.isPNE()
 
@@ -422,24 +427,23 @@ def isParagraph(mark, scanning):
 def isPoetry(mark):
     return mark in {'q', 'q1', 'q2', 'q3', 'qa', 'qr', 'qc', 'qss', 'd', 'sp'}
 
-def isSection(token):
-    return token.isS() or token.isS2() or token.isS3() or token.isS4() or token.isS5() \
-        or token.isSR() or token.isR() or token.isD() or token.isSP()
+def isSection(mark):
+    return mark in {'s', 's1', 's2', 's3', 's4', 's5', 'sr', 'r', 'd', 'sp'}
 
 backslash_re = re.compile(r'\\\s')
 jammed_re = re.compile(r'(\\v +[-0-9]+[^-\s0-9])', re.UNICODE)
 usfmcode_re = re.compile(r'(\\[^a-z\+\s])', re.UNICODE)
 
-def isParseable(str, usfmpath, fname):
+def isParseable(text, usfmpath, fname):
     parseable = True
-    if backslash_re.search(str):
+    if backslash_re.search(text):
         reportError(f"{fname} contains stranded backslash(es) followed by space or end of line")
         parseable = False
 
-    if bad := jammed_re.search(str):
+    if bad := jammed_re.search(text):
         reportError(f"{fname} contains verse number(s) not followed by space: {bad.group(1)}")
         parseable = True   # let it convert because the bad spots are easier to locate in the converted USFM
-    for badcode in re.finditer(usfmcode_re, str):
+    for badcode in re.finditer(usfmcode_re, text):
         reportError(f"{fname} contains foreign usfm code: {badcode.group(1)}")
         parseable = False
     if os.path.getsize(usfmpath) < 1000:
@@ -591,11 +595,13 @@ def reportStatus(msg):
 # This is not exactly the same as the Unicode Block, but better.
 def unicodeBlock(text):
     blocks = {}
+    primary_block = 'Unknown'
     for char in text:
         if char.strip():
             block_name = unicodedata.name(char, "Unknown").split()[0]
             blocks[block_name] = blocks.get(block_name, 0) + 1
-    primary_block = max(blocks, key=lambda key: blocks[key])
+    if blocks:
+        primary_block = max(blocks, key=lambda key: blocks[key])
     return primary_block
 
 # Sets the chapter number in the state object
@@ -669,7 +675,7 @@ def scan(token):
         scanText(token.value)
     elif isParagraph(token.type, scanning=True) or isPoetry(token.type):
         scanPQ(token.type)
-    elif isSection(token):
+    elif isSection(token.type):
         scanS(token.type)
     elif token.isID():
         state.addID(token.value)
