@@ -41,7 +41,7 @@ def dumpInventory(folder):
         msg = f"No chapter labels are found in {folder}:\n"
     reportStatus(msg)
     for label in sorted(labels.items(), key=lambda item: item[1], reverse=True):
-        reportStatus(f"{label[0]}:\t{label[1]:4}")
+        reportStatus(f"{label[0]}\t{label[1]:4}")
 
 # Inventories chapter labels in the specified folder.
 # Non-recursive.
