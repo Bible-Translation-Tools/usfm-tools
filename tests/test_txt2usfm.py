@@ -280,6 +280,8 @@ def test_makeVerseRange(chunkno, chapter, expected):
         (r'\v8', ''),
         (r'\V8Afo', ''),
         (r'\v 8Afo eni. \v 9 Newarafi', r'\v 8 Afo eni. \v 9 Newarafi'),
+        ('\\v 10\tEna teno. \\v 11\t40 ti deno.', '\\v 10 Ena teno. \\v 11 40 ti deno.'),
+        ('\\v 1\tIV) Mana Yomi bami. \\v 2\t2 usukeka', '\\v 1 IV) Mana Yomi bami. \\v 2 2 usukeka'),
     ])
 def test_addSpaceAfterVerseNo(text, expected):
     if not expected:
@@ -415,7 +417,7 @@ range5 = ['5', '6', '7']
 range8 = ['8', '9']
 range8b = ['8', '9', '10']
 range10 = ['10','11']
-range17 = ['16','17','18']
+range16 = ['16','17','18']
 range20 = ['20','21','22']
 range33 = ['33','34','35']
 range38 = ['38','39','40']
@@ -438,6 +440,24 @@ def test_insertMissingVerseMarkers(text, verserange, expected):
     if not expected:
         expected = text
     result = txt2USFM.insertMissingVerseMarkers(text, verserange)
+    assert result == expected
+
+@pytest.mark.parametrize('text, verserange, expected',
+    [
+        (r'\v 4 Bara nene acine. \v 5 Andi aleli ba.', range4, ''),
+        (r'8 \v 9 Newarafi', range8, ''),
+        (r'\v 8   9 Newarafi', range8, r'\v 8-9 Newarafi'),
+        (r'\c 1 \v 1 \v 2 Teni Jut weci', range1, r'\c 1 \v 1-2 Teni Jut weci' ),
+        (r'\c 1 \v 1 \v 2 Teni \v 3 Jut \v 4 weci', range1, r'\c 1 \v 1-2 Teni \v 3 Jut \v 4 weci' ),
+        (r'\v 5 یەشوای \v 6 \v 7 لەسەر زەوی.', range5, r'\v 5 یەشوای \v 6-7 لەسەر زەوی.'),
+        (r'\v 18 \v 16 Afo  bacpaci. \v 17 Yeni', range16, r'\v 16 Afo  bacpaci. \v 17 Yeni \v 18'),
+        (r'\v 16 Afo  bacpaci. \v 18 \v 17 Yeni', range16, r'\v 16 Afo  bacpaci. \v 17 Yeni \v 18'),
+        (r'\v 5 \v 4 Tenti kandauko,', range4, r'\v 4-5 Tenti kandauko,'),
+    ])
+def test_moveEmpty(text, verserange, expected):
+    if not expected:
+        expected = text
+    result = txt2USFM.moveEmpty(text, verserange)
     assert result == expected
 
 @pytest.mark.parametrize('text, expected',
@@ -466,7 +486,7 @@ def test_reorderVerseMarkers(text, expected):
         (r'\v 3 Usetano akhambula, "Ingave uveve', range3, r''),
         (r'\v 6 Ufihelelelage  \v 5 Nuwohakika.  \v 7 Ulyahova.', range5, r'\v 5 Ufihelelelage  \v 6 Nuwohakika.  \v 7 Ulyahova.'),
         (r'\v 5 \v 6 Naho Daada.  \v 6 Ululino nalwo. \v 7 Ulu nalwo.', range5, r''),
-        (r'\v 17 Pwu ula. \v 16 Akhata. \v 18 Pwu."', range17, r'\v 16 Pwu ula. \v 17 Akhata. \v 18 Pwu."'),
+        (r'\v 17 Pwu ula. \v 16 Akhata. \v 18 Pwu."', range16, r'\v 16 Pwu ula. \v 17 Akhata. \v 18 Pwu."'),
         (r'\v 22 Omunu  \v 20 U Yiisu  \v 21 Pwu fingi.', range20, r'\v 20 Omunu  \v 21 U Yiisu  \v 22 Pwu fingi.'),
         (r'\v 33 \v 35 Udada mwene.   \v 34 Pwu becha', range33, r'\v 33 \v 34 Udada mwene.   \v 35 Pwu becha'),
         (r'\v 38 U Yesu ncheyo?    \v 40 Mlolage amavokho  \v 39 Avileamale', range38, r'\v 38 U Yesu ncheyo?    \v 39 Mlolage amavokho  \v 40 Avileamale'),
@@ -501,7 +521,14 @@ def test_fixVerseOrder(text, verserange, expected):
         (r'8Afo eni. 9 Newarafi', range8, r'\v 8 Afo eni. \v 9 Newarafi'),
         (r'9Afo eni. 8 Newarafi', range8, r'\v 8 Afo eni. \v 9 Newarafi'),
         (r'\c 1 \v 1 \v 2 Teni Jut weci', ['1','2'], r'\c 1 \v 1-2 Teni Jut weci' ),
-        (r'\c 1 \v 1 \v 2 Teni \v 3 Jut \v 4 weci', ['1','2'], r'\c 1 \v 1-2 Teni \v 3 Jut \v 4 weci' ),
+        (r'\c 1 \v 1 \v 2 Teni \v 3 Jut \v 4 weci', range3, ''),
+        (r'\v 1 \v 2 Teni \v 3 Jut \v 4 weci', range1, r'\c 8 \v 1-2 Teni \v 3 Jut \v 4 weci' ),
+        (r'\v 5 یەشوای \v 6 \v 7 لەسەر زەوی.', range5, r'\v 5 یەشوای \v 6-7 لەسەر زەوی.'),
+        (r'\v 5 یەشوای \v 7 \v 6 لەسەر زەوی.', range5, r'\v 5 یەشوای \v 6 لەسەر زەوی. \v 7'),
+        (r'\v 7 \v 5 یەشوای \v 6 لەسەر زەوی.', range5, r'\v 5 یەشوای \v 6 لەسەر زەوی. \v 7'),
+        (r'\v 5 \v 4 Tenti kandauko,', range4, r'\v 4-5 Tenti kandauko,'),
+        ('\\v 10\tEna teno. \\v 11\t40 ti deno.', range10, '\\v 10 Ena teno. \\v 11 40 ti deno.'),
+        ('\\v 1\tIV) Mana Yomi bami. \\v 2\t2 usukeka', ['1','2'], '\\c 8 \\v 1 IV) Mana Yomi bami. \\v 2 2 usukeka'),
     ])
 def test_cleanupText(text, verserange, expected):
     if not expected:

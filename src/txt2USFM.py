@@ -137,7 +137,7 @@ def fixStrandedTag(text, vstr):
 
 sub0_re = re.compile(r'[\\/]+ *[vV] *[1-9]')
 sub1_re = re.compile(r'\S\\v ')     # non-space character before \v
-sub3_re = re.compile(r'\\v\s*([1-9][0-9\-]*)([^0-9\-\s])')    # no space after verse number
+sub3_re = re.compile(r'\\v\s*([1-9][0-9\-]*)([^0-9\- ])')    # no space after verse number
 sub4_re = re.compile(r'(\\v +[0-9\-]+ +)\\v +[^1-9]')   # \v 10 \v The...
 sub5_re = re.compile(r'\\v\s*(\\v +[0-9\-]+ +)')         # \v \v 10
 sub7_re = re.compile(r'(^|\s+)v [1-9]')              # missing backslash
@@ -148,7 +148,7 @@ def addSpaceAfterVerseNo(text):
     found = sub3_re.search(text)
     while found:
         if found.group(2):
-            text = text[0:found.start()] + "\\v " + found.group(1) + " " + text[found.end()-1:]
+            text = text[0:found.start()] + "\\v " + found.group(1) + " " + text[found.end()-1:].lstrip()
         else:
             text = text[0:found.start()] + "\\v " + found.group(1)
         found = sub3_re.search(text, found.end()+1)
@@ -280,6 +280,24 @@ def find_vnumbers(text):
     vnumbers_found = debridge(vnumbers_found)
     return vnumbers_found
 
+unbridged_re = re.compile(r'(\\v\s+)([1-9][0-9]*)\s+(\\v\s+|)([1-9][0-9]*)')
+
+# Creates a verse bridge where there is an empty verse marker followed by
+# another verse marker or just another verse number.
+# Moves an empty verse marker to the end of the string if it is at the
+# end of the verse range.
+def moveEmpty(text, verserange):
+    if unbridged := unbridged_re.search(text):
+        v1 = unbridged.group(2)
+        v2 = unbridged.group(4)
+        if int(v2) == int(v1) + 1:
+            text = text[0:unbridged.end(2)] + "-" + text[unbridged.start(4):]
+        elif len(verserange) == 2 and int(v1) == int(v2) + 1:
+            text = text[0:unbridged.start()] + text[unbridged.start(3):unbridged.end(4)] + '-' + v1 + text[unbridged.end():]
+        elif v2 in verserange and v1 == verserange[-1] and v2 != v1:
+            text = text[0:unbridged.start()] + text[unbridged.start(3):] + " \\v " + unbridged.group(2)
+    return text
+
 # Returns the integer value of the first verse number in the string.
 def firstInt(vstr):
     try:
@@ -327,6 +345,7 @@ def fixVerseOrder(text, chap, verserange):
             if not v in vnumbers_found:
                 text = fixStrandedTag(text, v)
         text = insertMissingVerseMarkers(text, verserange)
+        text = moveEmpty(text, verserange)
         text = reorderVerseMarkers(text)
         text = addSpaceAfterVerseNo(text)
 
