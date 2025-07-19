@@ -418,6 +418,7 @@ range8 = ['8', '9']
 range8b = ['8', '9', '10']
 range10 = ['10','11']
 range16 = ['16','17','18']
+range17 = ['17','18','19','20']
 range20 = ['20','21','22']
 range33 = ['33','34','35']
 range38 = ['38','39','40']
@@ -465,7 +466,7 @@ def test_moveEmpty(text, verserange, expected):
         (r'\v 5 Ufihelelelage  \v 4 Nuwohakika.  \v 6 Ulyahova.', r'\v 4 Ufihelelelage  \v 5 Nuwohakika.  \v 6 Ulyahova.'),
         (r'\v 17 Pwu ula. \v 16 Akhata. \v 18 Pwu."', r'\v 16 Pwu ula. \v 17 Akhata. \v 18 Pwu."'),
         (r'\v 22 Omunu  \v 20 U Yiisu  \v 21 Pwu fingi.', r'\v 20 Omunu  \v 21 U Yiisu  \v 22 Pwu fingi.'),
-        (r'\v 33 \v 35 Udada mwene.   \v 34 Pwu becha', r'\v 33 \v 34 Udada mwene.   \v 35 Pwu becha'),
+        (r'\v 33 \v 35 Udada mwene.   \v 34 Pwu becha', r''),
         (r'\v 38 U Yesu ncheyo?  \v 40 Mlolage  \v 39 Avileamale', r'\v 38 U Yesu ncheyo?  \v 39 Mlolage  \v 40 Avileamale'),
         (r'\v 10 Kimal akara. \v 11 Kiti nani. 12', r''),
         (r'\v 10 Kimal akara. \v 9 Kiti nani. 12', r'\v 9 Kimal akara. \v 10 Kiti nani. 12'),
@@ -473,7 +474,8 @@ def test_moveEmpty(text, verserange, expected):
         (r'\v 10-11 Kimal akara. \v 9 Kiti nani. \v 8 asdf', r'\v 8 Kimal akara. \v 9 Kiti nani. \v 10-11 asdf'),
         (r'\v 10-11 Kimal akara. \v 9 Kiti nani. \v 8 asdf', r'\v 8 Kimal akara. \v 9 Kiti nani. \v 10-11 asdf'),
         (r'\v 28 Iwa e masu . \v 12 Gwana b. \v 13 Anit vat.', r''),
-        # (r'\v 6 \v 7 \v 5 Kubi ko na iwa zuro kiti kirum', r'\v 5 Kubi ko na iwa zuro kiti \v 6 \v 7'),  # future
+        # (r'\v 6 \v 7 \v 5 Kubi ko na iwa zuro kiti kirum', r'\v 5-7 Kubi ko na iwa zuro kiti kirum'),  # future
+        (r'\v 19 \v 18 Aua na.', r''),  # reorder rejects strings with empty verses
     ])
 def test_reorderVerseMarkers(text, expected):
     if not expected:
@@ -529,6 +531,8 @@ def test_fixVerseOrder(text, verserange, expected):
         (r'\v 5 \v 4 Tenti kandauko,', range4, r'\v 4-5 Tenti kandauko,'),
         ('\\v 10\tEna teno. \\v 11\t40 ti deno.', range10, '\\v 10 Ena teno. \\v 11 40 ti deno.'),
         ('\\v 1\tIV) Mana Yomi bami. \\v 2\t2 usukeka', ['1','2'], '\\c 8 \\v 1 IV) Mana Yomi bami. \\v 2 2 usukeka'),
+        (r'\v 19 \v 17 Na. \v 18 Aua na.\n\19 	Aua o isi? \v 20 .	Aua o', range17, r'\v 19 \v 17 Na. \v 18 Aua na.\n\19 	Aua o isi? \v 20 Aua o'),
+        (r'\v 11 \v 10 Aua na.', range10, r'\v 10-11 Aua na.'),
     ])
 def test_cleanupText(text, verserange, expected):
     if not expected:

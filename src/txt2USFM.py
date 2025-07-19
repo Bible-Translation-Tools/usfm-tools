@@ -29,7 +29,6 @@ gui = None
 precleanup_file = None
 postcleanup_file = None
 
-numberstart_re = re.compile(r'([\d]{1,3})[ \n]', re.UNICODE)
 chapMarker_re = re.compile(r'\\c *[\d]{1,3}', re.UNICODE)
 
 def reportError(msg):
@@ -75,8 +74,6 @@ def close_diagnostic_files():
     if postcleanup_file:
         postcleanup_file.close()
         postcleanup_file = None
-
-numbers_re = re.compile(r'[ \n]([\d]{1,3})[ \n]', re.UNICODE)
 
 # Does preliminary cleanup on the chunk of text.
 # verserange is a list of verse number strings that should exist in the file.
@@ -309,13 +306,24 @@ def firstInt(vstr):
         vn = 0
     return vn
 
+emptyv_re = re.compile(r'\\v\s+[1-9][0-9]*\s*(\\|$)')
+
 # Makes the verses numbers in ascending order.
+# Does nothing if the text is beyond repair.
 def reorderVerseMarkers(text):
     origmarkers = [v for v in vnumbers_re.finditer(text)]
     vnumbers_orig = [firstInt(v.group(1)) for v in origmarkers]
     sorted_list = sorted(vnumbers_orig)
-    if not sorted_list or sorted_list[-1] - sorted_list[0] >= len(sorted_list): # beyond repair
+
+    # Throw out hopeless cases
+    if not sorted_list or sorted_list[-1] - sorted_list[0] >= len(sorted_list):
         return text
+    if emptyv_re.search(text):
+        return text
+    # numbers_re = re.compile(r'\d{1,3}')
+    # numbers_orig = numbers_re.findall(text)
+    # if len(numbers_orig) > len(vnumbers_orig):
+    #     return text
 
     if sorted_list != vnumbers_orig:
         i = len(sorted_list) - 1
