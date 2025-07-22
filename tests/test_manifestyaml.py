@@ -41,7 +41,7 @@ def init_newfile():
         else:
             os.remove(path)
     my = ManifestYaml()
-    my.create(dir)
+    my.create(dir, language_code)
     my.setLanguageId(language_code)
     my.setLanguageName(language_name)
     my.setLanguageDirection('rtl')
@@ -58,7 +58,7 @@ def init_newfile():
 # Creates a new manifest file, with contributors.
 def addContributors():
     my = ManifestYaml()
-    my.create(dir)
+    my.create(dir, language_code)
     my.setLanguageId(language_code)
     my.setLanguageName(language_name)
     my.setLanguageDirection('rtl')
