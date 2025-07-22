@@ -1,0 +1,104 @@
+# -*- coding: utf-8 -*-
+# Manages language-specific information.
+# Changes to the langauge info are held in memory until save() is called.
+# Language info is saved to a json file in parent folder of project directory.
+# The config file is named according to the language code. Such as mgv.json.
+# If the json file already exists, it is loaded on LangaugeInfo initialization.
+# The SaidWords class, defined in this file, is a helper class.
+
+import json
+import os
+import io
+import operator
+
+class LanguageInfo:
+    def __init__(self, project_dir, language_code):
+        self.info = {}
+        self.jsonpath = ""
+        if os.path.exists( os.path.dirname(project_dir) ):
+            self.jsonpath = os.path.join(os.path.dirname(project_dir), language_code+".json")
+            if os.path.isfile(self.jsonpath):
+                with io.open(self.jsonpath, 'r') as json_file:
+                    self.info = json.load(json_file)
+                assert 'language' in self.info
+                assert 'source_translations' in self.info
+                if not 'said_words' in self.info:
+                    self.info['said_words'] = {}
+        if not self.info:
+            self.info = {'language': {'id': language_code, 'name': ""},
+                        'source_translations': [],
+                        'source_dir': "",
+                        'said_words': {} }
+
+    def __repr__(self):
+        return f'LanguageInfo({self.jsonpath})'
+
+    # Returns True if the specified language resource exists.
+    # The version parameter may be left unspecified, in which case version is not checked.
+    def knownSource(self, language_id, resource_id, version=None):
+        known = False
+        for source in self.getSources():
+            if source['language_id'] == language_id and source['resource_id'] == resource_id and\
+               (not version or source['version'] == version):
+                known = True
+                break
+        return known
+
+    # Saves the current information in the json file.
+    def save(self):
+        self.info['source_translations'].sort(reverse=True, key=operator.itemgetter('count'))    # sorts in place
+        with io.open(self.jsonpath, 'w') as json_file:
+            json.dump(self.info, json_file, indent=4)
+
+    def setLanguage(self, name, direction=""):
+        self.info['language']['name'] = name
+
+    def getLanguageCode(self):
+        return self.info['language']['id']
+    def getLanguageName(self):
+        return self.info['language']['name'] if 'name' in self.info['language'] else ""
+
+    # Overwrites the list of source translations
+    def resetSources(self):
+        self.info['source_translations'].clear()
+
+    def addSource(self, language_id, resource_id, version):
+        source = None
+        assert 'source_translations' in self.info
+        source = self.findSource(language_id, resource_id, version)
+        if source:
+            source['count'] = source['count'] + 1
+        else:
+            self.info['source_translations'].append( {'language_id': language_id,
+                                                    'resource_id': resource_id,
+                                                    'version': version,
+                                                    'count': 1} )
+
+    def getSources(self):
+        return self.info['source_translations']
+    def getMainSource(self):
+        mainsource = None
+        if len(self.info['source_translations']) > 0:
+            self.info['source_translations'].sort(reverse=True, key=operator.itemgetter('count'))
+            mainsource = self.info['source_translations'][0]
+        return mainsource
+
+    # used by self.addSource()
+    def findSource(self, language_id, resource_id, version):
+        found = None
+        for source in self.info['source_translations']:
+            if source['language_id'] == language_id and source['resource_id'] == resource_id and\
+                source['version'] == version:
+                found = source
+                break
+        return found
+
+    # Adds or updates the specified word in LanguageInfo.
+    def addWord(self, word, count):
+        assert 'said_words' in self.info
+        if word not in self.info['said_words'] or self.info['said_words'][word] < count:
+            self.info['said_words'][word] = count
+
+    # Returns the list of words with count greater than mincount.
+    def getWords(self, mincount=1):
+        return [word for word in self.info['said_words'] if self.info['said_words'][word] >= mincount]
