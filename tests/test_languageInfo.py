@@ -1,4 +1,7 @@
 # pytest unit tests for functions in LanguageInfo.py
+# Before running these tests:
+#    make version 7.6 the most common source in sources_translations in mgv.json.
+#    remove "said_words" from test.json, or, set it to an empty dict -- {}
 
 import os
 import sys
@@ -48,7 +51,7 @@ def test_init_oldfile():
 
 def test_language_name():
     li = LanguageInfo(dir, language_code)
-    li.setLanguage(language_name, 'rtl')
+    li.setLanguageName(language_name)
     li.save()
     assert li.getLanguageName() == language_name
 
@@ -148,34 +151,11 @@ def add_to_savedwords():
     assert words == ['aaa', 'bbb', 'ccc']
     li.save()
 
-'''
-def saidWords():
-    # saidwords = SaidWords(dir, language_code)
-    li = LanguageInfo(dir, language_code)
-    saidwords.addWord('aaa')
-    saidwords.addWord('aaa')
-    saidwords.addWord('aaa')
-    saidwords.addWord('bbb')
-    saidwords.addWord('bbb')
-    saidwords.addWord('ccc')
-    saidwords.addWord('ccc')
-    saidwords.addWord('ddd')
-    saidwords.addWord('ddd')
-    saidwords.addWord('eee')
-    words = saidwords.getWords(mincount=1)
-    assert words == ['aaa','bbb','ccc','ddd','eee']
-    words = saidwords.getWords(mincount=2)
-    assert words == ['aaa','bbb','ccc','ddd']
-    words = saidwords.getWords(mincount=3)
-    assert words == ['aaa']
-    words = saidwords.getWords(mincount=4)
-    assert words == []
-    saidwords.save(mincount=2)
-
-def savedSaidWords():
-    li = LanguageInfo(dir, language_code)
-    words = li.getWords(mincount=1)
-    assert words == ['aaa', 'bbb', 'ccc', 'ddd']    # notice, 'eee' was not saved
-    words = li.getWords(mincount=3)
-    assert words == ['aaa', 'bbb', 'ccc']
-'''
+def test_addSourceDir():
+    workdir = r'C:\DCS\Test\test_reg'
+    sourcedir = r'C:\DCS\Nepali\ne_obs-tq.STR'
+    li = LanguageInfo(workdir, 'test')
+    li.setSourceDir(sourcedir)
+    assert li.getSourceDir() == sourcedir
+    li.save()
+    assert li.getSourceDir() == sourcedir

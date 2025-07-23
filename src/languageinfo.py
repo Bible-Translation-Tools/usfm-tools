@@ -50,7 +50,7 @@ class LanguageInfo:
         with io.open(self.jsonpath, 'w') as json_file:
             json.dump(self.info, json_file, indent=4)
 
-    def setLanguage(self, name, direction=""):
+    def setLanguageName(self, name):
         self.info['language']['name'] = name
 
     def getLanguageCode(self):
@@ -92,6 +92,11 @@ class LanguageInfo:
                 found = source
                 break
         return found
+
+    def setSourceDir(self, source_dir):
+        self.info['source_dir'] = source_dir
+    def getSourceDir(self):
+        return self.info['source_dir']
 
     # Adds or updates the specified word in LanguageInfo.
     def addWord(self, word, count):
