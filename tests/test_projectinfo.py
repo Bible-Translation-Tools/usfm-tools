@@ -1,8 +1,11 @@
 # pytest unit tests for functions in projectinfo.py
+# Before running all the tests as a whole:
+#   Manifest.yaml should have valid language info.
+#   Manifest.yaml should each have one valid source.
+#   remove "said_words" from test.json, or set it to an empty dict -- {}
 
 import os
 import sys
-import pytest
 
 tests_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(os.path.dirname(tests_path), "src")
@@ -53,55 +56,39 @@ def test_language_name():
     projectInfo.save()
     assert projectInfo.getLanguageName() == language_name
 
-@pytest.mark.parametrize('lang, rsrc, ver',
-    [
-        ('en', 'ulb', '1'),
-        ('en', 'ulb', '1'),
-        ('en', 'ulb', '2'),
-    ])
-def test_addsource(lang, rsrc, ver):
-    badrsrc = rsrc + 'X'
+def test_sources():
+    add1source('swedish', 'bible', '1.99')
     projectInfo = ProjectInfo(dir, language_code)
+    projectInfo.addSource('en', 'ulb', '7.6')
+    projectInfo.addSource('en', 'ulb', '7.6')
+    projectInfo.addSource('en', 'ulb', '2')
+    assert len(projectInfo.getSources()) == 3
     projectInfo.save()
-    # sources = projectInfo.getSources()
-    # assert findSource(sources, lang, badrsrc, ver) == None
-    orig_source = projectInfo.findSource(lang, rsrc, ver)
-    orig_count = orig_source['count'] if orig_source else 0
-    projectInfo.addSource(lang, rsrc, ver)
-    # sources = projectInfo.getSources()
-    modified_source = projectInfo.findSource(lang, rsrc, ver)
-    assert modified_source['language_id'] == lang
-    assert modified_source['resource_id'] == rsrc
-    assert modified_source['version'] == ver
-    assert modified_source['count'] == orig_count + 1
-    projectInfo.save()
-    modified_source = projectInfo.findSource(lang, rsrc, ver)
-    assert modified_source['language_id'] == lang
-    assert modified_source['resource_id'] == rsrc
-    assert modified_source['version'] == ver
-    assert modified_source['count'] == orig_count + 1
-    projectInfo.addSource(lang, badrsrc, ver)
-    # sources = projectInfo.getSources()
-    modified_source = projectInfo.findSource(lang, rsrc, ver)
-    assert modified_source != None
-    assert modified_source['language_id'] == lang
-    assert modified_source['resource_id'] == rsrc
-    assert modified_source['version'] == ver
-    assert modified_source['count'] == orig_count + 1
-    other_source = projectInfo.findSource(lang, badrsrc, ver)
-    assert other_source['language_id'] == lang
-    assert other_source['resource_id'] == badrsrc
-    assert other_source['version'] == ver
-    assert other_source['count'] == 1
-
-# Before running this test, sort the sources_translations in mgv.json randomly,
-# and make version 7.6 the version with the highest count.
-def test_getMainSource():
-    projectInfo = ProjectInfo(dir, language_code)
-    source = projectInfo.getMainSource()
+    pi2 = ProjectInfo(dir, language_code)
+    source = pi2.getMainSource()
     assert source['version'] == "7.6"
 
-def test_sync():
+def add1source(lang, rsrc, ver):
+    lang = 'swedish'
+    rsrc = 'bible'
+    ver = '1.99'
+    projectInfo = ProjectInfo(dir, language_code)
+    projectInfo.addSource(lang, rsrc, ver)
+    assert projectInfo.knownSource(lang, rsrc, ver) == True
+    projectInfo.resetSources()
+    assert projectInfo.knownSource(lang, rsrc, ver) == False
+    projectInfo.addSource(lang, rsrc, ver)
+    assert projectInfo.knownSource(lang, rsrc, ver) == True
+    source = projectInfo.getMainSource()
+    assert source['language_id'] == lang
+    assert source['resource_id'] == rsrc
+    assert source['version'] == ver
+    assert source['count'] == 1
+    projectInfo.save()
+
+# Manifest.yaml should have valid language info before running this.
+# Manifest.yaml should each have one valid source before running this.
+def test_manifest_connection():
     dir = r'C:\DCS\Test\test_reg'
     language_code = 'test'
     pi = ProjectInfo(dir, language_code)
@@ -111,25 +98,47 @@ def test_sync():
     assert n == 0
     assert pi.getLanguageName() == ""
 
-    pi.useManifest()        # sync happens here
-    newlen = len(pi.getSources())
-    assert newlen > n
-    newname = pi.getLanguageName()
-    assert newname != ""
-    pi.setLanguage("Mangled name", "mangled direction")
-    assert pi.getLanguageName() == "Mangled name"
-    pi.addSource('bogus', 'ulllll', '99')
-    pi.save(savePI=True, saveM=False)
-
     from manifestyaml import ManifestYaml
     my = ManifestYaml()
     my.load(dir)
-    assert my.getLanguageName() != "Mangled name"   # bad value wasn't saved
-    assert my.getLanguageDirection() in {'rtl','ltr'}   # bad value wasn't saved
+    myname = my.getLanguageName()
+    mydirection = my.getLanguageDirection()
+    mylen = len(my.getSources())
 
-    pi.useManifest()        # sync happens again
-    assert pi.getLanguageName() == "Mangled name"   # existing name wasn't overwritten
-    assert len(pi.getSources()) == newlen + 1   # no sources were added or removed
+    pi.useManifest()        # sync happens here
+    pilen = len(pi.getSources())
+    assert pilen == 1  # the one is from the sync from manifest
+    piname = pi.getLanguageName()
+    assert piname != ""
+    pi.save()
+
+    # New ProjectInfo object, not synced to Manifest
+    pi_nosync = ProjectInfo(dir, language_code)
+    assert len(pi_nosync.getSources()) == pilen
+    pi_nosync.setLanguage("Mangled name", "mangled direction")
+    assert pi_nosync.getLanguageName() == "Mangled name"
+    pi_nosync.addSource('bogus', 'ulc', 'v2')
+    assert len(pi_nosync.getSources()) == pilen + 1
+    pi_nosync.sync()   # does not sync with manifest
+    assert len(pi_nosync.getSources()) == pilen + 1
+    pi_nosync.save()   # does not save manifest
+
+    my.load(dir)
+    assert my.getLanguageName() == myname   # sync didn't happen
+    assert my.getLanguageDirection() == mydirection   # bad value wasn't saved
+    assert len(my.getSources()) == mylen
+
+    pi.setLanguage("Sync name", "bad direction")
+    assert pi.getLanguageName() == "Sync name"
+    pi.addSource('bogus', 'uld', 'v3')
+    pi.save()
+    my.load(dir)
+    assert my.getLanguageName() == "Sync name"   # existing name wasn't overwritten
+    assert my.getLanguageDirection() in {'rtl','ltr'}   # direction is not affected
+    assert len(my.getSources()) == mylen + 1
+
+    pi.setLanguage(myname, mydirection)
+    pi.save()   # should restore language entry in both files
 
 # Before running this, remove "said_words" from test.json.
 # Or, set it to an empty dict -- {}
@@ -201,6 +210,15 @@ def saidWords():
     words = saidwords.getWords(mincount=4)
     assert words == []
     saidwords.save(mincount=2)
+
+def test_addSourceDir():
+    workdir = r'C:\DCS\Test\test_reg'
+    sourcedir = r'C:\DCS\Nepali\invaliddir'
+    pi = ProjectInfo(workdir, 'test')
+    pi.setSourceDir(sourcedir)
+    assert pi.getSourceDir() == sourcedir
+    pi.save()
+    assert pi.getSourceDir() == sourcedir
 
 def savedSaidWords():
     pi = ProjectInfo(dir, language_code)
