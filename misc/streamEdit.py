@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # This program may be modified to do any kind of stream operation on a folder full of files.
-# Backs up the .md file being modified.
-# Outputs .md files of the same name in the same location.
+# Backs up the file being modified, unless they are being created in a separate folder.
+# Outputs files of the same name in the same location.
 
 import re       # regular expression module
 import io
@@ -9,24 +9,11 @@ import os
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Greek\SBLGNT\usfm'
-target_dir = r'C:\DCS\Greek\SBLGNT\work'    # if same as source_dir, back up original files
+source_dir = r'C:\DCS\Malwai\work'
+target_dir = r'C:\DCS\Malwai\work'    # if same as source_dir, back up original files
 nChanged = 0
 max_changes = 80
-# filename_re = re.compile(r'[\w\-]+\.usfm$')
-filename_re = re.compile(r'.*\.usfm')
-# yes_backup = True
-
-
-# Strings to replace with
-# whole file matches use newstring[0]
-newstring = []
-newstring.append('# ')
-
-# Each element of inlinekey is matched against each line of a file.
-# The matches occur in sequence, so the result of one match impacts the next.
-inlinekey = []
-inlinekey.append( re.compile(r'yesu', flags=re.UNICODE) )
+filename_re = re.compile(r'.*\.usfm$')
 
 # Copies lines from input to output.
 # Modifies certain lines before writing them to output.
@@ -43,22 +30,30 @@ def convertByLine(path):
     newpath = os.path.join(target_dir, os.path.basename(path))
     output = io.open(newpath, "tw", buffering=1, encoding='utf-8', newline='\n')
 
-    prevline = ""
     for line in lines:
-        unaltered = line
-        line = convertLine(line, prevline)
+        if not keeper(line):
+            line = convertLine(line)
         output.write(line)
-        prevline = unaltered
     output.close()
 
-w_re = re.compile(r'\\w +(\w+)\|strong="\w+" ?\\w\*')
+# Returns True if the line is to be kept as is, False if not.
+# Redefine this function to obtain desired behavior.
+def keeper(line):
+    # keep = line.startswith("\\s1")
+    keep = False
+    return keep
 
-def convertLine(line, prevline):
-    w = w_re.search(line, 0)
-    while w:
-        word = w.group(1)
-        line = line[0:w.start()] + word + line[w.end():]
-        w = w_re.search(line, w.start() + len(word))
+# w_re = re.compile(r'\\w +(\w+)\|strong="\w+" ?\\w\*')
+character_styling = [r'\\\+nd( |\*)', r'\\\+tl( |\*)', r'\\\+fq( |\*)', r'\\\+xt( |\*)']
+round2 = [r'\\xt( |\*)']
+round3 = [r'\\\+em( |\*)', r'\\\+sc( |\*)']
+
+def convertLine(line):
+    for pattern in round3:
+        found = re.search(pattern, line)
+        while found:
+            line = line[0:found.start()] + line[found.end():]
+            found = re.search(pattern, line)
     return line
 
 # keystring is used only in line-by-line. But it is searched against the entire file one time.
@@ -79,31 +74,39 @@ def shortname(longpath):
 
 # wholestring = re.compile(r' \\wj \\wj\*[ \n]', flags=re.UNICODE)
 #wholestring = re.compile(r'[^v] ([1-9][0-9]?)[^0-9 ,\.\n\-]', flags=re.UNICODE)
-wholestring = re.compile(r'\n\\v ')
+# patterns = [re.compile(r'\\xt.*?\\xt\*'), re.compile(r'\\\+xt.*?\\\+xt\*')]
+patterns = [re.compile(r'\\xt.*?\\xt\*'), re.compile(r'\\nd.*?\\nd\*')]
+
+def convertWholeString(alltext, pattern):
+    found = pattern.search(alltext)
+    while found:
+        alltext = alltext[0:found.start()] + alltext[found.end():]
+        found = pattern.search(alltext, found.start())
+    return alltext
 
 # Converts the text a whole file at a time.
-# Uses wholestring, newstring[0]
 def convertWholeFile(path):
     global nChanged
 
-#    found = classic_pattern(mdpath)
     with io.open(path, "tr", encoding="utf-8-sig") as input:
         alltext = input.read()
-    found = wholestring.search(alltext)
-    if found:
+    needchange = False
+    for pattern in patterns:
+        if pattern.search(alltext):
+            needchange = True
+            break
+
+    if needchange:
         if target_dir == source_dir:
             bakpath = path + ".orig"
             if not os.path.isfile(bakpath):
                 os.rename(path, bakpath)
-        newpath = os.path.join(target_dir, os.path.basename(path))
-        output = io.open(newpath, "tw", buffering=1, encoding='utf-8', newline='\n')
 
-        # Use a loop for multiple replacements per file
-        while found:
-            alltext = alltext[0:found.start()] + "\n\\m\n\\v " + alltext[found.end():]
-            found = wholestring.search(alltext, found.end() + 6)
-        output.write(alltext)
-        output.close()
+        for pattern in patterns:
+            alltext = convertWholeString(alltext, pattern)
+        newpath = os.path.join(target_dir, os.path.basename(path))
+        with io.open(newpath, "tw", buffering=1, encoding='utf-8', newline='\n') as output:
+            output.write(alltext)
         sys.stdout.write("Converted " + shortname(path) + "\n")
         nChanged += 1
 
@@ -140,11 +143,31 @@ def convertFileBySub(path):
         sys.stdout.write("Converted " + shortname(path) + "\n")
         nChanged += 1
 
-def convertFile(path):
-    convertFileByLines(path)
-#    convertWholeFile(path)
-    # convertFileBySub(path)
+def replaceCharacters(path):
+    global nChanged
+    badchar = '|'
+    goodchar = '।'
+    with io.open(path, "tr", encoding="utf-8-sig") as input:
+        origtext = input.read()
+    if badchar in origtext:
+        if target_dir == source_dir:
+            bakpath = path + ".orig"
+            if not os.path.isfile(bakpath):
+                os.rename(path, bakpath)
 
+        newtext = origtext.replace(badchar, goodchar)
+        assert newtext != origtext
+        newpath = os.path.join(target_dir, os.path.basename(path))
+        with io.open(newpath, "tw", encoding='utf-8', newline='\n') as output:
+            output.write( newtext )
+        sys.stdout.write("Replaced characters in " + shortname(path) + "\n")
+        nChanged += 1
+
+def convertFile(path):
+    # convertFileByLines(path)
+    # convertWholeFile(path)
+    # convertFileBySub(path)
+    replaceCharacters(path)
 
 # Recursive routine to convert all files under the specified folder
 def convertFolder(folder):
@@ -165,9 +188,12 @@ def convertFolder(folder):
 
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
+    nChanged = 0
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
 
+    if not os.path.isdir(target_dir):
+        os.mkdir(target_dir)
     if source_dir and os.path.isdir(source_dir):
         convertFolder(source_dir)
         sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
