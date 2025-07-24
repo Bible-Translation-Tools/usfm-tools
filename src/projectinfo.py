@@ -65,7 +65,6 @@ class ProjectInfo:
     def setLanguage(self, name, direction=""):
         self.languageInfo.setLanguageName(name)
         if my := self.manifest:
-            assert my is self.
             my.setLanguageId(self.getLanguageCode())
             if name:
                 my.setLanguageName(name)
