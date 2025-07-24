@@ -25,7 +25,7 @@ class UsfmCleanup(g_step.Step):
         return stepname
 
     def onNext(self):
-        super().onNext('source_dir', 'filename')
+        super().onNext('language_code', 'source_dir', 'filename')
 
     def onExecute(self, values):
         self.enablebutton(2, False)
