@@ -22,6 +22,8 @@ class LanguageInfo:
                     self.info = json.load(json_file)
                 assert 'language' in self.info
                 assert 'source_translations' in self.info
+                if not 'source_dir' in self.info:
+                    self.info['source_dir'] = ""
                 if not 'said_words' in self.info:
                     self.info['said_words'] = {}
         if not self.info:
@@ -96,6 +98,7 @@ class LanguageInfo:
     def setSourceDir(self, source_dir):
         self.info['source_dir'] = source_dir
     def getSourceDir(self):
+        assert 'source_dir' in self.info
         return self.info['source_dir']
 
     # Adds or updates the specified word in LanguageInfo.
