@@ -381,8 +381,7 @@ def get_timestamp(path):
     return s[2:]
 
 # If issues.txt file is not already open, opens it for writing.
-# First renames existing issues.txt file to issues-oldest.txt unless
-# issues-oldest.txt already exists.
+# First saves existing issues.txt file to another name.
 # Returns file pointer.
 def openIssuesFile():
     global issuesFile
@@ -396,7 +395,10 @@ def openIssuesFile():
             if not os.path.exists(bakpath):
                 os.rename(path, bakpath)
         issuesFile = io.open(path, "tw", encoding='utf-8', newline='\n')
-        issuesFile.write(f"Issues detected by verifyUSFM version {config.get('UsfmWizard', 'version')}, {date.today()}, {workdir}\n-------------------\n")
+        issuesFile.write(f"Issues detected by verifyUSFM version {config.get('UsfmWizard', 'version')}, {date.today()}, {workdir}\n")
+        if compare_dir := config.get('VerifyUSFM', 'compare_dir'):
+            issuesFile.write(f"   with reference to {identifySource(compare_dir)} as the source text.\n")
+        issuesFile.write("-------------------\n")
     return issuesFile
 
 # Returns the longest common substring at the start of s1 and s2
@@ -599,12 +601,12 @@ def scanSourceFile(path):
         scan(token)
     state.booklength_src = len(contents)
 
-# Returns the language code and resource identifier as a string.
+# Returns the language code, resource identifier and version as a string.
 def identifySource(sourcedir):
     from manifestyaml import ManifestYaml
     my = ManifestYaml()
     my.load(sourcedir)
-    id = my.getLanguageId() + "_" + my.getResourceId()
+    id = my.getLanguageId() + "_" + my.getResourceId() + " " + my.getVersion()
     return id
 
 # Loads the source text for the current book if compare_dir is set.
