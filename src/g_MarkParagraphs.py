@@ -9,7 +9,6 @@ from idlelib.tooltip import Hovertip
 import g_util
 import g_step
 import os
-import subprocess
 import time
 from projectinfo import ProjectInfo
 from manifestyaml import ManifestYaml
@@ -71,7 +70,7 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         super().__init__(parent, controller)
         self.changingVars = False
 
-        self.language_code = StringVar()
+        self.language_code = StringVar()  # Unused by mark_paragephs.py, but used here for proving other inputs
         self.source_dir = StringVar()
         self.model_dir = StringVar()
         self.filename = StringVar()
@@ -88,7 +87,6 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         self.columnconfigure(3, weight=1)   # keep column 1 from expanding
         self.columnconfigure(4, minsize=115)
 
-        # language_code will be used for ProjectInfo soon in verifyUSFM.
         language_code_label = ttk.Label(self, text="Language code:", width=20)
         language_code_label.grid(row=3, column=1, sticky="wen", pady=2)
         language_code_entry = ttk.Entry(self, width=18, textvariable=self.language_code)
@@ -148,8 +146,8 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
 
         self.clear_show("This process can copy chunk markers, and paragraph and poetry markers from \
 a model text to the file(s) that you specify. \
-If the paragraphs are sufficiently marked in your text already, either check the '\\s5 only' checkbox, \
-or don't run this process.")
+If the paragraphs are sufficiently marked in your text already, and you don't need the '\\s5 only' functionality, \
+then don't run this process.")
 
         self.model_dir_entry.focus()
 
@@ -158,12 +156,10 @@ or don't run this process.")
         self.values = values
         code = values.get('language_code', fallback="")
         dir = values.get('source_dir', fallback="")
-        model_dir = values.get('model_dir', fallback="")
-        self.language_code.set(code)
         self.source_dir.set(dir)
-        self.model_dir.set(model_dir)
-        if dir and code and not model_dir:
-            self.model_dir.set( self._getCompareValue(dir, code, model_dir) )
+        # model_dir = values.get('model_dir', fallback="")
+        self.language_code.set(code)
+        self.set_model_dir(code, dir)
         self.filename.set(values.get('filename', fallback=""))
         self.copy_nb.set(values.get('copy_nb', fallback=False))
         self.remove_s5.set(values.get('removes5markers', fallback=True))
@@ -173,6 +169,7 @@ or don't run this process.")
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Verify usfm")
         self.controller.showbutton(2, "MARK", self._onExecute, tip="Mark paragraphs now.")
+        self.controller.bindButtonEvent(2, "<Enter>", self._onCheckInputs)
         self.controller.showbutton(3, "Open issues file", self._onOpenIssues,
                                    tip="Open the issues file (which may be from the previous step).")
         self.controller.showbutton(4, "Undo", self._onUndo,
@@ -181,6 +178,23 @@ or don't run this process.")
         self.controller.showbutton(5, ">>>", self._onNext, tip="Verify manifest")
         self.changingVars = False
         self._set_button_status()
+
+    # Called when Step is activated, and when the language code changes.
+    # Sets model_dir, based on existence of project info, if any.
+    def set_model_dir(self, code, dir):
+        if code and dir:
+            projectInfo = ProjectInfo(dir, code)    # info is in parent of dir
+            model_dir = projectInfo.getSourceDir()
+            if not model_dir:
+                if not projectInfo.getMainSource() : # and os.path.isdir(dir):
+                    projectInfo.useManifest()
+                if mainsrc := projectInfo.getMainSource():
+                    model_dir = f"(locate folder containing {mainsrc['language_id']}_{mainsrc['resource_id']}, vrsn ~{mainsrc['version']})"
+                    if "nspecified" in model_dir or "nknown" in model_dir:
+                        model_dir = ""
+        else:
+            model_dir = ""
+        self.model_dir.set(model_dir)
 
     def onScriptEnd(self, nIssues):
         # issuespath = os.path.join(self.values['source_dir'], "issues.txt")
@@ -195,8 +209,7 @@ or don't run this process.")
         code = self.language_code.get()
         if code:
             dir = self.source_dir.get()
-            model_dir = self.model_dir.get()
-            self.model_dir.set( self._getCompareValue(dir, code, model_dir) )
+            self.set_model_dir(code, dir)
             # invokes _set_button_status() implicitly
         else:
             self._set_button_status()
@@ -222,20 +235,26 @@ or don't run this process.")
         self.changingVars = False
         self._set_button_status()
 
+    # Called by base class on Back, Next, Skip and Execute
     def _save_values(self):
-        self.values['language_code'] = self.language_code.get()
-        self.values['source_dir'] = self.source_dir.get()
-        self.values['model_dir'] = self.model_dir.get()
-        self.values['filename'] = self.filename.get()
-        self.values['copy_nb'] = str(self.copy_nb.get())
-        self.values['removeS5markers'] = str(self.remove_s5.get())
-        self.values['s5_only'] = str(self.s5_only.get())
-        self.values['sentence_sensitive'] = str(self.sentence_sensitive.get())
-        self.controller.mainapp.save_values(stepname, self.values)
+        if not self.invalidInputs():
+            self.values['language_code'] = self.language_code.get()
+            self.values['source_dir'] = self.source_dir.get()
+            self.values['model_dir'] = self.model_dir.get()
+            self.values['filename'] = self.filename.get()
+            self.values['copy_nb'] = str(self.copy_nb.get())
+            self.values['removeS5markers'] = str(self.remove_s5.get())
+            self.values['s5_only'] = str(self.s5_only.get())
+            self.values['sentence_sensitive'] = str(self.sentence_sensitive.get())
+            self.controller.mainapp.save_values(stepname, self.values)
 
-    # This function does thorough input validation prior to step execution, or any time.
-    # It should be overridden by subclasses
-    # The user may need this help in identifying certain incorrect input(s).
+            projectInfo = ProjectInfo(self.source_dir.get(), self.language_code.get())
+            projectInfo.setSourceDir(self.model_dir.get())
+            projectInfo.save()
+
+    # Returns a list of incomplete or incorrect inputs.
+    # Used by _onExecute().
+    # Is also called before values are saved to configuration files.
     def invalidInputs(self):
         objections = []
         code = self.language_code.get()
@@ -247,9 +266,9 @@ or don't run this process.")
             objections.append("Language code is required.")
         if not dir or not model_dir:
             objections.append("Specify locations of files.")
-        if not os.path.isdir(dir):
+        if dir and not os.path.isdir(dir):
             objections.append(f"{dir} is not a valid folder.")
-        if not os.path.isdir(model_dir):
+        if model_dir and not os.path.isdir(model_dir):
             objections.append(f"Model text folder ({model_dir}) is invalid.")
         if namedfile:
             filepath = os.path.join(dir, namedfile)
@@ -258,29 +277,6 @@ or don't run this process.")
         if model_dir == dir:
             objections.append("The two file folders can't be the same.")
         return objections
-
-    # Validates input for MARK execution.
-    # Returns a string descirbing the first invalid input it finds.
-    # def _invalidInputs(self):
-    #     code = self.language_code.get()
-    #     if not code:
-    #         return "Language code is required."
-    #     dir = self.source_dir.get()
-    #     model_dir = self.model_dir.get()
-    #     if not dir or not model_dir:
-    #         return "Specify locations of files."
-    #     if not os.path.isdir(dir):
-    #         return f"{dir} is not a valid folder."
-    #     if not os.path.isdir(model_dir):
-    #         return f"Model text folder ({model_dir}) is invalid."
-    #     namedfile = self.filename.get()
-    #     if namedfile:
-    #         filepath = os.path.join(dir, namedfile)
-    #         if not os.path.isfile(filepath):
-    #             return f"{filepath} is not a valid file."
-    #     if model_dir == dir:
-    #         return f"The two file folders can't be the same."
-    #     return ""
 
     def _onFindModelDir(self, *args):
         self.controller.askdir(self.model_dir)
@@ -304,23 +300,3 @@ or don't run this process.")
             good_source = os.path.isdir(self.source_dir.get())
             self.controller.enablebutton(4, good_source)
             self.controller.enablebutton(2, len(self.invalidInputs()) == 0)
-
-    # Only called when the language code changes.
-    # Returns the most reasonable new value for compare_dir,
-    # based on existence of project info, if any.
-    def _getCompareValue(self, dir, language_code, model):
-        change_cmp = False
-        if language_code and dir and os.path.isdir(dir):
-            if not model or model.startswith("(locate"):
-                change_cmp = True
-        if change_cmp:
-            projectInfo = ProjectInfo(dir, language_code)
-            if not projectInfo.getMainSource():
-                projectInfo.useManifest()
-            if mainsrc := projectInfo.getMainSource():
-                model = f"(locate folder containing {mainsrc['language_id']}_{mainsrc['resource_id']}, vrsn ~{mainsrc['version']})"
-                if "nspecified" in model or "nknown" in model:
-                    model = ""
-            else:
-                model = ""
-        return model

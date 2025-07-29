@@ -7,6 +7,8 @@
 from manifestyaml import ManifestYaml
 from languageinfo import LanguageInfo
 
+import os
+
 class ProjectInfo:
     def __init__(self, project_dir, language_code):
         self.project_dir = project_dir
@@ -20,11 +22,20 @@ class ProjectInfo:
     # Does not report any load errors, but creates a template yaml in that case.
     # Syncs the project info and manifest info.
     def useManifest(self):
-        self.manifest = ManifestYaml()
-        errors = self.manifest.load(self.project_dir)
-        if len(errors) > 0:
-            self.manifest.create(self.project_dir, self.getLanguageCode())
-        self.sync()
+        if not self.manifest:
+            self.manifest = ManifestYaml()
+            errors = self.manifest.load(self.project_dir)
+            if len(errors) > 0:
+                if yamlpath := self.manifest.getPath():
+                    timestamp = get_timestamp(yamlpath)
+                    bakpath = os.path.join(os.path.dirname(yamlpath), f"manifest-{timestamp}.yaml")
+                    if not os.path.exists(bakpath):
+                        os.rename(yamlpath, bakpath)
+                self.manifest.create(self.project_dir, self.getLanguageCode())
+            elif self.manifest.getLanguageId() != self.getLanguageCode():
+                self.manifest = None
+        if self.manifest:
+            self.sync()
 
     # Syncs self.info and self.manifest if either is missing any values.
     def sync(self):
@@ -90,7 +101,12 @@ class ProjectInfo:
     def getSources(self):
         return self.languageInfo.getSources()
     def getMainSource(self):
-        return self.languageInfo.getMainSource()
+        mainsrc = self.languageInfo.getMainSource()
+        if not mainsrc and self.manifest:
+            self.sync()
+            if sources := self.manifest.getSources():
+                mainsrc = sources[0]
+        return mainsrc
 
     def setSourceDir(self, source_dir):
         self.languageInfo.setSourceDir(source_dir)
@@ -149,3 +165,11 @@ class SaidWords:
             if self.words[word] >= mincount:
                 li.addWord(word, self.words[word])
         li.save()
+
+# Returns the modified date/time of the specified file, formatted as a string.
+def get_timestamp(path):
+    from datetime import datetime
+    mtime = os.path.getmtime(path)
+    dt = datetime.fromtimestamp(mtime)
+    s = dt.strftime("%Y%m%d%H%M")
+    return s[2:]

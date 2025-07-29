@@ -14,8 +14,6 @@ import codecs
 import operator
 
 class ManifestYaml:
-    # Creates manifest.yaml file if it doesn't already exist, or fails to load.
-    # Sets self.contents.
     def __init__(self):
         self.project_dir = ""
         self.contents:dict = {}
@@ -25,11 +23,13 @@ class ManifestYaml:
         return f'ManifestYaml({self.project_dir})'
 
     # Loads specified file and sets self.contents.
+    # Sets self.contents.
     # Returns list of error strings if not successful.
     def load(self, project_dir, filename="manifest.yaml"):
-        self.path = os.path.join(project_dir, filename)
+        path = os.path.join(project_dir, filename)
         errors = []
-        if os.path.isfile(self.path):
+        if os.path.isfile(path):
+            self.path = path
             if has_bom(self.path):
                 errors.append(f"{self.path} file has a Byte Order Mark. Remove it.")
             with io.open(self.path, "tr", encoding='utf-8-sig') as file:
@@ -45,16 +45,17 @@ class ManifestYaml:
 
     # Creates a resource container manifest.yaml file in the specified folder.
     def create(self, project_dir: str, langcode):
-        self.contents = {'dublin_core': {'conformsto': 'rc0.2', 'contributor': [],
-'creator': 'Bible translation community', 'description': 'An unrestricted literal Bible',
-'format': 'text/usfm', 'identifier': 'reg', 'issued': '2025-06-11',
-'language': {'direction': '', 'identifier': langcode, 'title': ''}, 'modified': '2025-06-11',
-'publisher': 'Wycliffe Associates', 'relation': [], 'rights': 'CC BY-SA 4.0', 'source': [],
-'subject': 'Bible', 'title': 'Bible', 'type': 'bundle', 'version': ''},
-'checking': {'checking_entity': [], 'checking_level': '1'},
-'projects': []}
-        self.path = os.path.join(project_dir, "manifest.yaml")
-        self.save()
+        if os.path.isdir(project_dir):
+            self.contents = {'dublin_core': {'conformsto': 'rc0.2', 'contributor': [],
+    'creator': 'Bible translation community', 'description': 'An unrestricted literal Bible',
+    'format': 'text/usfm', 'identifier': 'reg', 'issued': '2025-06-11',
+    'language': {'direction': '', 'identifier': langcode, 'title': ''}, 'modified': '2025-06-11',
+    'publisher': 'Wycliffe Associates', 'relation': [], 'rights': 'CC BY-SA 4.0', 'source': [],
+    'subject': 'Bible', 'title': 'Bible', 'type': 'bundle', 'version': ''},
+    'checking': {'checking_entity': [], 'checking_level': '1'},
+    'projects': []}
+            self.path = os.path.join(project_dir, "manifest.yaml")
+            self.save()
 
     # Sorts the projects and contributors.
     # [Over]writes the current manifest.yaml file.
@@ -66,6 +67,10 @@ class ManifestYaml:
             with io.open(self.path, "tw", encoding='utf-8', newline='\n') as file:
                 # yaml.safe_dump(self.contents, file, default_flow_style=False, default_style="'")
                 yaml.safe_dump(self.contents, stream=file, allow_unicode=True, sort_keys=False)
+
+    # Returns the full path of the current manifest file.
+    def getPath(self):
+        return self.path
 
     def setLanguageId(self, id):
         if id:
@@ -126,6 +131,13 @@ class ManifestYaml:
         if self.contents and 'dublin_core' in self.contents:
             if vrsn == "" or self.contents['dublin_core']['version'] == "":
                 self.contents['dublin_core']['version'] = vrsn
+
+    def getVersion(self):
+        try:
+            version = self.contents['dublin_core']['version']
+        except KeyError as e:
+            version = ""
+        return version
 
     def resetSources(self):
         if self.contents and 'dublin_core' in self.contents:

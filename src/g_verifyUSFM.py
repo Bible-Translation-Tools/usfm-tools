@@ -180,12 +180,9 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.values = values
         code = values.get('language_code', fallback="")
         dir = values.get('source_dir', fallback="")
-        cmp = values.get('compare_dir', fallback="")
-        self.language_code.set(code)
         self.source_dir.set(dir)
-        self.compare_dir.set(cmp)
-        if dir and code and not cmp:
-            self.compare_dir.set( self._getCompareValue(dir, code, cmp) )
+        self.language_code.set(code)
+        self.set_compare_dir(code, dir)
         self.filename.set(values.get('filename', fallback=""))
         self.std_titles.set(values.get('standard_chapter_title', fallback=""))
         for si in range(len(self.suppress)):
@@ -208,6 +205,26 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.changingVars = False
         self._set_button_status()
 
+    # Called when Step is activated, and when the source dir or language code changes.
+    # Sets compare_dir, based on existence of project info, if any.
+    def set_compare_dir(self, code, dir):
+        if dir and code:
+            projectInfo = ProjectInfo(dir, code)
+            cmp = projectInfo.getSourceDir()
+            if not cmp:
+                # cmp = self._getCompareValue(dir, code, "")
+                if not projectInfo.getMainSource():
+                    projectInfo.useManifest()
+                if mainsrc := projectInfo.getMainSource():
+                    cmp = f"(locate folder containing {mainsrc['language_id']}_{mainsrc['resource_id']}, vrsn ~{mainsrc['version']})"
+                    if "nspecified" in cmp or "nknown" in cmp:
+                        cmp = ""
+                else:
+                    cmp = ""
+        else:
+            cmp = ""
+        self.compare_dir.set(cmp)   # calls _set_button_status() implicitly
+
     def onScriptEnd(self):
         issuespath = os.path.join(self.values['source_dir'], "issues.txt")
         exists = os.path.isfile(issuespath)
@@ -221,23 +238,31 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
                 self.message_area.see('end')
         self.message_area['state'] = DISABLED   # prevents insertions to message area
 
+    # Called by base class on Back, Next, Skip and Execute
     # Copies current values from GUI into self.values dict, and calls mainapp to save
     # them to the configuration file.
+    # Also saves compare_dir to ProjectInfo.
     def _save_values(self):
-        self.values['language_code'] = self.language_code.get()
-        self.values['source_dir'] = self.source_dir.get()
-        self.values['filename'] = self.filename.get()
-        value = self.compare_dir.get()
-        self.values['compare_dir'] = "" if value.startswith("(locate") else value
-        self.values['standard_chapter_title'] = self.std_titles.get()
-        for si in range(len(self.suppress)):
-            configvalue = f"suppress{si}"
-            self.values[configvalue] = str(self.suppress[si].get())
-        self.controller.mainapp.save_values(stepname, self.values)
+        if not self.invalidInputs():
+            self.values['language_code'] = self.language_code.get()
+            self.values['source_dir'] = self.source_dir.get()
+            self.values['filename'] = self.filename.get()
+            value = self.compare_dir.get()
+            self.values['compare_dir'] = "" if value.startswith("(locate") else value
+            self.values['standard_chapter_title'] = self.std_titles.get()
+            for si in range(len(self.suppress)):
+                configvalue = f"suppress{si}"
+                self.values[configvalue] = str(self.suppress[si].get())
+            self.controller.mainapp.save_values(stepname, self.values)
 
-    # This function does more thorough input validation than _set_button_status() does.
+            projectInfo = ProjectInfo(self.source_dir.get(), self.language_code.get())
+            projectInfo.setSourceDir(self.values['compare_dir'])
+            projectInfo.save()
+
     # Returns a list of incomplete or incorrect inputs.
-    # The user may need this help in identifying certain incorrect input(s).
+    # Used by _onExecute().
+    # Is also called before values are saved to configuration files.
+    # Is also called when the mouse hovers over the Verify button.
     def invalidInputs(self, *args):
         objections = []
         code = self.language_code.get()
@@ -259,11 +284,21 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             objections.append(f"Source text folder is invalid.")
         if cmp and cmp == dir:
             objections.append(f"The usfm file folder ({dir})\n  can't be the same as its Source text folder.")
+
+        if not objections:  # Only do this check if all other checks pass
+            my = ManifestYaml()
+            my.load(dir)
+            if mycode := my.getLanguageId():
+                if mycode != code:
+                    objections.append(f"Language code doesn't match manifest at {dir}")
+                    objections.append(f"{code} vs. {mycode}")
         return objections
 
     # Executes a script that inventories the existing chapter labels
     def _onInventoryLabels(self, *args):
-        self._save_values()
+        values = {}
+        values['source_dir'] = self.source_dir.get()
+        self.controller.mainapp.save_values(stepname, values)
         self.controller.executeInventoryLabels()
 
     def _onFindSrcDir(self, *args):
@@ -275,20 +310,14 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             self.filename.set(os.path.basename(path))
 
     def _onFindCmpDir(self, *args):
-        dir = self.source_dir.get()
-        code = self.language_code.get()
-        msg = self._getCompareValue(dir, code, "")
-        self.controller.askdir(self.compare_dir, msg)
+        self.controller.askdir(self.compare_dir)
 
     # Called when the language code changes.
     def _onChangeLanguage(self, *args):
         self.std_titles.set("")
         code = self.language_code.get()
         if code:
-            dir = self.source_dir.get()
-            cmp = self.compare_dir.get()
-            self.compare_dir.set( self._getCompareValue(dir, code, cmp) )
-            # invokes _set_button_status() implicitly
+            self.set_compare_dir(code, self.source_dir.get())
         else:
             self._set_button_status()
 
@@ -302,6 +331,8 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             code = my.getLanguageId()
             if code != self.language_code.get():
                 self.language_code.set(code)    # this will invoke _onChangeLanguage()
+            else:
+                self.set_compare_dir(code, dir)
         self.changingVars = False
         self._set_button_status()
 
@@ -313,7 +344,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             self.suppress[6].set(False)
 
     def _onOpenIssues(self, *args):
-        self._save_values()
+        # self._save_values()
         path = os.path.join(self.values['source_dir'], "issues.txt")
         os.startfile(path)
     # Opens usfm folder, or specific usfm file
@@ -323,15 +354,13 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
 
     def _set_button_status(self, *args):
         if not self.changingVars:
-            good_code = self.language_code.get()
             good_dir = os.path.isdir(self.source_dir.get())
-            good_cmp = not self.compare_dir.get() or os.path.isdir(self.compare_dir.get())
             namedfile = self.filename.get()
             good_subject = good_dir and not namedfile
             if good_dir and namedfile:
                 filepath = os.path.join(self.source_dir.get(), namedfile)
                 good_subject = os.path.isfile(filepath)
-            self.verify_ready = good_code and good_subject and good_cmp
+            self.verify_ready = not self.invalidInputs()
             self.controller.enablebutton(2, self.verify_ready)
             if good_dir:
                 title = namedfile if namedfile and good_subject else "Work folder"
@@ -341,30 +370,3 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
 
             issuespath = os.path.join(self.source_dir.get(), "issues.txt")
             self.controller.enablebutton(3, os.path.isfile(issuespath))
-
-    # Only called when the language code changes.
-    # Returns the most reasonable new value for compare_dir,
-    # based on existence of project info, if any.
-    # The value returned may be a suggestion of the main source text, not necessarily a folder name.
-    def _getCompareValue(self, dir, language_code, cmp):
-        change_cmp = False
-        if language_code and dir and os.path.isdir(dir):
-            projectInfo = ProjectInfo(dir, language_code)
-            projectInfo.useManifest()
-            if not cmp or cmp.startswith("(locate"):
-                change_cmp = True
-            else:   # cmp is already set to a folder
-                change_cmp = False
-                cmpYaml = ManifestYaml()
-                errors = cmpYaml.load(cmp)
-                if not errors:
-                    if not projectInfo.knownSource(cmpYaml.getLanguageId(), cmpYaml.getResourceId()):
-                        change_cmp = True
-        if change_cmp:
-            if mainsrc := projectInfo.getMainSource():
-                cmp = f"(locate folder containing {mainsrc['language_id']}_{mainsrc['resource_id']}, vrsn ~{mainsrc['version']})"
-                if "nspecified" in cmp or "nknown" in cmp:
-                    cmp = ""
-            else:
-                cmp = ""
-        return cmp
