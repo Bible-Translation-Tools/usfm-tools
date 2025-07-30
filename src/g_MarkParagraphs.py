@@ -63,6 +63,7 @@ class MarkParagraphs(g_step.Step):
         self.enablebutton(2, True)
         self.enablebutton(3, True)
         self.enablebutton(4, True)
+        self.enablebutton(5, True)
         self.frame.onScriptEnd(nIssues)
 
 class MarkParagraphs_Frame(g_step.Step_Frame):
@@ -76,14 +77,14 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         self.filename = StringVar()
         self.copy_nb = BooleanVar(value = False)
         self.remove_s5 = BooleanVar(value = True)
-        self.remove_s5.trace_add("write", self._onChanges5)
         self.s5_only = BooleanVar(value = False)
-        self.s5_only.trace_add("write", self._onChanges5)
         self.sentence_sensitive = BooleanVar(value = True)
-        self.language_code.trace_add("write", self._onChangeLanguage)
-        self.source_dir.trace_add("write", self._onChangeSourceDir)
-        self.model_dir.trace_add("write", self._set_button_status)
-        self.filename.trace_add("write", self._set_button_status)
+        # self.remove_s5.trace_add("write", self._onChanges5)
+        # self.s5_only.trace_add("write", self._onChanges5)
+        # self.language_code.trace_add("write", self._onChangeLanguage)
+        # self.source_dir.trace_add("write", self._onChangeSourceDir)
+        # self.model_dir.trace_add("write", self._set_button_status)
+        # self.filename.trace_add("write", self._set_button_status)
         self.columnconfigure(3, weight=1)   # keep column 1 from expanding
         self.columnconfigure(4, minsize=115)
 
@@ -152,7 +153,7 @@ then don't run this process.")
         self.model_dir_entry.focus()
 
     def show_values(self, values):
-        self.changingVars = True
+        # self.changingVars = True
         self.values = values
         code = values.get('language_code', fallback="")
         dir = values.get('source_dir', fallback="")
@@ -176,8 +177,14 @@ then don't run this process.")
                                    tip="Restore any and all .usfmorig backup files in the folder.")
         self.controller.enablebutton(4, False)
         self.controller.showbutton(5, ">>>", self._onNext, tip="Verify manifest")
-        self.changingVars = False
+        # self.changingVars = False
         self._set_button_status()
+        self.remove_s5.trace_add("write", self._onChanges5)
+        self.s5_only.trace_add("write", self._onChanges5)
+        self.language_code.trace_add("write", self._onChangeLanguage)
+        self.source_dir.trace_add("write", self._onChangeSourceDir)
+        self.model_dir.trace_add("write", self._set_button_status)
+        self.filename.trace_add("write", self._set_button_status)
 
     # Called when Step is activated, and when the language code changes.
     # Sets model_dir, based on existence of project info, if any.

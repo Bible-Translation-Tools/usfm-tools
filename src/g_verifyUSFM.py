@@ -59,13 +59,13 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.filename = StringVar()
         self.std_titles = StringVar()
         self.compare_dir = StringVar()
-        self.language_code.trace_add("write", self._onChangeLanguage)
-        self.source_dir.trace_add("write", self._onChangeSourceDir)
-        self.filename.trace_add("write", self._set_button_status)
-        self.compare_dir.trace_add("write", self._set_button_status)
         self.suppress = [BooleanVar(value = False) for i in range(13)]
-        self.suppress[6].trace_add("write", self._onChangeQuotes)
-        self.suppress[7].trace_add("write", self._onChangeQuotes)
+        # self.language_code.trace_add("write", self._onChangeLanguage)
+        # self.source_dir.trace_add("write", self._onChangeSourceDir)
+        # self.filename.trace_add("write", self._set_button_status)
+        # self.compare_dir.trace_add("write", self._set_button_status)
+        # self.suppress[6].trace_add("write", self._onChangeQuotes)
+        # self.suppress[7].trace_add("write", self._onChangeQuotes)
         for col in [2,3,4]:
             self.columnconfigure(col, weight=1)   # keep column 1 from expanding
         # self.rowconfigure(88, minsize=170, weight=1)  # let the message expand vertically
@@ -176,7 +176,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.message_area['xscrollcommand'] = xs.set
 
     def show_values(self, values):
-        self.changingVars = True
+        # self.changingVars = True
         self.values = values
         code = values.get('language_code', fallback="")
         dir = values.get('source_dir', fallback="")
@@ -202,8 +202,14 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         else:
             tip = "Automated USFM file cleanup"
         self.controller.showbutton(5, ">>>", self._onNext, tip)
-        self.changingVars = False
+        # self.changingVars = False
         self._set_button_status()
+        self.language_code.trace_add("write", self._onChangeLanguage)
+        self.source_dir.trace_add("write", self._onChangeSourceDir)
+        self.filename.trace_add("write", self._set_button_status)
+        self.compare_dir.trace_add("write", self._set_button_status)
+        self.suppress[6].trace_add("write", self._onChangeQuotes)
+        self.suppress[7].trace_add("write", self._onChangeQuotes)
 
     # Called when Step is activated, and when the source dir or language code changes.
     # Sets compare_dir, based on existence of project info, if any.
