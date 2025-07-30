@@ -463,7 +463,7 @@ def convertFile(usfmpath, fname):
     sys.stdout.flush()
     success = isParseable(str, usfmpath, fname)
     if success:
-        reportProgress(f"Converting {fname}")
+        reportProgress(f"Marking {fname}")
         sys.stdout.flush()
         tokens = parseUsfm.parseString(str)
         token = tokens[0]   # safe because isParseable should reject empty files
