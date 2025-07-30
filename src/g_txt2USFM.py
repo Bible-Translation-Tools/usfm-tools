@@ -89,8 +89,9 @@ class Text2USFM_Frame(g_step.Step_Frame):
                                              onvalue=True, offvalue=False)
         headings_checkbox.grid(row=6, column=1, sticky=W)
         headings_Tip = Hovertip(headings_checkbox, hover_delay=500,
-                text="Does the translated text include section headings?")
-
+                text="Does the translated text include section headings? (If you don't know, try it both ways and compare the results.)")
+        headings_help = ttk.Button(self, text="...", width=2, command=self._onHelpHeadings)
+        headings_help.grid(row=6, column=2, sticky=W)
         language_code_entry.focus()
 
     # Called when the frame is first activated. Populate the initial values.
@@ -130,6 +131,15 @@ class Text2USFM_Frame(g_step.Step_Frame):
     def _onOpenTargetDir(self, *args):
         self._save_values()
         os.startfile(self.values['target_dir'])
+
+    def _onHelpHeadings(self, *args):
+        msg = "If you don't know whether the text contains section headings,\n\
+check the Print Preparation checklist, if it exists.\n\
+If you still don't know, run the conversion both ways and\n\
+compare results.\n\
+Keep the better result.\n"
+        self.show_progress(msg)
+
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
         self.controller.showbutton(5, ">>>", self._onNext, tip="Verify USFM")
