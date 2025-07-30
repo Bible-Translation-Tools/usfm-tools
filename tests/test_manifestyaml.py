@@ -93,6 +93,7 @@ def dates():
     my.save()
     my2 = ManifestYaml()
     assert my2.load(dir) == []
+    assert my2.getPath() == os.path.join(dir, "manifest.yaml")
     assert my2.contents['dublin_core']['issued'] == date
     assert my2.contents['dublin_core']['modified'] == date
     con = my2.contents['dublin_core']['contributor'][2]
@@ -124,17 +125,20 @@ def sources():
     my.save()
     my2 = ManifestYaml()
     my2.load(dir)
+    assert my2.getVersion() == "12.1"
     assert len(my2.contents['dublin_core']['source']) == 3
     src = my2.contents['dublin_core']['source'][0]
     assert src['language'] == 'en'
     assert src['identifier'] == 'ulb'
     assert src['version'] == '12'
     assert my2.contents['dublin_core']['version'] == "12.1"
+    assert my2.getVersion() == "12.1"
 
 def replaceSources():
     my = ManifestYaml()
     if errors := my.load(dir):
         my.create(dir)
+    assert my.getPath() == os.path.join(dir, "manifest.yaml")
     my.resetSources()
     my.setVersion("")
     assert my.contents['dublin_core']['version'] == ""

@@ -11,14 +11,18 @@ tests_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 from projectinfo import ProjectInfo, SaidWords
+from manifestyaml import ManifestYaml
 
-dir = r'C:\DCS\Matengo\work'
-language_code = 'mgv'
-language_name = 'Matengo'
+dir = r'C:\DCS\Test\test_pi'
+language_code = 'test-pi'
+language_name = 'Test ProjectInfo'
+source_lang = 'test-source'
+source_resource_id = 'uub'
+source_ver = "1.8"
 
 def test_init_newfile():
     # This test function backs up the existing .json file before deleting it.
-    path = os.path.join(dir, language_code+'.json')
+    path = os.path.join(os.path.dirname(dir), language_code+'.json')
     bakpath = path + ".bak"
     if os.path.exists(path):
         if not os.path.exists(bakpath):
@@ -56,6 +60,27 @@ def test_language_name():
     projectInfo.save()
     assert projectInfo.getLanguageName() == language_name
 
+def test_mainsource():
+    my = ManifestYaml()
+    my.load(dir)
+    sources = my.getSources()
+    if len(sources) > 0:
+        assert sources[0]['language'] == source_lang
+        assert sources[0]['identifier'] == source_resource_id
+        assert sources[0]['version'] == source_ver
+    else:
+        my.addSource(source_lang, source_resource_id, source_ver)
+    my.save()
+    pi = ProjectInfo(dir, language_code)
+    pi.resetSources()
+    assert pi.getMainSource() == None
+    pi.useManifest()
+    source = pi.getMainSource()
+    assert source['language_id'] == source_lang
+    assert source['resource_id'] == source_resource_id
+    assert source['version'] == source_ver
+    assert source['count'] == 1
+
 def test_sources():
     add1source('swedish', 'bible', '1.99')
     projectInfo = ProjectInfo(dir, language_code)
@@ -68,26 +93,26 @@ def test_sources():
     source = pi2.getMainSource()
     assert source['version'] == "7.6"
 
-def add1source(lang, rsrc, ver):
+def add1source(lang, resource_id, ver):
     lang = 'swedish'
-    rsrc = 'bible'
+    # resource_id = 'bible'
     ver = '1.99'
     projectInfo = ProjectInfo(dir, language_code)
-    projectInfo.addSource(lang, rsrc, ver)
-    assert projectInfo.knownSource(lang, rsrc, ver) == True
+    projectInfo.addSource(lang, resource_id, ver)
+    assert projectInfo.knownSource(lang, resource_id, ver) == True
     projectInfo.resetSources()
-    assert projectInfo.knownSource(lang, rsrc, ver) == False
-    projectInfo.addSource(lang, rsrc, ver)
-    assert projectInfo.knownSource(lang, rsrc, ver) == True
+    assert projectInfo.knownSource(lang, resource_id, ver) == False
+    projectInfo.addSource(lang, resource_id, ver)
+    assert projectInfo.knownSource(lang, resource_id, ver) == True
     source = projectInfo.getMainSource()
     assert source['language_id'] == lang
-    assert source['resource_id'] == rsrc
+    assert source['resource_id'] == resource_id
     assert source['version'] == ver
     assert source['count'] == 1
     projectInfo.save()
 
 # Manifest.yaml should have valid language info before running this.
-# Manifest.yaml should each have one valid source before running this.
+# Manifest.yaml should have exactly one valid source before running this.
 def test_manifest_connection():
     dir = r'C:\DCS\Test\test_reg'
     language_code = 'test'
@@ -98,12 +123,12 @@ def test_manifest_connection():
     assert n == 0
     assert pi.getLanguageName() == ""
 
-    from manifestyaml import ManifestYaml
     my = ManifestYaml()
     my.load(dir)
     myname = my.getLanguageName()
     mydirection = my.getLanguageDirection()
     mylen = len(my.getSources())
+    assert mylen == 1   # Necessary for the following tests to work
 
     pi.useManifest()        # sync happens here
     pilen = len(pi.getSources())
@@ -124,6 +149,7 @@ def test_manifest_connection():
     pi_nosync.save()   # does not save manifest
 
     my.load(dir)
+    assert my.getLanguageId() == language_code
     assert my.getLanguageName() == myname   # sync didn't happen
     assert my.getLanguageDirection() == mydirection   # bad value wasn't saved
     assert len(my.getSources()) == mylen
