@@ -16,7 +16,7 @@ import shutil
 import sys
 import substitutions
 import quotes
-import parseUsfm
+import usfmReader
 import sentences
 import section_titles
 import usfmWriter
@@ -58,13 +58,13 @@ class State:
         self.prevMarker = None
 
     def addToken(self, token):
-        if token.isC():
+        if token.type == 'c':
             self.schapter = token.value
             self.reference = self.bookId + " " + token.value
-        elif token.isV():
+        elif token.type == 'v':
             self.sverse = token.value
             self.reference = self.bookId + " " + self.schapter + ":" + token.value
-        elif token.isID():
+        elif token.type == 'id':
             self.bookId = token.value
             self.reference = token.value + " header/intro"
 
@@ -548,11 +548,6 @@ def convert_by_line(path):
     output.close()
     return (changedfile)
 
-# Returns true if token is part of a footnote or cross reference
-def isFootnote(token):
-    return token.isF_S() or token.isF_E() or token.isFR() or token.isFT() or token.isFP() or \
-token.isFE_S() or token.isFE_E() or token.isRQS() or token.isRQE()
-
 def takeFootnote(key, value, usfm):
     global in_footnote
     if key in {"f", "fr", "ft", "fp", "fe", "rq"}:
@@ -616,16 +611,16 @@ def takeText(s, usfm):
     usfm.writeStr(s)
     return (s != origstr)
 
-def take(token, usfm):
+def take(token: usfmReader.Token, usfm):
     state.addToken(token)
 
     changed = False
-    if token.isTEXT():
+    if token.type == 'text':
         changed = takeText(token.value, usfm)
-    elif token.isCL():
+    elif token.type == 'cl':
         if takeCL(token.value, usfm):
             changed = True
-    elif isFootnote(token):
+    elif token.isFootnote():
         takeFootnote(token.type, token.value, usfm)
     else:
         usfm.writeUsfm(token.type, token.value)
@@ -643,7 +638,7 @@ def convert_by_token(path):
     usfm.setInlineTags({"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"})
     global needcaps
     needcaps = True
-    tokens = parseUsfm.parseString(contents)
+    tokens = usfmReader.parseString(contents)
     for token in tokens:
         changes += take(token, usfm)
     usfm.close()

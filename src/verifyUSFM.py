@@ -38,7 +38,7 @@ from configmanager import ToolsConfigManager
 import os
 from pathlib import Path
 import sys
-import parseUsfm
+import usfmReader
 import io
 import footnotes
 import usfm_verses
@@ -330,15 +330,15 @@ class State:
 state: State
 
 # Returns the category of the specified marker.
-def category(token):
+def category(token: usfmReader.Token):
     category = OTHER
-    if token.isB():
+    if token.type == 'b':
         category = B
-    elif token.isC():
+    elif token.type == 'c':
         category = C
-    elif token.isP() or token.isPI() or token.isPC() or token.isNB() or token.isM():
+    elif token.type in {'p','pi','pc','nb','m'}:
         category = PP
-    elif isPoetry(token):
+    elif token.isPoetry():
         category = QQ
     return category
 
@@ -531,15 +531,15 @@ def dumpWords():
         percent = int(hapaxcount * 100 / len(wordlist))
         reportError(f"{len(wordlist)} unique words. {hapaxcount} ({percent}%) of them occur only once.", 0.2)
 
-trans = str.maketrans('', '', "'’\"-_()–&")
+punct_table = str.maketrans('', '', "'’\"-_()–&")
 
 # Returns True if s is a mixed case word.
 def isMixed(word):
     global trans
     mixed = False
-    if not (word.islower() or word.istitle() or word.isupper()):
-        w2 = word.translate(trans)
-        if w2 and not (w2.islower() or w2.istitle() or w2.isupper()):
+    if len(word) > 1 and not (word.islower() or word.istitle() or word.isupper()):
+        w2 = word.translate(punct_table)
+        if len(w2) > 1 and not (w2.islower() or w2.istitle() or w2.isupper()):
             mixed = True
     return mixed
 
@@ -576,17 +576,17 @@ def wordkey(item):
 
 # Handles the next token in the source text.
 # Only cares about storing text, as of the date of this comment (Apr-2024)
-def scan(token):
-    if token.isTEXT():
+def scan(token: usfmReader.Token):
+    if token.type == 'text':
         state.addSourceText(token.value)
-    elif token.isV():
+    elif token.type == 'v':
         vs = token.value.split('-')
         state.addVerse(vs[-1])
-    elif token.isC():
+    elif token.type == 'c':
         state.addChapter(token.value)
-    elif token.isID():
+    elif token.type == 'id':
         state.addID(token.value[0:3].upper(), scan=True)
-    elif isFootnote(token):
+    elif token.isFootnote():
         state.addSourceFootnote(token.value)
 
 # Parses the source text into a Python data structure.
@@ -596,7 +596,7 @@ def scanSourceFile(path):
         contents = input.read(-1)
     if "lemma=" in contents or "x-occurrences" in contents:
         contents = usfm_utils.unalign_usfm(contents)
-    tokens = parseUsfm.parseString(contents)
+    tokens = usfmReader.parseString(contents)
     for token in tokens:
         scan(token)
     state.booklength_src = len(contents)
@@ -620,9 +620,7 @@ def load_source(fname):
         # Load footnote references first, for the whole directory
         if len(footnotedVerses) == 0:
             if not footnotes.preScanned(sourcedir):
-                reportStatus(f"Please wait a minute or two while the source text is scanned\n\
-  for footnotes. This is a one time operation since\n\
-  the results are saved in a file.")
+                reportStatus(f"Scanning source text for footnotes...")
             footnotedVerses = footnotes.getFootnotedVerses(sourcedir)
 
         # Then parse the usfm for the current book.
@@ -677,10 +675,10 @@ def previousVerseCheck():
     if sim > 0.4:
         reportError(f"Verse may be untranslated (based on words in common with source text): {state.reference}", 3.5)
 
-def longChunkCheck():
-    max_chunk_length = 400  # set lower if this is ever needed again
-    if not state.aligned_usfm and state.verse - (max_chunk_length-1) > state.startChunkVerse:
-        reportError("Long chunk: " + state.startChunkRef + "-" + str(state.verse) + "   (" + str(state.verse-state.startChunkVerse+1) + " verses)", 4)
+# def longChunkCheck():
+#     max_chunk_length = 400  # set lower if this is ever needed again
+#     if not state.aligned_usfm and state.verse - (max_chunk_length-1) > state.startChunkVerse:
+#         reportError("Long chunk: " + state.startChunkRef + "-" + str(state.verse) + "   (" + str(state.verse-state.startChunkVerse+1) + " verses)", 4)
 
 # Verifies that at least one book title is specified, other than the English book title.
 # This method is called just before chapter 1 begins, so there has been every
@@ -722,7 +720,7 @@ def verifyFootnotes():
 
 # Checks whether the entire file was empty or unreadable
 def verifyNotEmpty(filename):
-    if not state.ID or state.chapter == 0:
+    if not state.ID or (state.chapter == 0 and state.verse == 0):
         if not state.ID in {'FRT','BAK'}:
             reportError("File may be empty, or open in another program: " + str(filename), 11)
 
@@ -739,23 +737,26 @@ def takeB():
 
 # Processes a chapter tag
 def takeC(c):
-    # Report missing text in previous verse
     if c != "1":
+        # Report missing text in previous verse
         previousVerseCheck()
         # longChunkCheck()
     # if state.currItemCategory == S:
     #     reportError(f"Chapter ends with a section heading: {state.reference}", 13.2)
-    state.addChapter(c)
-    if state.chapter < 1 or state.chapter > nChapters(state.ID):
-        reportError(f"Invalid chapter number ({c}) is found after {state.lastRef}", 13)
-    if state.chapter < state.lastChapter:
-        reportError("Chapter out of order: " + state.reference, 14)
-    elif state.chapter == state.lastChapter:
-        reportError("Duplicate chapter: " + state.reference, 15)
-    elif state.chapter > state.lastChapter + 2:
-        reportError("Missing chapters before: " + state.reference, 16)
-    elif state.chapter > state.lastChapter + 1:
-        reportError("Missing chapter(s) between: " + state.lastRef + " and " + state.reference, 17)
+    if not c.isnumeric():
+        reportError("Missing or invalid chapter number after " + state.reference, 13.1)
+    else:
+        state.addChapter(c)
+        if state.chapter < 1 or state.chapter > nChapters(state.ID):
+            reportError(f"Invalid chapter number ({c}) is found after {state.lastRef}", 13)
+        if state.chapter < state.lastChapter:
+            reportError("Chapter out of order: " + state.reference, 14)
+        elif state.chapter == state.lastChapter:
+            reportError("Duplicate chapter: " + state.reference, 15)
+        elif state.chapter > state.lastChapter + 2:
+            reportError("Missing chapters before: " + state.reference, 16)
+        elif state.chapter > state.lastChapter + 1:
+            reportError("Missing chapter(s) between: " + state.lastRef + " and " + state.reference, 17)
 
 xyz_re = re.compile(r'(\d+\s+)([^\d]+?)(\s+\d+)')
 yz_re = re.compile(r'(.+?)(\s+\d+)')
@@ -795,19 +796,19 @@ def takeD():
     state.addUncountedParagraph()
 
 # Handles all the footnote and endnote token types
-def takeFootnote(token):
-    if token.isF_S() or token.isRQS():
+def takeFootnote(token: usfmReader.Token):
+    if token.type in {'f','rq'}:
         if state.footnote_starts != state.footnote_ends:
             reportError(f"Footnote starts before previous one is terminated at {state.reference}", 18)
         state.addFootnoteStart()
-    elif token.isFE_S():
+    elif token.type == 'fe':
         if state.endnote_starts != state.endnote_ends:
             reportError(f"Endnote starts before previous one is terminated at {state.reference}", 19)
         reportError(f"Warning: endnote \\fe ... \\fe* at {state.reference} may break USFM Converter and Scripture App Builder.", 20)
         state.addEndnoteStart()
-    elif token.isF_E() or token.isRQE():
+    elif token.type in {'f*','rq*'}:
         state.addFootnoteEnd()
-    elif token.isFE_E():
+    elif token.type == 'fe*':
         state.addEndnoteEnd()
     else:
         if not state.inFootnote():
@@ -867,12 +868,12 @@ def takeSection(tag):
         reportError(f"Back to back section markers after {state.reference}", 29.5)
     state.addSection(tag)
 
-def takeTitle(token):
-    if token.isTOC3():
+def takeTitle(token: usfmReader.Token):
+    if token.type == 'toc3':
         state.addToc3(token.value)
     else:
         state.addTitle(token.value)
-    if token.isMT() and token.value.isascii() and not suppress[9]:
+    if token.type in {'mt','mt1'} and token.value.isascii() and not suppress[9]:
         reportError("mt token has ASCII value in " + state.reference, 30)
     if token.value.isupper() and not state.upperCaseReported and not suppress[8]:
         reportError("Upper case book title in " + state.reference, 31)
@@ -903,6 +904,8 @@ def takeV(vstr):
                 vlist.append(vn)
         else:
             reportError("Problem in verse range near " + state.reference, 34)
+    elif not vstr:
+        reportError("Unnumbered verse after " + state.reference, 35)
     else:
         vlist.append(int(vstr))
 
@@ -1011,6 +1014,7 @@ spacey3_re = re.compile(r'[\(\'"«“‘’”»›][\s]', re.UNICODE)       # q
 spacey4_re = re.compile(r'[\s][\(\'"«“‘’”»›]$', re.UNICODE)       # quote-space at end of verse
 wordmedial_punct_re = re.compile(r'[\w][.?!;:,()\[\]"«“‘”»›][.?!;:,()\[\]\'"«“‘’”»›]*[\w]')
 outsidequote_re = re.compile(r'([\'"’”»›][\.!])', re.UNICODE)   # Period or exclamation outside closing quote.
+backs_re = re.compile(r'\\\s')
 
 def reportPunctuation(text):
     if bad := punctuation_re.search(text):
@@ -1049,8 +1053,8 @@ def reportPunctuation(text):
         reportError(f"Word medial punctuation in {state.reference}: {s}", 52)
     if '/' in text:
         reportError(f"Forward slash in {state.reference}", 52.1)
-    if '\\' in text:
-        reportError(f"Backslash in {state.reference}", 52.2)
+    if backs_re.search(text):
+        reportError(f"Backslash (\\) near {state.reference}", 52.2)
     if '=' in text:
         reportError(f"Equals sign (=) in {state.reference}", 52.3)
 
@@ -1100,16 +1104,14 @@ def reportNumbers(t, footnote):
         reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61.2)
 
 period_re = re.compile(r'[\s]*[\.,;:!\?]')  # detects phrase-ending punctuation standing alone or starting a phrase
+badmarker_re = re.compile(r'\\\w+')
 
 # Performs checks on some text, at most a verse in length.
 def takeText(t, footnote=False):
+    if bad := badmarker_re.search(t):
+        reportError(f'Unsupported USFM marker ({bad.group(0)}) near {state.reference}', 53)
     if not state.textOkay() and not isTextCarryingToken(state.lastToken):
-        if t[0] == '\\':
-            reportError("Uncommon or invalid marker near " + state.reference, 53)
-        else:
-            # print u"Missing verse marker before text: <" + t.encode('utf-8') + u"> around " + state.reference
-            # reportError(u"Missing verse marker or extra text around " + state.reference + u": <" + t[0:10] + u'>.')
-            reportError("Missing verse marker or extra text near " + state.reference, 54)
+        reportError("Missing verse marker or extra text near " + state.reference, 54)
         if state.lastToken:
             reportError("  preceding Token was \\" + state.lastToken.type, 0)
         else:
@@ -1155,63 +1157,37 @@ def addWords(t):
             word = word.lstrip(allpunc)
         if word:
             if not state.inFootnote() or notnumberinfootnote_re.search(word):
-                if not any(c.isnumeric() for c in word):
+                if any(c.isalpha() for c in word) and not any(c.isnumeric() for c in word):
                     (count, ref) = wordlist.get(word, (0, None))
                     ref = state.reference if count == 0 else ""
                     wordlist[word] = (count+1, ref)
 
-# Returns true if token is part of a footnote
-def isFootnote(token):
-    if token:
-        result = (token.getType().startswith("f") and token.getType() != "fig") or token.getType().startswith("rq")
-    else:
-        result = False
-    return result
-
-# Returns true if token is part of a cross reference
-def isCrossRef(token):
-    return token.isX_S() or token.isX_E() or token.isXO() or token.isXT()
-
-def isPoetry(token):
-    return token.isQ() or token.isQ1() or token.isQ2() or token.isQ3() or token.isQA() or \
-           token.isQR() or token.isQC()
-
-def isIntro(token):
-    return token.is_is() or token.is_ip() or token.is_ipi() or token.is_iot() or token.is_io() or \
-           token.is_im() or token.is_imt()
-
-def isSpecialText(token):
-    return token.isWJS() or token.isADDS() or token.isNDS() or token.isPNS() or token.isQTS() or token.is_k_s()
-
-# Returns True if the specified token is followed by a separate text token
+# Returns True if the specified token is followed by a *separate text token
 def isTextCarryingToken(token):
     if token:
-        result = token.isB() or token.isM() or isSpecialText(token) or \
-           isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
+        result = token.type in {'b','m'} or token.isSpecialText() or \
+           token.isFootnote() or token.isCrossRef() or token.isPoetry() or token.isIntro()
             # or token.isD() or token.isSP()    these tokens have their own text attached as a value
     else:
         result = False
     return result
 
-def isTitleToken(token):
-    return token.isH() or token.isTOC1() or token.isTOC2() or token.isTOC3() or token.isMT() or token.is_imt()
-
 # Returns True if the token value should be checked for Arabic numerals
-def isNumericCandidate(token):
-    return token.isTEXT() or isTitleToken(token) or token.isCL() or token.isCP() or token.isFT()
+# def isNumericCandidate(token):
+#     return token.type in {'text','cl','cp','ft'} or token.isTitleToken()
 
-def take(token):
-    if not token.isTEXT():
+def take(token: usfmReader.Token):
+    if token.type != 'text':
         if not state.addMarker(token):
             reportError(f"Back to back markers of type {token.type} at {state.reference}", 62)
     else:
         takeText(token.value, state.inFootnote())
 
-    if token.isID():
+    if token.type == 'id':
         takeID(token.value)
-    elif token.isV():
+    elif token.type == 'v':
         takeV(token.value)
-    elif token.isC():
+    elif token.type == 'c':
         if not suppress[5]:
             verifyVerseCount()  # for the preceding chapter
         if not state.ID:
@@ -1221,73 +1197,55 @@ def take(token):
         if token.value == "1":
             verifyBookTitle()
         takeC(token.value)
-    elif token.isCL():
+    elif token.type == 'cl':
         takeCL(token.value)
-    elif token.isP() or token.isPI() or token.isPC() or token.isNB() or token.isM():
+    elif token.type in {'p','pi','pc','nb','m'}:
         takeP(token.type)
         if token.value:     # paragraph markers can be followed by text
             reportError("Unexpected: text returned as part of paragraph token." +  state.reference, 63)
             takeText(token.value)
-    elif isFootnote(token):
+    elif token.isFootnote():
         takeFootnote(token)
-    elif token.isS5():
+    elif token.type == 's5':
         takeS5()
-    elif token.isS() or token.isMR() or token.isMS() or token.isSP():
+    elif token.type in {'s','s1','s2','mr','ms','sp'}:
         takeSection(token.type)
-    elif token.isQA():
+    elif token.type == 'qa':
         state.addAcrosticHeading()
-    elif isPoetry(token):
+    elif token.isPoetry():
         takeQ(token.type, token.value)
-    elif token.isD():
+    elif token.type == 'd':
         takeD()
-    elif token.isB():
+    elif token.type == 'b':
         takeB()
-    elif token.isIDE():
+    elif token.type == 'ide':
         if token.value != 'UTF-8':
             reportError(f"Unsupported character encoding in {state.reference}: \\ide {token.value}", 64)
-    elif isTitleToken(token):
+    elif token.isTitleToken():
         takeTitle(token)
-    elif token.isUSFM():    # non-standard USFM token but is used by UnfoldingWord software
+    elif token.type == 'usfm' and token.value.isnumeric():   # non-standard USFM token used by UnfoldingWord software
         state.setUsfmVersion( int(token.value[0]) )
-    elif token.isUnknown():
-        if token.value == "p":
-            reportError("Orphaned paragraph marker after " + state.reference, 65)
-        elif token.value == "v":
-            reportError("Unnumbered verse after " + state.reference, 66)
-        elif state.usfm_version == 2:
-            reportError("Invalid USFM token (\\" + token.value + ") near " + state.reference, 67)
     state.advance(token)
 
     # if config['language_code'] in {"ur"} and isNumericCandidate(token) and re.search(r'[0-9]', token.value):
         # reportError("Arabic numerals in footnote at " + state.reference, 68)
 
-bad_chapter_re1 = re.compile(r'[^\n](\\c\s*\d+)', re.UNICODE)
+# bad_chapter_re1 = re.compile(r'[^\n](\\c\s*\d+)', re.UNICODE)
 bad_chapter_re2 = re.compile(r'(\\c[0-9]+)', re.UNICODE)
-bad_chapter_re3 = re.compile(r'(\\c\s*\d+)[^\d\s]+[\n\r]', re.UNICODE)
-bad_verse_re1 = re.compile(r'([^\n\r\s]\\v\s*\d+)', re.UNICODE)
+# bad_chapter_re3 = re.compile(r'(\\c\s*\d+)[^\d\s]+[\n\r]', re.UNICODE)
+# bad_verse_re1 = re.compile(r'([^\n\r\s]\\v\s*\d+)', re.UNICODE)
 bad_verse_re2 = re.compile(r'(\\v[0-9]+)', re.UNICODE)
 bad_verse_re3 = re.compile(r'(\\v\s*[-0-9]+[^-\d\s])', re.UNICODE)
 
 # Receives the text of an entire book as input.
 # Reports bad patterns.
 def verifyChapterAndVerseMarkers(text, path):
-    for badactor in bad_chapter_re1.finditer(text):
-        reportError("Missing newline before chapter marker: " + badactor.group(1) + " in " + path, 69)
     for badactor in bad_chapter_re2.finditer(text):
         reportError("Missing space before chapter number: " + badactor.group(0) + " in " + path, 70)
-    for badactor in bad_chapter_re3.finditer(text):
-        reportError("Missing space after chapter number: " + badactor.group(1) + " in " + path, 71)
-    for badactor in bad_verse_re1.finditer(text):
-        s = badactor.group(1)
-        if s[0] < ' ' or s[0] > '~': # not printable ascii
-            s = s[1:]
-        reportError("Missing white space before verse marker: " + s + " in " + path, 72)
     for badactor in bad_verse_re2.finditer(text):
         reportError("Missing space before verse number: " + badactor.group(0) + " in " + path, 73)
     for badactor in bad_verse_re3.finditer(text):
         s = badactor.group(1)
-#        if s[-1] < ' ' or s[-1] > '~': # not printable ascii
-#            s = s[:-1]
         reportError("Missing space after verse number: " + s + " in " + path, 74)
 
 def verifyParagraphCounts():
@@ -1432,8 +1390,8 @@ def verifyFile(path):
         load_source(os.path.basename(path))
         reportProgress(f"Checking {shortname(path)}...")
         sys.stdout.flush()
-        tokens = parseUsfm.parseString(contents)    # Slow!
-        verifyWholeFile(contents, shortname(path))  # placed after parseUsfm so that its error messages come after the long parsing time pause
+        verifyWholeFile(contents, shortname(path))
+        tokens = usfmReader.parseString(contents)
         for token in tokens:
             take(token)
             if not state.canContinue:

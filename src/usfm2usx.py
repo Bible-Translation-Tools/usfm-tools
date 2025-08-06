@@ -3,7 +3,6 @@
 # USFM source text.
 # The resulting containers are importable to BTT-Writer or tStudio to use as source text.
 # Chunk division and paragraph locations are based on \s5 markers in the usfm files.
-# Uses parseUsfm module to parse the usfm files.
 # This script was originally written for converting the Spanish Reina-Valera 1909 Bible
 # so that Bible could be used as a source text in BTT-Writer.
 # It has also been used for the Danish 'Hellig Bibel'.
@@ -14,7 +13,6 @@
 # source_dir = r'C:\DCS\Persian\pes_opcb'
 config = None
 gui = None
-state = None
 nConverted = 0
 # rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
 
@@ -32,17 +30,16 @@ import configmanager
 from pathlib import Path
 import sys
 import os
-import parseUsfm
+import usfmReader
 import usfm_verses
 import io
 import codecs
 import re
 import json
-import yaml
 from shutil import copy
 from datetime import date
 
-lastToken = parseUsfm.UsfmToken(None)
+lastToken = usfmReader.Token('', '')
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 class State:
@@ -137,17 +134,7 @@ class State:
     def saveSection(self, s):
         self.sectionPending = s
 
-# def printToken(token):
-#     if token.isV():
-#         print("Verse number " + token.value)
-#     elif token.isC():
-#         print("Chapter " + token.value)
-#     elif token.isS():
-#         sys.stdout.write("Section heading: " + token.value)
-#     elif token.isTEXT():
-#         print("Text: <" + token.value + ">")
-#     else:
-#         print(token)
+state = State()
 
 # Removes UTF-8 Byte Order Marks (BOM) from specified file if it has one or more.
 def removeBOM(path):
@@ -222,34 +209,33 @@ def takeText(t):
     state.addText()
 
 # Handles each usfm token as the usfm files is parsed.
-def take(token):
-    if state.needVerseText() and not token.isTEXT():
+def take(token: usfmReader.Token):
+    if state.needVerseText() and not token.type == 'text':
         reportError("Empty verse: " + state.reference)
-    if token.isID():
+    if token.type == 'id':
         takeID(token.value)
-    elif token.isH() or token.isTOC1() or token.isTOC2() or token.isMT():
-        state.addTitle(token.value, token.isMT())
-    elif token.isC():
+    elif token.type in {'h','toc1','toc2','mt','mt1'}:
+        state.addTitle(token.value, token.type=='mt')
+    elif token.type == 'c':
         takeC(token.value)
-    elif token.isCL():
+    elif token.type == 'cl':
         takeCL(token.value)
-    # elif token.isS():     # section headings are ignored currently
+    # elif token.typy == 's':     # section headings are ignored currently
         # printToken(token)
         # takeS(token.value)
-    elif token.isS5():
+    elif token.type == 's5':
         closeUsx()
-    elif token.isV():
+    elif token.type == 'v':
         takeV(token.value)
-    elif token.isTEXT():
+    elif token.type == 'text':
         takeText(token.value)
-    elif token.isP() or token.isPI() or token.isPC() or token.isNB() or token.isQ() \
-        or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or token.isQC():
+    elif token.type in {'p','pi','pc','nb','q','q1','q2','qa','qr','qc','sp'}:
         takeP(token.type)
-    elif token.isF_S():
+    elif token.type == 'f':
         takeF(token.value)
-    elif token.isFT() or token.isFQA():
+    elif token.type in {'ft','fqa'}:
         takeFTFQA(token.type, token.value)
-    elif token.isF_E():
+    elif token.type == 'f*':
         takeFE()
     else:
         if not token.type in {'ide','toc3'}:
@@ -385,7 +371,7 @@ def convertFile(usfmpath, bookId):
         input = io.open(usfmpath, "tr", encoding="utf-8-sig")
         str = input.read()
         input.close()
-        for token in parseUsfm.parseString(str):
+        for token in usfmReader.parseString(str):
             take(token)
         closeUsx()
         copy(os.path.join(en_book_dir, 'LICENSE.md'), target_book_dir)
@@ -422,7 +408,7 @@ def make_dir(folder):
         if os.path.isdir(parent):
             os.mkdir(folder)
     return os.path.isdir(folder)
- 
+
 def main(app = None):
     global nConverted
     global gui

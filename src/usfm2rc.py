@@ -17,7 +17,7 @@ import os
 import operator
 from pathlib import Path
 import usfm_verses
-import parseUsfm
+import usfmReader
 import io
 import re
 import yaml
@@ -46,7 +46,7 @@ class State:
     needPp = None
     s5marked = 0
     reference = ""
-    usfmFile = 0
+    usfmFile = None
     bookchunks_input = []
     bookchunks_model = []
     chunks_output = []      # for current chapter
@@ -272,17 +272,17 @@ def getDefaultName(id):
     en_name = usfm_verses.verseCounts[id]['en_name']
     return en_name
 
-def printToken(token):
-    if token.isV():
-        print("Verse number " + token.value)
-    elif token.isC():
-        print("Chapter " + token.value)
-    elif token.isS():
-        sys.stdout.write("Section heading: " + token.value)
-    elif token.isTEXT():
-        print("Text: <" + token.value + ">")
-    else:
-        print(token)
+# def printToken(token):
+#     if token.type == 'v':
+#         print("Verse number " + token.value)
+#     elif token.type == 'c':
+#         print("Chapter " + token.value)
+#     elif token.type == 's':
+#         sys.stdout.write("Section heading: " + token.value)
+#     elif token.type == 'text':
+#         print("Text: <" + token.value + ">")
+#     else:
+#         print(token)
 
 # Write to the file with or without a newline as appropriate
 def takeAsIs(key, value):
@@ -290,7 +290,7 @@ def takeAsIs(key, value):
     if state.chapter < 1:       # header has not been written, chapter 1 has not started
         state.addPostHeader(key, value)
         # sys.stdout.write(u"addPostHeader(" + key + u", " + str(len(value)) + u")\n")
-    else:
+    elif state.usfmFile:
         # sys.stdout.write(u"takeAsIs(" + key + u"," + str(len(value)) + u"), chapter is " + str(state.chapter) + u"\n")
         state.usfmFile.write("\n\\" + key)
         if value:
@@ -405,55 +405,55 @@ def takeCL(cl):
     state = State()
     state.usfmFile.write("\n\\cl " + cl)
 
-def take(token):
+def take(token: usfmReader.Token):
     global lastToken
 
     state = State()
     # if state.needText() and not isTextCarryingToken(token):    # and not isOptional(state.reference):
     #     if not token.isTEXT():
     #         reportError("Empty verse: " + state.reference)
-    if token.isV():
+    if token.type == 'v':
         takeV(token.value)
-    elif token.isTEXT():
-        if lastToken.isC():
+    elif token.type == 'text':
+        if lastToken and  lastToken.type == 'c':
             takeCL(token.value)
         else:
             takeText(token.value)
-    elif token.isC():
+    elif token.type == 'c':
         takeC(token.value)
-    elif token.isP() or token.isPI() or token.isPC() or token.isNB():
+    elif token.type in {'p','pi','pc','nb'}:
         takePQ(token.type)
-    elif token.isQ() or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or token.isQC():
+    elif token.isPoetry() or token.type == 'sp':
         takePQ(token.type)
-    elif token.isS():
-        takeAsIs(token.type, token.value)
-    elif token.isS5():
+    elif token.type == 's5':
         takeS5()
-    elif token.isID():
+    elif token.isSection():
+        takeAsIs(token.type, token.value)
+    elif token.type == 'id':
         state.addID(token.value[0:3].upper())   # use first 3 characters of \id value
         if len(token.value) > 3:
             state.addSTS(token.value[3:])
-    elif token.isH():
+    elif token.type == 'h':
         state.addH(token.value)
-    elif token.isTOC1():
+    elif token.type == 'toc1':
         state.addTOC1(token.value)
-    elif token.isTOC2():
+    elif token.type == 'toc2':
         state.addTOC2(token.value)
-    elif token.isTOC3():
+    elif token.type == 'toc3':
         state.addTOC3(token.value)
-    elif token.isMT():
+    elif token.type in {'mt','mt1'}:
         state.addMT(token.value)
-    elif token.is_imt() or token.isMTE():
+    elif token.type in {'imt','mte'}:
         takeMTX(token.type, token.value)
-    elif token.isIDE():
-        x = 0       # do nothing
-    elif token.isREM() and state.chapter < 1:   # remarks before first chapter go in the header
+    elif token.type == 'ide':
+        pass
+    elif token.type == 'rem' and state.chapter < 1:   # remarks before first chapter go in the header
         state.addREM(token.value)
-    elif token.isVPS():
+    elif token.type == 'vp':
         takeVPS(token.value)
-    elif token.isVPE():
+    elif token.type == 'vp*':
         takeVPE()
-    elif isFootnote(token):
+    elif token.isFootnote():
         takeFootnote(token.type, token.value)
     else:
         # sys.stdout.write("Taking other token: ")
@@ -462,23 +462,8 @@ def take(token):
 
     lastToken = token
 
-# Returns true if token is part of a cross reference
-def isCrossRef(token):
-    return token.isX_S() or token.isX_E() or token.isXO() or token.isXT()
-
-# Returns true if token is part of a footnote
-def isFootnote(token):
-    return token.isF_S() or token.isF_E() or token.isFR() or token.isFT() or token.isFP() or token.isFE_S() or token.isFE_E()
-
-def isIntro(token):
-    return token.is_is() or token.is_ip() or token.is_iot() or token.is_io()
-
-def isPoetry(token):
-    return token.isQ() or token.isQ1() or token.isQA() or token.isSP() or token.isQR() or \
-token.isQC() or token.isD()
-
 def isTextCarryingToken(token):
-    return token.isB() or token.isM() or token.isD() or isFootnote(token) or isCrossRef(token) or isPoetry(token) or isIntro(token)
+    return token.type in {'b','m','d','sp','is','ip','iot','io'} or token.isFootnote() or token.isCrossRef() or token.isPoetry()
 
 def writeHeader():
     state = State()
@@ -542,7 +527,7 @@ def convertFile(usfmpath, fname):
     success = isParseable(str, fname)
     if success:
         print("CONVERTING " + fname + ":")
-        tokens = parseUsfm.parseString(str)
+        tokens = usfmReader.parseString(str)
         for token in tokens:
             take(token)
         state.usfmFile.write("\n")

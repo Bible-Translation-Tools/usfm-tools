@@ -11,10 +11,8 @@ import io
 import sys
 import re
 import json
-import parseUsfm
+import usfmReader
 import usfm_utils
-
-state = None
 
 # Verses with footnotes in the English ULB. (Default set)
 _footnotedVerses_en_ulb = [
@@ -403,10 +401,51 @@ _footnotedVerses_en_ulb = [
   "REV 22:19",
   "REV 22:21"]
 
+class State:
+    def __init__(self):
+        self.IDs = []
+        self.ID = ""
+        self.chapter = 0
+        self.verse = 0
+        self.reference = ""
+        self.footnoteRefs = list()
+        self.canContinue = True
+        self.loadedDir = None
+
+    def setLoadedDir(self, dir):
+        self.loadedDir = dir
+
+    # Resets state data for a new book
+    def addID(self, id):
+        self.IDs.append(id)
+        self.ID = id
+        self.chapter = 0
+        self.verse = 0
+        self.reference = id
+
+    def getIDs(self):
+        return self.IDs
+
+    def addChapter(self, c):
+        self.chapter = int(c)
+        self.verse = 0
+        self.reference = self.ID + " " + c
+
+    def addVerse(self, v):
+        self.verse = int(v)
+        self.reference = self.ID + " " + str(self.chapter) + ":" + v
+
+    # Adds the current reference to the list of footnote references
+    def addFootnote(self):
+        if self.reference not in self.footnoteRefs:
+            self.footnoteRefs.append(self.reference)
+
+state = State()
+
 # Resets to initial state, where no footnote references have been loaded.
 def reset():
     global state
-    state = None
+    state = State()
 
 # Returns True if the specified folder contains any USFM files.
 def validSourceDir(dir):
@@ -482,28 +521,23 @@ def _processFile(path):
     if "lemma=" in contents or "x-occurrences" in contents:
         contents = usfm_utils.unalign_usfm(contents)
 
-    for token in parseUsfm.parseString(contents):
+    for token in usfmReader.parseString(contents):
         _take(token)
         if not state.canContinue:
             break
     state.addID("")
 
-# Returns true if token is a countable part of a footnote
-def isFootnote(token):
-    # return token.isF_S() or token.isF_E() or token.isFR() or token.isFR_E() or token.isFT() or token.isFP() or token.isFE_S() or token.isFE_E()
-    return token.isF_S() or token.isF_E()
-
-def _take(token):
-    if isFootnote(token):
+def _take(token: usfmReader.Token):
+    if token.type in {'f','f*'}:
         state.addFootnote()
-    if token.isID():
+    if token.type == 'id':
         _takeID(token.value)
-    elif token.isC():
+    elif token.type == 'c':
         if not state.ID:        # means this usfm file is invalid
             _reportError("Missing book ID: " + state.reference)
             state.canContinue = False
         _takeC(token.value)
-    elif token.isV():
+    elif token.type == 'v':
         _takeV(token.value)
 
 def _takeID(id):
@@ -547,45 +581,6 @@ def _reportError(msg):
     except UnicodeEncodeError as e:
         msg = state.reference if state else ""
         sys.stderr.write(msg + ": (Unicode...)\n")
-
-class State:
-    def __init__(self):
-        self.IDs = []
-        self.ID = ""
-        self.chapter = 0
-        self.verse = 0
-        self.reference = ""
-        self.footnoteRefs = list()
-        self.canContinue = True
-        self.loadedDir = None
-
-    def setLoadedDir(self, dir):
-        self.loadedDir = dir
-
-    # Resets state data for a new book
-    def addID(self, id):
-        self.IDs.append(id)
-        self.ID = id
-        self.chapter = 0
-        self.verse = 0
-        self.reference = id
-
-    def getIDs(self):
-        return self.IDs
-
-    def addChapter(self, c):
-        self.chapter = int(c)
-        self.verse = 0
-        self.reference = self.ID + " " + c
-
-    def addVerse(self, v):
-        self.verse = int(v)
-        self.reference = self.ID + " " + str(self.chapter) + ":" + v
-
-    # Adds the current reference to the list of footnote references
-    def addFootnote(self):
-        if self.reference not in self.footnoteRefs:
-            self.footnoteRefs.append(self.reference)
 
 # Saves the current list of footnoted verses to the specified file location.
 def _saveReferences(fvpath):

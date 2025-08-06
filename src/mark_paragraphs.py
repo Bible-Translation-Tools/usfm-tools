@@ -10,11 +10,10 @@
 from configmanager import ToolsConfigManager
 import sys
 import os
-import parseUsfm
+import usfmReader
 import io
 import re
 import shutil
-# import quotes
 import sentences
 import usfm_verses
 import usfmWriter
@@ -289,7 +288,7 @@ def takeID(id):
 # Copies paragraph marker to output unless one was aleady added.
 # Insert \s5 first, if needed.
 def takeP(tag, value, nexttoken):
-    if nexttoken.isV():
+    if nexttoken.type == 'v':
         mayInsertS5()
     if not state.pAlready(current=False):
         state.addP(state.bridge+1)
@@ -376,59 +375,38 @@ def takeC(c):
 # Inserts paragraph and section markers where needed from model.
 def take(token, nexttoken):
     state.saveTokenType(token.type)
-    if token.isV():
+    if token.type == 'v':
         takeV(token.value)
-    elif token.isTEXT():
+    elif token.type == 'text':
         takeText(token.value)
-    elif token.isC():
+    elif token.type == 'c':
         takeC(token.value)
     elif isParagraph(token.type, scanning=False):
         takeP(token.type, token.value, nexttoken)
     elif isPoetry(token.type):
         # takeQ(token.type, token.value, nexttoken)
         takeP(token.type, token.value, nexttoken)
-    elif token.isS5():
+    elif token.type == 's5':
         takeS5()
-    elif isSection(token.type):
+    elif token.isSection():
         takeS(token.type, token.value)
-    elif token.isID():
+    elif token.type == 'id':
         takeID(token.value)
-    elif isFootnote(token.type):
+    elif token.isFootnote():
         takeFootnote(token.type, token.value)
-    elif isCharacterStyle(token.type):
+    elif token.isCharacterStyle():
         takeStyle(token.type)
     else:
         takeAsIs(token.type, token.value)
 
-# Returns true if token is part of a cross reference
-# def isCrossRef(token):
-#     return token.isX_S() or token.isX_E() or token.isXO() or token.isXT()
-
-# Returns true if token is part of a footnote or cross reference
-def isFootnote(mark):
-    return mark in {'f', 'f*', 'fe', 'fe*', 'fl', 'fm', 'fm*', 'fp', 'fq', 'fqa', 'fr', 'ft', 'fv', 'fv*', 'rq', 'rq*'}
-
-def isCharacterStyle(mark):
-    return mark in {'add', 'add*', 'bd', 'bd*', 'bdit', 'bdit*', 'bk', 'bk*', 'dc', 'dc*',
-                    'em', 'em*', 'it', 'it*', 'k', 'k*',
-                    'nd', 'nd*', 'no', 'no*', 'ndx', 'ndx*', 'ord', 'ord*',
-                    'pn', 'pn*', 'pro', 'pro*', 'qt', 'qt*',
-                    'sc', 'sc*', 'sig', 'sig*', 'sls', 'sls*', 'tl', 'tl*',
-                    'w', 'w*', 'wg', 'wg*', 'wh', 'wh*', 'wj', 'wj*'}
-    return token.isBDS() or token.isBDE() or token.isITS() or token.isITE() or token.isBDITS() or token.isBDITE() \
-or token.isADDS() or token.isADDE() or token.isPNS() or token.isPNE()
-
-def isParagraph(mark, scanning):
-    isp = mark in {'p', 'm', 'pi', 'pc', 'nb', 'b', 'ip', 'iot', 'io', 'io2'}
-    if isp and scanning and not copy_nb and mark in {'nb', 'b', 'm'}:
+def isParagraph(token, scanning):
+    isp = token.isParagraph()
+    if isp and scanning and not copy_nb and token.type in {'nb', 'b', 'm'}:
         isp = False
     return isp
 
 def isPoetry(mark):
-    return mark in {'q', 'q1', 'q2', 'q3', 'qa', 'qr', 'qc', 'qss', 'd', 'sp'}
-
-def isSection(mark):
-    return mark in {'s', 's1', 's2', 's3', 's4', 's5', 'sr', 'r', 'd', 'sp'}
+    return mark in {'q','q1','q2','q3','qa','qr','qc', 'qss','d','sp'}
 
 backslash_re = re.compile(r'\\\s')
 jammed_re = re.compile(r'(\\v +[-0-9]+[^-\s0-9])', re.UNICODE)
@@ -465,7 +443,7 @@ def convertFile(usfmpath, fname):
     if success:
         reportProgress(f"Marking {fname}")
         sys.stdout.flush()
-        tokens = parseUsfm.parseString(str)
+        tokens = usfmReader.parseString(str)
         token = tokens[0]   # safe because isParseable should reject empty files
         for nexttoken in tokens[1:]:
             take(token, nexttoken)
@@ -666,18 +644,18 @@ def scanV(v):
 
 # Analyzes the specified token in the model file.
 # Only cares about locations of paragraphs.
-def scan(token):
-    if token.isC():
+def scan(token: usfmReader.Token):
+    if token.type == 'c':
         scanC(token.value)
-    elif token.isV():
+    elif token.type == 'v':
         scanV(token.value)
-    elif token.isTEXT():
+    elif token.type == 'text':
         scanText(token.value)
-    elif isParagraph(token.type, scanning=True) or isPoetry(token.type):
+    elif isParagraph(token, scanning=True) or isPoetry(token.type):
         scanPQ(token.type)
-    elif isSection(token.type):
+    elif token.isSection():
         scanS(token.type)
-    elif token.isID():
+    elif token.type== 'id':
         state.addID(token.value)
 
 # Gathers the location and type of all paragraph marks in the model USFM file.
@@ -693,7 +671,7 @@ def scanModelFile(modelpath, fname):
             reportProgress(f"Parsing model file: {fname}")
             sys.stdout.flush()
             state.addFile(fname)
-            tokens = parseUsfm.parseString(str)
+            tokens = usfmReader.parseString(str)
             for token in tokens:
                 scan(token)
     return success
