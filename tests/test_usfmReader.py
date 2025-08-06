@@ -15,11 +15,13 @@ import parseUsfm
 import usfmReader
 
 # usfm_path = r'C:\DCS\usfm-tools\tests\testdata\en_test_39-MAL.usfm'
-usfm_path = r'C:\DCS\usfm-tools\tests\testdata\dan_19-PSA.usfm'
+# usfm_path = r'C:\DCS\usfm-tools\tests\testdata\dan_19-PSA.usfm'
 # usfm_path = r'C:\DCS\usfm-tools\tests\testdata\fa_43-LUK.usfm'
+# usfm_path = r'C:\DCS\usfm-tools\tests\testdata\en_test_41-MAT.usfm'
+usfm_path = r'C:\DCS\usfm-tools\tests\testdata\_nadroga_42-MRK.usfm'
 testdata_path = os.path.dirname(usfm_path)
 
-def test_parseUsfm():
+def parse_using_parseUsfm():
     with io.open(usfm_path, "tr", encoding="utf-8-sig") as input:
         contents = input.read(-1)
     tokens = parseUsfm.parseString(contents)
@@ -37,7 +39,7 @@ def test_parseUsfm():
             except UnicodeDecodeError as e:
                 file.write(str(e))
 
-def test_usfmReader():
+def parse_using_usfmReader():
     with io.open(usfm_path, "tr", encoding="utf-8-sig") as input:
         contents = input.read(-1)
     tokens = usfmReader.parseString(contents)
@@ -58,6 +60,8 @@ def test_usfmReader():
 # Run this test after successful completion of test_parseUsfm and test_usfmReader.
 # It compares the results of the two methods of parsing a usfm file.
 def test_compare_files():
+    parse_using_parseUsfm()
+    parse_using_usfmReader()
     path1 = os.path.join(testdata_path, "usfmParse.txt")
     path2 = os.path.join(testdata_path, "usfmReader.txt")
     with io.open(path1, "tr", encoding="utf-8-sig") as input:
@@ -67,12 +71,15 @@ def test_compare_files():
     assert len(contents1) == len(contents2)
     n = min(len(contents1), len(contents2))
     lineno = 0
+    ndiffs = 0
     while lineno < n:
-        line1 = contents1[n]
-        line2 = contents2[n]
-        if line1 != line2:
-            print(f"Difference at line {n+1}")
-        assert line1 == line2
+        line1 = contents1[lineno]
+        line2 = contents2[lineno]
+        lineno += 1
+        if line1.rstrip() != line2.rstrip():
+            print(f"Difference at line {lineno}")
+            ndiffs += 1
+        assert ndiffs == 0
 
 def test_speed():
     with io.open(usfm_path, "tr", encoding="utf-8-sig") as input:
@@ -80,7 +87,7 @@ def test_speed():
 
     from line_profiler import LineProfiler
     lp = LineProfiler()
-    lp_wrapper = lp(parseUsfm.parseString)
+    lp_wrapper = lp(usfmReader.parseString)
     lp_wrapper(contents)
     lp.print_stats()
 
@@ -101,22 +108,114 @@ def get_timestamp(path):
     #  ('\\v asdf\n'),   # parseUsfm returns ('unknown', 'v'); usfmReader returns ('v', '')
     #  ('\\c x '),     # parseUsfm returns ('unknown', 'c'); usfmReader returns ('c', '')
     #  ('\\v 15Start right in'),  # parseUsfm return ('unknown', 'v'); usfmReader returns ('v', '')
-     ("\\v 1 Tabe"),
+     ("\\id ROM Romans\n"),
+    #  ("\\c 1\\1 asdf"),     # parseUsfm returns ('unknown','c') usfmReader returns ('c', '1')
+     ("\\v 1 Tabe"),    # both return ('v', '1') and ('text', 'Tabe')
      ("\\p\n"),
+     ("\\toc1 Philemon\n\\c 1\n"),
      ("\\id phm\n\\ide UTF-8\n\\toc1 Philemon\n\\c 1\n\\v 1 Tabe \n\n"),
      ("\\v 8 Kuki ngandrus.\n(Yohanes Ngandur Yesus)\n"),
-     ("\\v 9\\v 10\n"),
-     ("\\v 25 Anugerah teke.\\c 2\\v1 verse"),
+    #  ("\\v 9\\v 10\n"),   parseUsfm returns ('unknown', 'v'); usfmReader returns ('v', '')
+    #  ("\\v 25 Anugerah teke.\\c 2\\v1 verse"),  # parseUsfm returns "unknown"s for c and v1
+     ("\\s Heading\\p\n\\v 4 Four"),
+     ("\\toc1 Philemon\n\\c 1\n"),
+     ("\\v 20\n"),
+    #  ("\\v 20Jammed"),    # parseUfm ('unknown', 'v')
+     ("\\v 21 \\f + \\ft asdf"),
+     ("\\p asdf"),
+     ("\\cl asdf\n\\p  \n\\v 1 asdf"),
+     ("\\cl "),
+    #  ("\\pasdf"),   # parseUsfm returns ('unknown', 'pasdf'); usfmReader returns ('text', '\pasdf')
+     ("\\cl asdf\n\\p  \n\\p asdf"),
+     ("\\p \\p\n"),
     ])
 def test_parseString(text):
     result1 = parseUsfm.parseString(text)
     result2 = usfmReader.parseString(text)
-    print("parseUsfm result:\n")
+    print("parseUsfm result:")
     for token in result1:
         print(f"{token.type} {token.value}")
-    print("\nusfmReader result:\n")
+    print("\nusfmReader result:")
     for token in result2:
         print(f"{token.type} {token.value}")
     assert len(result1) == len(result2)
     for i in range(len(result1)):
-        assert result1[i].value == result2[i].value
+        assert result1[i].value.rstrip() == result2[i].value.rstrip()
+
+@pytest.mark.parametrize('text, expectedtypes',
+    [('Sentence 1. next sentence 2.', ['text']),
+     ("\\c 1", ['c']),
+     ("\\c 1\\v 1 asdf", ['c','v','text']),
+     ("\\c 1\\1 asdf", ['c','text']),
+     ("\\id ROM Romans", ['id']),
+     ('\\v ', ['v']),
+     ('\\v asdf\n', ['v','text']),
+     ('\\c x ', ['c','text']),
+     ('\\v 15Start right in', ['v','text']),
+     ("\\v 1 Tabe", ['v','text']),
+     ("\\p\n", ['p']),
+     ("\\id phm\n\\ide UTF-8\n\\toc1 Philemon\n\\c 1\n\\v 1 Tabe \n\n", ['id','ide','toc1','c','v','text']),
+     ("\\v 8 Kuki ngandrus.\n(Yohanes Ngandur Yesus)\n", ['v','text','text']),
+     ("\\v 9\\v 10\n", ['v','v']),
+     ("\\v 25 Anugerah teke.\\c 2\\v1 verse", ['v','text','c','text']),
+     ("\\s Heading\\p\n\\v 4 Four", ['s','p','v','text']),
+     ("\\toc1 Philemon\n\\c 1\n", ['toc1','c']),
+     ("\\v 20", ['v']),
+     ("\\v 21 \\f + \\ft", ['v','f','ft']),
+     ("\\p asdf", ['p','text']),
+     ("\\cl asdf\n\\p  \n\\v 1 asdf", ['cl', 'p', 'v', 'text']),
+     ("\\cl", ['cl']),
+     ("\\pasdf", ['text']),
+     ("\\cl asdf\n\\p  \n\\p asdf", ['cl','p','p','text']),
+     ("\\p \\p\n", ['p','p']),
+    ])
+def test_usfmReader_parseString(text, expectedtypes):
+    tokens = usfmReader.parseString(text)
+    for token in tokens:
+        assert token.type in usfmReader.all_markers
+        print(token)
+    assert len(tokens) == len(expectedtypes)
+    types = [token.type for token in tokens]
+    assert types == expectedtypes
+
+@pytest.mark.parametrize('text, expectedtypes, expectedvalues',
+    [('Sentence 1. next sentence 2.', ['text'], ['Sentence 1. next sentence 2.']),
+     ("\\c 1", ['c'], ['1']),
+     ("\\c 2\\v 1 asdf", ['c','v'], []),
+     ("\\c 3\\1 asdf", ['c'], []),
+     ("\\c 4\n\\5 \\v 1 asdf", ['c','text','v'], ['4', '\\5', '1 asdf']),
+     ("\\c 5\\1\n asdf", ['c','text'], ['5\\1', 'asdf']),
+     ("\\id ROM Romans", ['id'], ['ROM Romans']),
+     ("\\5 6", ['text'], []),
+     ("", [], []),
+     ('\\v ', ['v'], ['']),
+     ('\\v asdf\n\n\n\\p\n\\v 6 asdf', ['v','p','v'], ['asdf', '', '6 asdf']),
+     ('\\c x ', ['c'], ['x']),
+     ('\\v 15Start right in ', ['v'], ['15Start right in']),
+     ("\\v 1 Tabe", ['v'], []),
+     ("\\p   \n", ['p'], ['']),
+     ("\\id phm\n\\ide UTF-8\n\\toc1 Philemon\n\\c 1\n\\v 1 Tabe \n\n", ['id','ide','toc1','c','v'], []),
+     ("\\v 8 Kuki ngandrus.\n(Yohanes Ngandur Yesus)\n", ['v','text'], []),
+     ("\\v 9\\v 10\n", ['v','v'], ['9','10']),
+     ("\\v 25 Anugerah teke.\\c 2\\v1 verse", ['v','c'], ['25 Anugerah teke.', '2\\v1 verse']),
+     ("\\s Heading\\p\n\\v 4 Four", ['s','p','v'], []),
+     ("\\toc1 Philemon\n\\c 1\n", ['toc1','c'], []),
+     ("\\c\n", ['c'], []),
+     ("\\c2 2\n", ['text'], ['\\c2 2']),
+     ("\\f + \\ft Instead of \\fqa rebuke \\fqa*", ['f','ft','fqa','fqa*'], []),
+     ("\\fqa*", ['fqa*'], ['']),
+     ("\\v 21 \\f + \\ft", ['v','f','ft'], ['21', '+', '']),
+     ("\\v 27\n\\Ni mata lawa ", ['v','text'], ['27', '\\Ni mata lawa']),
+    ])
+def test_nextpair(text, expectedtypes, expectedvalues):
+    types = []
+    values = []
+    for token in usfmReader.nextpair(text):
+        assert token.type in usfmReader.all_markers
+        types.append(token.type)
+        values.append(token.value)
+        print(token)
+    assert len(types) == len(expectedtypes)
+    assert types == expectedtypes
+    if expectedvalues:
+        assert values == expectedvalues
