@@ -138,7 +138,7 @@ check the Print Preparation checklist, if it exists.\n\
 If you still don't know, run the conversion both ways and\n\
 compare results.\n\
 Keep the better result.\n"
-        self.show_progress(msg)
+        self.clear_show(msg)
 
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
