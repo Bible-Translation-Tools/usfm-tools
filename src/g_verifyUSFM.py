@@ -60,15 +60,8 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.std_titles = StringVar()
         self.compare_dir = StringVar()
         self.suppress = [BooleanVar(value = False) for i in range(13)]
-        # self.language_code.trace_add("write", self._onChangeLanguage)
-        # self.source_dir.trace_add("write", self._onChangeSourceDir)
-        # self.filename.trace_add("write", self._set_button_status)
-        # self.compare_dir.trace_add("write", self._set_button_status)
-        # self.suppress[6].trace_add("write", self._onChangeQuotes)
-        # self.suppress[7].trace_add("write", self._onChangeQuotes)
         for col in [2,3,4]:
             self.columnconfigure(col, weight=1)   # keep column 1 from expanding
-        # self.rowconfigure(88, minsize=170, weight=1)  # let the message expand vertically
 
         # language_code will be used for ProjectInfo soon in verifyUSFM.
         language_code_label = ttk.Label(self, text="Language code:", width=20)
@@ -208,6 +201,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.source_dir.trace_add("write", self._onChangeSourceDir)
         self.filename.trace_add("write", self._set_button_status)
         self.compare_dir.trace_add("write", self._set_button_status)
+        self._onChangeQuotes()
         self.suppress[6].trace_add("write", self._onChangeQuotes)
         self.suppress[7].trace_add("write", self._onChangeQuotes)
 
