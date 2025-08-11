@@ -110,7 +110,7 @@ def get_timestamp(path):
     #  ('\\v 15Start right in'),  # parseUsfm return ('unknown', 'v'); usfmReader returns ('v', '')
      ("\\id ROM Romans\n"),
     #  ("\\c 1\\1 asdf"),     # parseUsfm returns ('unknown','c') usfmReader returns ('c', '1')
-     ("\\v 1 Tabe"),    # both return ('v', '1') and ('text', 'Tabe')
+     ("\\v 1 Tabe"),
      ("\\p\n"),
      ("\\toc1 Philemon\n\\c 1\n"),
      ("\\id phm\n\\ide UTF-8\n\\toc1 Philemon\n\\c 1\n\\v 1 Tabe \n\n"),
@@ -121,13 +121,17 @@ def get_timestamp(path):
      ("\\toc1 Philemon\n\\c 1\n"),
      ("\\v 20\n"),
     #  ("\\v 20Jammed"),    # parseUfm ('unknown', 'v')
+    #  ("\\v notnumeric text"),  # parseUfm ('unknown', 'v')
      ("\\v 21 \\f + \\ft asdf"),
+     ("\\v 22-23 asdf"),
      ("\\p asdf"),
      ("\\cl asdf\n\\p  \n\\v 1 asdf"),
      ("\\cl "),
     #  ("\\pasdf"),   # parseUsfm returns ('unknown', 'pasdf'); usfmReader returns ('text', '\pasdf')
      ("\\cl asdf\n\\p  \n\\p asdf"),
      ("\\p \\p\n"),
+    #  ("asdf \\f + \\ft asdf \\fqa asdf \\fqa*\\f*\n"),  # parseUmfm accepts \fqa* as a valid usfm marker
+    #  ("\\f + \\fqa asdf \\+it qwer\\it*\\fqa*"),    # parseUsfm doesn't recognize \it...\it*
     ])
 def test_parseString(text):
     result1 = parseUsfm.parseString(text)
@@ -161,13 +165,18 @@ def test_parseString(text):
      ("\\s Heading\\p\n\\v 4 Four", ['s','p','v','text']),
      ("\\toc1 Philemon\n\\c 1\n", ['toc1','c']),
      ("\\v 20", ['v']),
+     ("\\v 20Jammed", ['v', 'text']),
+     ("\\v notnumeric text", ['v', 'text']),
      ("\\v 21 \\f + \\ft", ['v','f','ft']),
+     ("\\v 22-23 asdf", ['v','text']),
      ("\\p asdf", ['p','text']),
      ("\\cl asdf\n\\p  \n\\v 1 asdf", ['cl', 'p', 'v', 'text']),
      ("\\cl", ['cl']),
      ("\\pasdf", ['text']),
      ("\\cl asdf\n\\p  \n\\p asdf", ['cl','p','p','text']),
      ("\\p \\p\n", ['p','p']),
+     ("asdf \\f + \\ft asdf \\fqa asdf \\fqa*\\f*\n", ['text','f', 'ft', 'fqa', 'f*']),
+     ("\\f + \\fqa asdf\\+em qwer\\em*\\fqa*", ['f', 'fqa', '+em', 'em*', 'text']),
     ])
 def test_usfmReader_parseString(text, expectedtypes):
     tokens = usfmReader.parseString(text)
@@ -180,32 +189,36 @@ def test_usfmReader_parseString(text, expectedtypes):
 
 @pytest.mark.parametrize('text, expectedtypes, expectedvalues',
     [('Sentence 1. next sentence 2.', ['text'], ['Sentence 1. next sentence 2.']),
-     ("\\c 1", ['c'], ['1']),
+     ("\\c 1", ['c'], [' 1']),
      ("\\c 2\\v 1 asdf", ['c','v'], []),
      ("\\c 3\\1 asdf", ['c'], []),
-     ("\\c 4\n\\5 \\v 1 asdf", ['c','text','v'], ['4', '\\5', '1 asdf']),
-     ("\\c 5\\1\n asdf", ['c','text'], ['5\\1', 'asdf']),
-     ("\\id ROM Romans", ['id'], ['ROM Romans']),
+     ("\\c 4\n\\5 \\v 1 asdf", ['c','text','v'], [' 4', '\\5 ', ' 1 asdf']),
+     ("\\c 5\\1\n asdf", ['c','text'], [' 5\\1', ' asdf']),
+     ("\\id ROM Romans", ['id'], [' ROM Romans']),
      ("\\5 6", ['text'], []),
      ("", [], []),
-     ('\\v ', ['v'], ['']),
-     ('\\v asdf\n\n\n\\p\n\\v 6 asdf', ['v','p','v'], ['asdf', '', '6 asdf']),
-     ('\\c x ', ['c'], ['x']),
-     ('\\v 15Start right in ', ['v'], ['15Start right in']),
+     ('\\v ', ['v'], [' ']),
+     ('\\v asdf\n\n\n\\p\n\\v 6 asdf', ['v','p','v'], [' asdf', '', ' 6 asdf']),
+     ('\\c x ', ['c'], [' x ']),
+     ('\\v 15Start right in ', ['v'], [' 15Start right in ']),
      ("\\v 1 Tabe", ['v'], []),
-     ("\\p   \n", ['p'], ['']),
+     ("\\p   \n", ['p'], ['   ']),
      ("\\id phm\n\\ide UTF-8\n\\toc1 Philemon\n\\c 1\n\\v 1 Tabe \n\n", ['id','ide','toc1','c','v'], []),
      ("\\v 8 Kuki ngandrus.\n(Yohanes Ngandur Yesus)\n", ['v','text'], []),
-     ("\\v 9\\v 10\n", ['v','v'], ['9','10']),
-     ("\\v 25 Anugerah teke.\\c 2\\v1 verse", ['v','c'], ['25 Anugerah teke.', '2\\v1 verse']),
+     ("\\v 9\\v 10\n", ['v','v'], [' 9',' 10']),
+     ("\\v 25 Anugerah teke.\\c 2\\v1 verse", ['v','c'], [' 25 Anugerah teke.', ' 2\\v1 verse']),
      ("\\s Heading\\p\n\\v 4 Four", ['s','p','v'], []),
      ("\\toc1 Philemon\n\\c 1\n", ['toc1','c'], []),
      ("\\c\n", ['c'], []),
      ("\\c2 2\n", ['text'], ['\\c2 2']),
-     ("\\f + \\ft Instead of \\fqa rebuke \\fqa*", ['f','ft','fqa','fqa*'], []),
-     ("\\fqa*", ['fqa*'], ['']),
-     ("\\v 21 \\f + \\ft", ['v','f','ft'], ['21', '+', '']),
-     ("\\v 27\n\\Ni mata lawa ", ['v','text'], ['27', '\\Ni mata lawa']),
+     ("\\f + \\ft Instead of \\fqa rebuke \\fqa*", ['f','ft','fqa'], []),
+     ("\\fqa*", ['text'], ['\\fqa*']),
+     ("\\v 21 \\f + \\ft", ['v','f','ft'], [' 21 ', ' + ', '']),
+     ("\\v 27\n\\Ni mata lawa ", ['v','text'], [' 27', '\\Ni mata lawa ']),
+     ("asdf \\f + \\ft asdf \\fqa asdf\\fqa*\\f*\n", ['text','f', 'ft','fqa','f*'], ['asdf ', ' + ', ' asdf ', ' asdf\\fqa*', '']),
+     ("\\f + \\fqa asdf\\+em qwer\\em*\\fqa*", ['f','fqa','+em','em*'], []),
+     ("\\fqa* asdf", ['text'], ['\\fqa* asdf']),
+     (" \\fqa* asdf", ['text'], [' \\fqa* asdf']),
     ])
 def test_nextpair(text, expectedtypes, expectedvalues):
     types = []
@@ -219,3 +232,26 @@ def test_nextpair(text, expectedtypes, expectedvalues):
     assert types == expectedtypes
     if expectedvalues:
         assert values == expectedvalues
+
+@pytest.mark.parametrize('text, expected',
+    [('Sentence 1. next sentence 2.', []),
+     ("\\c 1", [('c',0)]),
+     ("\\em asdf", [('em', 0)]),
+     ("\\+em asdf", [('+em', 0)]),
+     (" asdf\\+em*", [('+em*', 5)]),
+     ("x\\fqa", [('fqa',1)]),
+     ("\\xyz* asdf", []),
+     (" \\xyz asdf", []),
+     ("\\c 1 \\v 1 \\p\n", [('c',0), ('v',5), ('p',10)]),
+     ("\\f + \\fqa asdf\\+em qwer\\+em*\\fqa*", [('f',0), ('fqa',5), ('+em',14), ('+em*',23)]),
+     ("\\fqa* asdf", []),
+     (" \\q3 asdf", [('q3',1)]),
+    ])
+def test_list_usfm(text, expected):
+    usfms = usfmReader.list_usfm(text)
+    for usfm in usfms:
+        print(usfm)
+    assert len(usfms) == len(expected)
+    m = min(len(usfms), len(expected))
+    for n in range(m):
+        assert usfms[n] == expected[n]
