@@ -637,7 +637,7 @@ psalmv1_re = re.compile(r'PSA \d+:1$')
 # Verse 1 of every Psalm is given a pass.
 def shortened_verse(ref):
     shortened = False
-    if not psalmv1_re.match(ref) and state.sourcetext and state.reference in state.sourcetext:
+    if not psalmv1_re.match(ref) and state.reference in state.sourcetext:
         sourcelength = len(state.sourcetext[state.reference])
         if sourcelength > 0 and state.getTextLength() / sourcelength < (0.4 * state.booklength / state.booklength_src):
             shortened = True
@@ -663,12 +663,12 @@ def similarToSource():
 # Report empty verse, verse fragment or all ASCII text, in previous verse
 def previousVerseCheck():
     empty = False
-    if not usfm_verses.isOptional(state.reference) and state.getTextLength() < 12 and state.verse != 0:
+    if not usfm_verses.isOptional(state.reference) and state.verse != 0:
         if state.getTextLength() == 0:
             reportError("Empty verse: " + state.reference, 1)
             empty = True
-    if not empty and shortened_verse(state.reference):
-        reportError(f"Translation is very short compared to source: {state.reference}", 2)
+        elif shortened_verse(state.reference):
+            reportError(f"Translation is very short compared to source: {state.reference}", 2)
     if not suppress[9] and state.asciiVerse and not empty:
         reportError("Verse is entirely ASCII: " + state.reference, 3)
     (sim, n) = similarToSource()
