@@ -225,6 +225,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
             language_code = my.getLanguageId()
             if language_code != self.language_code.get():   # to avoid xs callbacks
                 self.language_code.set(language_code)
+                self.std_titles.set("")
         self._set_button_status()
 
     def _onOpenSourceDir(self, *args):
