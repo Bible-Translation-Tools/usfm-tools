@@ -635,7 +635,7 @@ def convert_by_token(path):
         contents = input.read(-1)
     state.initBook()
     usfm = usfmWriter.usfmWriter(path)
-    usfm.setInlineTags({"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"})
+    # usfm.setInlineTags({"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"})
     global needcaps
     needcaps = True
     tokens = usfmReader.parseString(contents)

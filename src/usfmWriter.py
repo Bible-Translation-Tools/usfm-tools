@@ -8,13 +8,39 @@
 
 import io
 
+startline_tags = {'id','ide','usfm','c','cl','v','p','rem',
+                'mt','mt1','mt2','mt3','mte','mte1','mte2','ms','ms1','ms2','mr',
+                'h','toc1','toc2','toc3',
+                'ca','cp',
+                'ip','ipi','io','io1','io2','io3','iq','iq1','iq2','iq3','ib',
+                'ili','ili1','ili2','ili3','iot','iex','ie',
+                'imt','imt1','imt2','im','imi','imq','ipq','is','is1','is2','is3',
+                'm','pi','pc','nb','b',
+                'q','q1','q2','q3','qa','qr','qc','qm','qm1','qm2',
+                's','s1','s2','s3','s4','s5','sr','r','d','sp',
+                'sd','sd1','sd2','sd3',
+                'lit','pb','pm','pmo','pmc','pmr'
+}
+inline_tags = {'va','va*','vp','vp*','ca*',
+                'add','add*', 'bd','bd*', 'bdit','bdit*', 'bk','bk*', 'dc','dc*',
+                'em','em*', 'it','it*', 'k','k*',
+                'nd','nd*', 'no','no*', 'ndx','ndx*', 'ord','ord*',
+                'pn','pn*', 'pro','pro*', 'qt','qt*',
+                'sc','sc*', 'sig','sig*', 'sls','sls*', 'tl','tl*',
+                'w','w*', 'wg','wg*', 'wh','wh*', 'wj','wj*',
+                'f','f*','fe','fe*','fr','fk','fq','fqa','fqa*','fp','ft','fv','fv*',
+                'fdc','fdc*','fl','fm','fm*','rq','rq*',
+                'x','x*','xo','xt',
+                'ior','ior*','iqt','iqt*','qac','qac*',
+                'fig','fig*'
+}
+
 class usfmWriter:
     def __init__(self, path):
         self._path = path
         self._file = io.open(path, "tw", encoding='utf-8', newline='\n')
         self._spaced = True
         self._newlined = True
-        self._inline_tags = {"f", "ft", "f*", "rq", "rq*", "fe", "fe*", "fr", "fk", "fq", "fqa", "fqa*"}
 
     def close(self):
         if self._file:
@@ -25,8 +51,8 @@ class usfmWriter:
 
     # Specify a set of usfm tags that do not have to start on a new line
     # See __init__() for the defaults.
-    def setInlineTags(self, tags):
-        self._inline_tags = tags
+    # def setInlineTags(self, tags):
+    #     self._inline_tags = tags
 
     # Writes specified string to the usfm file, inserting spaces where needed.
     # Technical debt: the beginning of the string should be checked for inline tags. Currently
@@ -46,8 +72,9 @@ class usfmWriter:
     # Writes a usfm tagged value, insert newline if needed
     def writeUsfm(self, key, value=None):
         if self._file:
-            if key in self._inline_tags:
-                intro = "\\" if (self._newlined or self._spaced) else " \\"
+            if key in inline_tags:
+                # intro = "\\" if (self._newlined or self._spaced) else " \\"
+                intro = '\\'
             else:
                 intro = "\\" if self._newlined else "\n\\"
             self._file.write(f"{intro}{key}")
