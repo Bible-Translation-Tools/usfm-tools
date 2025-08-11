@@ -78,10 +78,11 @@ class State:
 
     def addChapter(self, c):
         self.lastChapter = self.chapter
-        self.chapter = int(c)
-        self.verse = 0
-        self.bridge = 0
-        self.reference = self.ID[0:3].upper() + " chapter " + c
+        if c.isnumeric():
+            self.chapter = int(c)
+            self.verse = 0
+            self.bridge = 0
+            self.reference = self.ID[0:3].upper() + " chapter " + c
         self.lastText = ''
         self.expectText = False
         self.needPmarker = 1    # need \p or \q before verse 1
@@ -128,9 +129,13 @@ class State:
     def addVerse(self, v):
         v1 = v.split('-')[0]
         v2 = v.split('-')[-1]
-        self.verse = int(v1)
-        self.bridge = int(v2)
-        self.reference = self.ID[0:3].upper() + " " + str(self.chapter) + ":" + v
+        if v1.isnumeric() and v2.isnumeric():
+            self.verse = int(v1)
+            self.bridge = int(v2)
+            self.reference = self.ID[0:3].upper() + " " + str(self.chapter) + ":" + v
+        if self.prevTokenType == 'v':
+            self.lastText = ''   # last verse was empty
+            self.midSentence = False
         self.expectText = True
 
     def addFootnote(self):
@@ -290,8 +295,11 @@ def takeID(id):
 def takeP(tag, value, nexttoken):
     if nexttoken.type == 'v':
         mayInsertS5()
-    if not state.pAlready(current=False):
-        state.addP(state.bridge+1)
+        if not state.pAlready(current=False):
+            state.addP(state.bridge+1)
+            state.usfm.writeUsfm(tag, value)
+    else:
+        state.addP(state.bridge)
         state.usfm.writeUsfm(tag, value)
 
 def takeS5():
@@ -381,7 +389,7 @@ def take(token, nexttoken):
         takeText(token.value)
     elif token.type == 'c':
         takeC(token.value)
-    elif isParagraph(token.type, scanning=False):
+    elif isParagraph(token, scanning=False):
         takeP(token.type, token.value, nexttoken)
     elif isPoetry(token.type):
         # takeQ(token.type, token.value, nexttoken)
@@ -399,7 +407,7 @@ def take(token, nexttoken):
     else:
         takeAsIs(token.type, token.value)
 
-def isParagraph(token, scanning):
+def isParagraph(token: usfmReader.Token, scanning):
     isp = token.isParagraph()
     if isp and scanning and not copy_nb and token.type in {'nb', 'b', 'm'}:
         isp = False
