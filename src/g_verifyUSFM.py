@@ -224,6 +224,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         else:
             cmp = ""
         self.compare_dir.set(cmp)   # calls _set_button_status() implicitly
+        self.clear_show("")     # clears the previous source text hints, if any
 
     def onScriptEnd(self):
         issuespath = os.path.join(self.values['source_dir'], "issues.txt")
@@ -310,7 +311,23 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             self.filename.set(os.path.basename(path))
 
     def _onFindCmpDir(self, *args):
+        hints = self._list_sources()
+        if hints:
+            hints = "Locate the folder, for one of these source texts:\n" + hints
+            self.clear_show(hints)
         self.controller.askdir(self.compare_dir)
+
+    # Returns a string properly formatted for showing the known sources texts
+    # for this translation, and how frequently each was used.
+    def _list_sources(self):
+        workdir = self.source_dir.get()
+        code = self.language_code.get()
+        sourcehints = []
+        if os.path.isdir(workdir) and code:
+            pi = ProjectInfo(workdir, code)
+            for src in pi.getSources():
+                sourcehints.append(f"  {src['language_id']}_{src['resource_id']}, vrsn ~{src['version']} was used for {src['count']} book(s).")
+        return "\n".join(sourcehints)
 
     # Called when the language code changes.
     def _onChangeLanguage(self, *args):
