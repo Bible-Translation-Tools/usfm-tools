@@ -134,10 +134,7 @@ class Text2USFM_Frame(g_step.Step_Frame):
 
     def _onHelpHeadings(self, *args):
         msg = "If you don't know whether the text contains section headings,\n\
-check the Print Preparation checklist, if it exists.\n\
-If you still don't know, run the conversion both ways and\n\
-compare results.\n\
-Keep the better result.\n"
+run the conversion both ways and keep the better result.\n"
         self.clear_show(msg)
 
     def onScriptEnd(self):
