@@ -1,6 +1,15 @@
 # Usfm Wizard Version history
 
-## 1.4.2
+## 1.4.3 - 8/6/25
+* replace USFM parser - eliminates bugs and performance bottlenecks.
+* txt2Usfm - improve verse number resolution.
+* txt2Usfm - added help message for section headings.
+* mark_paragraphs - capture model directory from Verify step.
+* mark_paragraphs - GUI input autofill and validation enhancements.
+* verifyUsfm - GUI input autofill and validation enhancements.
+* miscellaneous bug fixes
+
+## 1.4.2 - 7/16/25
 * txt2Usfm - incremental improvements around verse numbering.
 * usfm_cleanup - preserve line breaks.
 * mark_paragraphs - preserve line breaks.
@@ -28,7 +37,7 @@
 * verifyUsfm - make footnote warnings source text-specific.
 * verifyUsfm - report verse translations that are very short compared to source text.
 * verifyUsfm - report possible section titles by verse reference rather than line number.
-* verifyUsfm - further refinement of section title recognition. 
+* verifyUsfm - further refinement of section title recognition.
 * verifyUsfm - fix overcount of poetry paragraphs.
 * verifyUsfm - eliminate 'Ascii content' option from GUI; detect automatically.
 * verifyUsfm - take language code automatically from manifest.yaml.
@@ -37,7 +46,7 @@
 * usfm_cleanup - improved verse number cleanup.
 * usfm_cleanup - fix most floating quotes.
 * usfm_cleanup - remove 'Capitalization fix' option from GUI.
-* usfm_cleanup - further refinement of section title markup. 
+* usfm_cleanup - further refinement of section title markup.
 * txt2Usfm - relax folder name requirement.
 * verifyManifest - stop warning about common source languages like 'sw'.
 
