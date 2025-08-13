@@ -124,7 +124,8 @@ class Step_Frame(ttk.Frame, ABC):
     # Disables new insertions.
     def clear_show(self, message):
         self.clear_messages()
-        self.message_area.insert('end', message)
+        if message:
+            self.message_area.insert('end', message)
         self.message_area['state'] = DISABLED
 
     # This function does thorough input validation prior to step execution, or any time.
