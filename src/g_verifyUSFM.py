@@ -28,7 +28,7 @@ class VerifyUSFM(g_step.Step):
 
     def onNext(self):
         if self.executed:
-            super().onNext('source_dir', 'filename', 'standard_chapter_title')
+            super().onNext('source_dir', 'filename', 'language_code', 'standard_chapter_title')
         else:
             super().onNext()
         self.executed = False
