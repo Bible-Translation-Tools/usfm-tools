@@ -119,7 +119,7 @@ class State:
         if scan:
             self.sourcetext.clear()
             self.sourcefootnote.clear()
-        elif id:
+        elif id and id not in self.IDs:
             self.IDs.append(id)
 
     def addTitle(self, bookTitle):
@@ -610,7 +610,7 @@ def identifySource(sourcedir):
     return id
 
 # Loads the source text for the current book if compare_dir is set.
-# Slow operation, it parses a usfm file and stores verse text in a dict.
+# It parses a usfm file and stores verse text in a dict.
 def load_source(fname):
     global footnotedVerses
     sourcedir = config['compare_dir']
@@ -1014,7 +1014,7 @@ spacey3_re = re.compile(r'[\(\'"«“‘’”»›][\s]', re.UNICODE)       # q
 spacey4_re = re.compile(r'[\s][\(\'"«“‘’”»›]$', re.UNICODE)       # quote-space at end of verse
 wordmedial_punct_re = re.compile(r'[\w][.?!;:,()\[\]"«“‘”»›][.?!;:,()\[\]\'"«“‘’”»›]*[\w]')
 outsidequote_re = re.compile(r'([\'"’”»›][\.!])', re.UNICODE)   # Period or exclamation outside closing quote.
-backs_re = re.compile(r'\\\s')
+backs_re = re.compile(r'\\(\s|$)')
 
 def reportPunctuation(text):
     if bad := punctuation_re.search(text):
@@ -1354,7 +1354,6 @@ def peripheral(fname):
     return periph
 
 wjwj_re = re.compile(r' \\wj +\\wj\*', flags=re.UNICODE)
-backslasheol_re = re.compile(r'\\ *\n')
 
 def verifyFile(path):
     with io.open(path, "tr", encoding="utf-8-sig") as input:
@@ -1367,8 +1366,6 @@ def verifyFile(path):
 
     if wjwj_re.search(contents):
         reportError("Empty \\wj \\wj* pair(s) in " + shortname(path), 77)
-    if backslasheol_re.search(contents):
-        reportError("Stranded backslash(es) at end of line(s) in " + shortname(path), 78)
     if '\x00' in contents:
         reportError("Null bytes found in " + shortname(path), 79)
         if contents.count('\x00') == len(contents):
