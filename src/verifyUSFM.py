@@ -9,7 +9,7 @@
 #   filename  (optional, checks all files if omitted)
 #   standard_chapter_title (optional)
 #   suppress[1]  - Suppress all warnings about numbers. (possible verse number in verse, space in number, number prefix/suffix, etc.)
-#   suppress[2]  - Suppress warnings about missing paragraph marker before verse 1.
+#   suppress[2]  - (removed: Suppress warnings about missing paragraph marker before verse 1.)
 #   suppress[3]  - Suppress most warnings about punctuation
 #   suppress[4]  - Suppress warnings about invalid placement of paragraph/poetry markers
 #   suppress[5]  - Suppress checks for verse counts
@@ -33,6 +33,7 @@ wordlist = dict()
 footnotedVerses = {}
 nFiles = 0  # number of .usfm files verified
 nSectionHeadings = 0
+nNoPAfterC = 0
 
 from configmanager import ToolsConfigManager
 import os
@@ -474,8 +475,8 @@ def reportSuppressedIssues():
             issuesfile.write(f"    Punctuation.\n")
         if suppress[11]:
             issuesfile.write(f"    Paragraph-final punctuation. (Only the total counts were reported.)\n")
-        if suppress[2]:
-            issuesfile.write(f"    Missing paragraph marker after chapter marker.\n")
+        # if suppress[2]:
+        #     issuesfile.write(f"    Missing paragraph marker after chapter marker.\n")
         if suppress[4]:
             issuesfile.write(f"    Invalid placement of paragraph/poetry markers.\n")
         if suppress[5]:
@@ -558,11 +559,11 @@ def reportMixedCase():
         elif entry[1][0] < 5:
             if isMixed(entry[0]):
                 mcwords.append(entry[0])
-    if 0 < len(mcwords) < limit:
+    if len(mcwords) > 0:
         start = "Other mixed" if nSingleMixed > 0 else "Mixed"
-        reportError(f"{start} case words occur more than once each: {mcwords}", 0.5)
-    elif len(mcwords) >= limit:
-        reportError("Too many mixed case words; reporting cancelled", 0.6)
+        reportError(f"{start} case words occur more than once each: {mcwords[0:limit]}", 0.5)
+        if len(mcwords) >= limit:
+            reportError("Too many mixed case words; reporting cancelled", 0.6)
 
 def reportSections():
     if nFiles > 2 and nSectionHeadings > 0:
@@ -915,7 +916,12 @@ def takeV(vstr):
         if state.chapter == 0:
             reportError("Missing chapter tag: " + state.reference, 36)
         if state.verse == 1 and state.needPP:
-            reportError("Need paragraph marker before: " + state.reference, 37, suppress[2])
+            global nNoPAfterC
+            nNoPAfterC += 1
+            if nNoPAfterC < 31:
+                reportError("Need paragraph marker before: " + state.reference, 37, (nNoPAfterC > 30))
+            elif nNoPAfterC == 31:
+                reportError("Reporting of missing \\p after \\c is cancelled; too many occurrences.", 37.1)
         if state.needQQ:
             reportError("Need \\q or \\p after acrostic heading before: " + state.reference, 38)
             state.resetPoetry()
@@ -1419,15 +1425,18 @@ def verifyDir(workdir):
             elif path.is_file() and path.name[-3:].lower() == 'sfm':
                 verifyFile(path)
 
+# Called once each time this script runs.
 def initializeGlobals():
     global config
     global suppress
     global wordlist
     global nFiles
     global nSectionHeadings
+    global nNoPAfterC
 
     nFiles = 0
     nSectionHeadings = 0
+    nNoPAfterC = 0
     wordlist = dict()
     config = ToolsConfigManager().get_section('VerifyUSFM')
     if config:

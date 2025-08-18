@@ -109,11 +109,11 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         suppress1_checkbox.grid(row=11, column=1, sticky=W)
         suppress1_Tip = Hovertip(suppress1_checkbox, hover_delay=500,
              text="Suppress all warnings about numbers. (possible verse number in verse, space in number, number prefix/suffix, etc.)")
-        suppress2_checkbox = ttk.Checkbutton(self, text=r'No \p after \c', variable=self.suppress[2],
-                                             onvalue=True, offvalue=False)
-        suppress2_checkbox.grid(row=11, column=2, sticky=W)
-        suppress2_Tip = Hovertip(suppress2_checkbox, hover_delay=500,
-             text=r"Suppress warnings about missing paragraph marker before verse 1. (needed by PTX-Print)")
+        # suppress2_checkbox = ttk.Checkbutton(self, text=r'No \p after \c', variable=self.suppress[2],
+        #                                      onvalue=True, offvalue=False)
+        # suppress2_checkbox.grid(row=11, column=2, sticky=W)
+        # suppress2_Tip = Hovertip(suppress2_checkbox, hover_delay=500,
+        #      text=r"Suppress warnings about missing paragraph marker before verse 1. (needed by PTX-Print)")
         suppress3_checkbox = ttk.Checkbutton(self, text=r'Punctuation', variable=self.suppress[3],
                                              onvalue=True, offvalue=False)
         suppress3_checkbox.grid(row=11, column=3, sticky=W)
