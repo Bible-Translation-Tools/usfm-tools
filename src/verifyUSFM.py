@@ -1148,9 +1148,10 @@ def takeText(t, footnote=False):
     state.addText(t)
     addWords(t)
 
-allpunc = ".።,፣:፥;፤!?-[]{}()<>'\"‹«“‘’”»›`*/"
-quoteend_re = re.compile(r"[.።,፣:፥;፤!?-\[\]{}()<>'\"‹«“‘’”»›`*/]'$")    # punct ' EOL
-quotebegin_re = re.compile(r"'[.።,፣:፥;፤!?-\[\]{}()<>'\"‹«“‘’”»›`*/]")    # ' punct
+endpunc = ".።,፣:፥;፤!?+-[]{}()<>'\"‹«“‘’”»›`*/"
+midpunc_re = re.compile(   r"[\d.።,፣:፥;፤!?+\[\]{}()<>\"‹«“‘’”»›*]")
+quoteend_re = re.compile(  r"[.።,፣:፥;፤!?+-\[\]{}()<>'\"‹«“‘’”»›`*/]'$")    # punct ' EOL
+quotebegin_re = re.compile(r"'[.።,፣:፥;፤!?+-\[\]{}()<>'\"‹«“‘’”»›`*/]")    # ' punct
 notnumberinfootnote_re = re.compile(r'[^\d:\-.,]')
 
 # Parses all the words out of the t string and adds them to the wordlist[].
@@ -1158,12 +1159,12 @@ def addWords(t):
     for item in t.split():
         word = item.strip(".።,፣:፥;፤!?+-[]{}()<>\"‹«“‘’”»›*/")
         if quoteend_re.search(word):
-            word = word.rstrip(allpunc)
+            word = word.rstrip(endpunc)
         if quotebegin_re.match(word):
-            word = word.lstrip(allpunc)
+            word = word.lstrip(endpunc)
         if word:
             if not state.inFootnote() or notnumberinfootnote_re.search(word):
-                if any(c.isalpha() for c in word) and not any(c.isnumeric() for c in word):
+                if any(c.isalpha() for c in word) and not midpunc_re.search(word):
                     (count, ref) = wordlist.get(word, (0, None))
                     ref = state.reference if count == 0 else ""
                     wordlist[word] = (count+1, ref)
