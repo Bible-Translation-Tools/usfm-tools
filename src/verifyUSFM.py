@@ -65,12 +65,14 @@ class State:
         self.ID = ""
         self.reference = ""
         self.errorRefs = set()
+        self.scanning = False    # True when scanning source text
         self.sourcetext = {}    # verse-reference: verse-text
-        self.sourcefootnote = {}    # verse-reference: footnote(s)
+        self.source_nverses = {}  # chapter-reference: number of verses
+        self.sourcefootnote = {}    # verse-reference: text of footnote(s)
         self.booklength_src = 1
         self.booklength = 1
         self.canContinue = True
-        self.source_id = ""
+        self.source_id = "en_ulb"
         self.initBook()
 
     def initBook(self):
@@ -113,12 +115,13 @@ class State:
 
     # Resets state data for a new book
     # The scan parameter is set when source text is being parsed.
-    def addID(self, id, scan=False):
+    def addID(self, id):
         self.initBook()
         self.reference = id + " header/intro"
         self.ID = id
-        if scan:
+        if self.scanning:
             self.sourcetext.clear()
+            self.source_nverses.clear()
             self.sourcefootnote.clear()
         elif id and id not in self.IDs:
             self.IDs.append(id)
@@ -151,6 +154,8 @@ class State:
         self.startChunkRef = self.reference + ":1"
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = C
+        if self.scanning:
+            state.source_nverses[state.reference] = 1
 
     # Isolate the word/phrase for "chapter" from the given string.
     # Add it to the list of chapter titles.
@@ -211,7 +216,7 @@ class State:
 
     def addVerse(self, v: str):
         self.lastVerse = self.verse
-        self.verse = int(v)
+        self.verse = int(v.split('-')[-1])
         self.needVerseText = True
         self.inVerse = True
         self.versetext = ""
@@ -221,6 +226,18 @@ class State:
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = OTHER
         self.asciiVerse = True   # until proven False
+        if self.scanning:
+            chapref = self.ID + " " + str(self.chapter)
+            self.source_nverses[chapref] = self.verse
+
+    # Returns the number of verses in the current chapter in the source text.
+    # Returns 0 if no data for the current chapter.
+    def nVerses_source(self):
+        n = 0
+        if self.source_nverses:
+            chapref = self.ID + " " + str(self.chapter)
+            n = self.source_nverses[chapref]
+        return n
 
     def addAcrosticHeading(self):
         self.textOkayHere = True
@@ -357,8 +374,8 @@ def nChapters(id):
         n = usfm_verses.verseCounts[id]['chapters']
     return n
 
-# Returns the number of verses that the specified chapter should contain
-def nVerses(id, chap):
+# Returns the number of verses that the specified chapter contains in the NIV.
+def nVerses_niv(id, chap):
     chaps = usfm_verses.verseCounts[id]['verses']
     n = 0 if chap > len(chaps) else chaps[chap-1]
     return n
@@ -581,12 +598,11 @@ def scan(token: usfmReader.Token):
     if token.type == 'text':
         state.addSourceText(token.value)
     elif token.type == 'v':
-        vs = token.value.split('-')
-        state.addVerse(vs[-1])
+        state.addVerse(token.value)
     elif token.type == 'c':
         state.addChapter(token.value)
     elif token.type == 'id':
-        state.addID(token.value[0:3].upper(), scan=True)
+        state.addID(token.value[0:3].upper())
     elif token.isFootnote():
         state.addSourceFootnote(token.value)
 
@@ -600,7 +616,7 @@ def scanSourceFile(path):
     tokens = usfmReader.parseString(contents)
     for token in tokens:
         scan(token)
-    state.booklength_src = len(contents)
+    state.booklength_src = len(contents) if len(contents) > 0 else 1
 
 # Returns the language code, resource identifier and version as a string.
 def identifySource(sourcedir):
@@ -632,19 +648,20 @@ def load_source(fname):
 
 psalmv1_re = re.compile(r'PSA \d+:1$')
 
-# Returns True if the translated verse if much shorter than it should be.
-# Based on (1) length of verse in source text, or (2) list of short verses.
-# Overall book length is also factored in.
-# Verse 1 of every Psalm is given a pass.
-def shortened_verse(ref):
-    shortened = False
+# Returns (length of verse) / (expected length)
+# Based on (1) length of verse in source text, and (2) overall book length.
+# Returns 1.0 for the first verse of every Psalm.
+# Returns 1.0 if the verse isn't in the source text.
+# Returns (length of verse) / 100 if the verse is less than 12 characters and is not in the list of known short verses.
+def relative_length(ref):
+    rlen = 1.0
     if not psalmv1_re.match(ref) and state.reference in state.sourcetext:
         sourcelength = len(state.sourcetext[state.reference])
-        if sourcelength > 0 and state.getTextLength() / sourcelength < (0.4 * state.booklength / state.booklength_src):
-            shortened = True
+        if sourcelength > 0:
+            rlen = state.getTextLength() / (sourcelength * (state.booklength / state.booklength_src))
     elif state.getTextLength() < 12 and not usfm_verses.isShortVerse(state.reference):
-        shortened  = True
-    return shortened
+        rlen = state.getTextLength() / 100.0
+    return rlen
 
 # Compares current verse to the source text
 # Returns Jaccard Similarity value, and number of words of length > 2 in common.
@@ -668,8 +685,12 @@ def previousVerseCheck():
         if state.getTextLength() == 0:
             reportError("Empty verse: " + state.reference, 1)
             empty = True
-        elif shortened_verse(state.reference):
-            reportError(f"Translation is very short compared to source: {state.reference}", 2)
+        else:
+            rel = relative_length(state.reference)
+            if rel < 0.4:
+                reportError(f"Translation is very short compared to {state.source_id} source: {state.reference}. Maybe the verses are divided in different places?", 2)
+            elif rel > 2.6:
+                reportError(f"Translation is long compared to {state.source_id} source: {state.reference}.", 2.5)
     if not suppress[9] and state.asciiVerse and not empty:
         reportError("Verse is entirely ASCII: " + state.reference, 3)
     (sim, n) = similarToSource()
@@ -704,14 +725,16 @@ def verifyChapterTitles():
 # Verifies correct number of verses for the current chapter.
 # This method is called just before the next chapter begins.
 def verifyVerseCount():
-    if state.chapter > 0 and state.verse != nVerses(state.ID, state.chapter):
+    if state.chapter > 0 and state.verse != nVerses_niv(state.ID, state.chapter):
         # Acts may have 40 or 41 verses, normally 41.
         # 2 Cor. may have 13 or 14 verses, normally 14.
         # 3 John may have 14 or 15 verses, normally 14.
         # Revelation 12 may have 17 or 18 verses, normally 17.
-        if state.reference != 'REV 12:18' and state.reference != '3JN 1:15' and state.reference != '2CO 13:13' \
-            and state.reference != 'ACT 19:40':
-            reportError(f"Chapter usually has {nVerses(state.ID, state.chapter)} verses: {state.reference}", 8)
+        n = state.nVerses_source()
+        if n == 0 and state.reference not in {'REV 12:18', '3JN 1:15', '2CO 13:13', 'ACT 19:40'}:
+            reportError(f"Chapter usually has {nVerses_niv(state.ID, state.chapter)} verses: {state.reference}", 8)
+        elif n > 0 and state.verse != n:
+            reportError(f"Chapter has {n} verses in the {state.source_id} text: {state.reference}", 8.1)
 
 def verifyFootnotes():
     if state.footnote_starts != state.footnote_ends:
@@ -982,8 +1005,7 @@ def reportFootnotes(text):
             if not validBracketedFootnote(text):
                 reportError(f"Probable chapter:verse reference ({trigger}) at {reference} belongs in a footnote", 43)
         elif usfm_verses.isOptional(reference) or reference in footnotedVerses:
-            source_msg = state.source_id if state.source_id else "en_ulb"
-            reportError(f"Bracket or parens in {reference} ({source_msg} has a footnote there)", 43.1)
+            reportError(f"Bracket or parens in {reference} ({state.source_id} has a footnote there)", 43.1)
         else:
             reportError(f"Optional text or untagged footnote at {reference}", 43.2)
 
@@ -1149,15 +1171,15 @@ def takeText(t, footnote=False):
     addWords(t)
 
 endpunc = ".።,፣:፥;፤!?+-[]{}()<>'\"‹«“‘’”»›`*/"
-midpunc_re = re.compile(   r"[\d.።,፣:፥;፤!?+\[\]{}()<>\"‹«“‘’”»›*]")
-quoteend_re = re.compile(  r"[.።,፣:፥;፤!?+-\[\]{}()<>'\"‹«“‘’”»›`*/]'$")    # punct ' EOL
-quotebegin_re = re.compile(r"'[.።,፣:፥;፤!?+-\[\]{}()<>'\"‹«“‘’”»›`*/]")    # ' punct
+midpunc_re = re.compile(   r"[\d.።,፣:፥;፤!?+\\\[\]{}()<>\"‹«“‘’”»›*]")
+quoteend_re = re.compile(  r"[.።,፣:፥;፤!?+-\\\[\]{}()<>'\"‹«“‘’”»›`*/]'$")    # punct ' EOL
+quotebegin_re = re.compile(r"'[.።,፣:፥;፤!?+-\\\[\]{}()<>'\"‹«“‘’”»›`*/]")    # ' punct
 notnumberinfootnote_re = re.compile(r'[^\d:\-.,]')
 
 # Parses all the words out of the t string and adds them to the wordlist[].
 def addWords(t):
     for item in t.split():
-        word = item.strip(".።,፣:፥;፤!?+-[]{}()<>\"‹«“‘’”»›*/")
+        word = item.strip(".።,፣:፥;፤!?+-\\[]{}()<>\"‹«“‘’”»›*/")
         if quoteend_re.search(word):
             word = word.rstrip(endpunc)
         if quotebegin_re.match(word):
@@ -1382,7 +1404,7 @@ def verifyFile(path):
     state.setAlignedUsfm("lemma=" in contents or "x-occurrences" in contents)
     if state.aligned_usfm:
         contents = usfm_utils.unalign_usfm(contents)
-    state.booklength = len(contents)
+    state.booklength = len(contents) if len(contents) > 0 else 1
 
     state.canContinue = True
 
@@ -1391,9 +1413,11 @@ def verifyFile(path):
     elif peripheral(os.path.basename(path)):
         reportError(f"Peripheral file not checked: {shortname(path)}", 80.1)
     else:
+        state.scanning = True
         load_source(os.path.basename(path))
         reportProgress(f"Checking {shortname(path)}...")
         sys.stdout.flush()
+        state.scanning = False
         verifyWholeFile(contents, shortname(path))
         tokens = usfmReader.parseString(contents)
         for token in tokens:
