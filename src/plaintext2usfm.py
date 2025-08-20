@@ -20,7 +20,7 @@
 #    Reports failure when chapter 1 is not found, and other errors.
 # The script does not mark chunks. If that is desired. run usfm2rc.py later.
 
-import configmanager
+from configmanager import ToolsConfigManager
 import usfm_verses
 from usfmWriter import usfmWriter
 import re
@@ -30,9 +30,7 @@ import os
 import sys
 from pathlib import Path
 
-config = None
 gui = None
-state = None
 projects = []
 issues_file = None
 wroteHeader = False
@@ -55,7 +53,7 @@ class State:
         self.reference = ""
         self.lastRef = ""
         self.lastEntity = None
-        self.neednext = ID
+        self.neednext = {ID}
         self.priority = ID
         self.usfm_file = None
         self.missing_chapters = []
@@ -85,7 +83,7 @@ class State:
 
     def addTitle(self, titletext, lineno, usfmtag=None):
         if usfmtag:
-            self.usfm_file.writeUsfm(usfmtag, titletext)
+            self.writeUsfm(usfmtag, titletext)
             self.titletags.append(usfmtag)
             if not self.title:
                 self.title = titletext.title()  # convert to title case
@@ -110,12 +108,11 @@ class State:
             self.missing_chapters.remove(nchap)
 
     # Adds the specified chapter number to the list of missing chapters.
-    # If we haven't even found chapter 1 yet, treats the text as front matter.
     def missingChapter(self, text, nchap):
         if not nchap in self.missing_chapters:
             self.missing_chapters.append(nchap)
-        if self.chapter < 1:
-            self.addFrontMatter(text)
+        # if self.chapter < 1:
+        #     self.addFrontMatter(text)
 
     # Adds the line of text as is without touching any other state
     # Supports texts where chapter labels or section headings are tagged: \cl or \s
@@ -150,7 +147,9 @@ class State:
     # Called when the end of file is reached
     def addEOF(self):
         self.data = ""
-        self.usfm_file.close()
+        if self.usfm_file:
+            self.usfm_file.close()
+            self.usfm_file = None
         self.lastRef = self.reference
         self.lastEntity = EOF
         self.neednext = {ID}
@@ -158,6 +157,16 @@ class State:
         if self.chapter == 0:
             self.title = ""
             self.lastref = self.ID + " 0"
+
+    def writeStr(self, s):
+        if self.usfm_file and s:
+            self.usfm_file.writeStr(s)
+
+    def writeUsfm(self, key:str, value:str=""):
+        if self.usfm_file:
+            self.usfm_file.writeUsfm(key, value)
+
+state = State()
 
 # Determines whether a verse or a chapter is expected next.
 # Based on the current book, chapter and verse as specified by the arguments.
@@ -174,7 +183,7 @@ def whatsNext(book, chapter, verse):
 
 def writePending():
     if state.data:
-        state.usfm_file.writeStr(re.sub(" +", " ", state.data))
+        state.writeStr(re.sub(" +", " ", state.data))
         state.data = ""
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
@@ -185,10 +194,10 @@ def takeChapter(cstr, nchap):
     if state.lastEntity == TITLE and not wroteHeader:
         writeHeader()
     schap = str(nchap)
-    state.usfm_file.writeUsfm("c", schap)
+    state.writeUsfm("c", schap)
     if len(cstr) > len(schap):
         # cl = cstr[len(schap):] if cstr.startswith(schap) else cstr
-        state.usfm_file.writeUsfm("cl", cstr)
+        state.writeUsfm("cl", cstr)
     state.addChapter(nchap)
 
 vrange_re = re.compile(r'([0-9])+-([0-9]+)')
@@ -197,8 +206,8 @@ vrange_re = re.compile(r'([0-9])+-([0-9]+)')
 def takeVerseNumber(vstr):
     writePending()
     if state.verse == 0:
-        state.usfm_file.writeUsfm("p")
-    state.usfm_file.writeUsfm("v", vstr)
+        state.writeUsfm("p")
+    state.writeUsfm("v", vstr)
     if range := vrange_re.search(vstr):
         state.addVerse(range.group(1))
         state.addVerse(range.group(2))
@@ -217,7 +226,7 @@ def takeV(s, lineno):
             vstr = vstr[:-1]
         takeVerseNumber(vstr)
         if len(s) > len(vstr):
-            state.usfm_file.writeStr(s[len(vstr):].strip())     # normally this writes the verse text
+            state.writeStr(s[len(vstr):].strip())     # normally this writes the verse text
             state.addText()
     else:
         take("\\v " + s, lineno)
@@ -228,7 +237,7 @@ def takeC(s, lineno):
         schap = nrun.group(0)
         takeChapter(s, int(schap))
         if len(s) > len(schap):
-            state.usfm_file.writeUsfm("cl", s[len(schap):])
+            state.writeUsfm("cl", s[len(schap):])
         state.addChapter(int(schap))
     else:
         take("\\c " + s, lineno)
@@ -245,12 +254,12 @@ def takeSection(s, lineno):
     writePending()
     if not wroteHeader:
         writeHeader()
-    state.usfm_file.writeUsfm('s', s)
+    state.writeUsfm('s', s)
 
 def takeMarkedText(tag, remainder, lineno):
     remainder = remainder.strip()
     if tag == 'id':
-        takeId(remainder)
+        takeId(remainder, lineno)
     elif tag == 'v':
         takeV(remainder, lineno)
     elif tag == 'c':
@@ -260,7 +269,7 @@ def takeMarkedText(tag, remainder, lineno):
     elif tag in {'s', 's1'}:
         takeSection(remainder, lineno)
     else:
-        state.usfm_file.writeUsfm(tag, remainder)
+        state.writeUsfm(tag, remainder)
 
 tag_re = re.compile(r'\\[a-z]')
 cvjam_re = re.compile(r'\\([cv])[0-9\-]+ *')
@@ -458,9 +467,10 @@ def write(msg, stream):
 def openIssuesFile():
     global issues_file
     if not issues_file:
-        path = os.path.join(config['source_dir'], "issues.txt")
+        workdir = ToolsConfigManager().get('Plaintext2Usfm', 'source_dir')
+        path = os.path.join(workdir, "issues.txt")
         if os.path.exists(path):
-            bakpath = os.path.join(config['source_dir'], "issues-oldest.txt")
+            bakpath = os.path.join(workdir, "issues-oldest.txt")
             if not os.path.exists(bakpath):
                 os.rename(path, bakpath)
         issues_file = io.open(path, "tw", buffering=2048, encoding='utf-8', newline='\n')
@@ -519,15 +529,15 @@ def dumpProjects(path):
     manifest.close()
 
 def shortname(longpath):
-    source_dir = Path(config['source_dir'])
+    workdir = Path(ToolsConfigManager().get('Plaintext2Usfm', 'source_dir'))
     shortname = Path(longpath)
-    if shortname.is_relative_to(source_dir):
-        shortname = shortname.relative_to(source_dir)
+    if shortname.is_relative_to(workdir):
+        shortname = shortname.relative_to(workdir)
     return str(shortname)
 
 # Generates name for usfm file
 def makeUsfmPath(bookId):
-    return os.path.join(config['target_dir'], makeUsfmFilename(bookId))
+    return os.path.join(ToolsConfigManager().get('Plaintext2Usfm', 'target_dir'), makeUsfmFilename(bookId))
 
     # Generates name for usfm file
 def makeUsfmFilename(bookId):
@@ -538,17 +548,18 @@ def makeUsfmFilename(bookId):
 # Write the usfm header field that follow \id and \ide.
 def writeHeader():
     global wroteHeader
-    for tag in ['h', 'mt', 'toc1', 'toc2']:
-        if tag not in state.titletags:
-            state.usfm_file.writeUsfm(tag, state.title)
-    state.usfm_file.writeUsfm("toc3", state.ID.lower())
-    state.usfm_file.newline(2)
-    wroteHeader = True
+    if state.usfm_file:
+        for tag in ['h', 'mt', 'toc1', 'toc2']:
+            if tag not in state.titletags:
+                state.usfm_file.writeUsfm(tag, state.title)
+        state.usfm_file.writeUsfm("toc3", state.ID.lower())
+        state.usfm_file.newline(2)
+        wroteHeader = True
 
 def initUsfm(bookId):
     state.addID(bookId)     # creates usfm file
-    state.usfm_file.writeUsfm("id", bookId)
-    state.usfm_file.writeUsfm("ide", "UTF-8")
+    state.writeUsfm("id", bookId)
+    state.writeUsfm("ide", "UTF-8")
     writePending()   # Write any text that preceded the book ID
 
 # This method is called to convert the specified file to usfm.
@@ -596,30 +607,27 @@ def main(app = None):
     gui = app
     projects.clear()
     global config
-    config = configmanager.ToolsConfigManager().get_section('Plaintext2Usfm')
-    if config:
-        global state
-        state = State()
-        source_dir = config['source_dir']
-        file = config['filename']
-        target_dir = config['target_dir']
-        Path(target_dir).mkdir(exist_ok=True)
+    config = ToolsConfigManager()
+    source_dir = config.get('Plaintext2Usfm', 'source_dir')
+    file = config.get('Plaintext2Usfm', 'filename')
+    target_dir = config.get('Plaintext2Usfm', 'target_dir')
+    Path(target_dir).mkdir(exist_ok=True)
 
-        if file:
-            path = os.path.join(source_dir, file)
-            if os.path.isfile(path):
-                bookId = getBookId(file)
-                if bookId:
-                    initUsfm(bookId)
-                    convertBook(path, bookId)
-                if not state.title:
-                    reportError(f"Book title not found in: {shortname(path)}")
-            else:
-                reportError(f"No such file: {path}")
+    if file:
+        path = os.path.join(source_dir, file)
+        if os.path.isfile(path):
+            bookId = getBookId(file)
+            if bookId:
+                initUsfm(bookId)
+                convertBook(path, bookId)
+            if not state.title:
+                reportError(f"Book title not found in: {shortname(path)}")
         else:
-            convertFolder(source_dir)
-            if projects:
-                dumpProjects( os.path.join(target_dir, "projects.yaml") )
+            reportError(f"No such file: {path}")
+    else:
+        convertFolder(source_dir)
+        if projects:
+            dumpProjects( os.path.join(target_dir, "projects.yaml") )
 
     closeIssuesFile()
     reportStatus("\nDone.")
