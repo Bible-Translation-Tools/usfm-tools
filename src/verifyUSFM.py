@@ -688,9 +688,9 @@ def previousVerseCheck():
         else:
             rel = relative_length(state.reference)
             if rel < 0.4:
-                reportError(f"Translation is very short compared to {state.source_id} source: {state.reference}. Maybe the verses are divided in different places?", 2)
-            elif rel > 2.6:
-                reportError(f"Translation is long compared to {state.source_id} source: {state.reference}.", 2.5)
+                reportError(f"Translation is very short compared to {state.source_id} source: {state.reference}.", 2)
+            # elif rel > 3.2:     # not safe, at least until chunks and verse bridges are supported
+            #     reportError(f"Translation is long compared to {state.source_id} source: {state.reference}.", 2.5)
     if not suppress[9] and state.asciiVerse and not empty:
         reportError("Verse is entirely ASCII: " + state.reference, 3)
     (sim, n) = similarToSource()
@@ -1146,11 +1146,8 @@ def takeText(t, footnote=False):
             reportError("  top of file", 0)
     if state.textOkay() and state.verse == 0 and state.chapter > 0:
         reportError(f"Unmarked text before {state.reference + ':1'}", 54.1)
-    if "<" in t and not ">" in t:
-        if "<< HEAD" in t:
-            reportError("Unresolved translation conflict near " + state.reference, 55)
-        else:
-            reportError("Angle bracket not closed at " + state.reference, 56)
+    if ("<" in t) ^ (">" in t) and not conflict_re.search(t) and not ">>>" in t:
+        reportError("Unmatched angle bracket at " + state.reference, 56)
     if "Conflict Parsing Error" in t:
         reportError("BTT Writer artifact in " + state.reference, 57)
     if not suppress[3] and not state.aligned_usfm:    # report punctuation issues
@@ -1360,7 +1357,9 @@ def verifyLineByLine(lines, path):
             case 'v':
                 vs = payload.split('-')
                 localstate.addVerse(vs[-1])
-        if marker not in {'id','c'} and not conflict_re.match(line):
+        if conflict_re.search(line):
+            reportError(f"Unresolved translation conflict near {localstate.reference}", 76.2)
+        elif marker not in {'id','c'}:
             if line.isascii():
                 nAscii += 1
             if word := said_word(line):
@@ -1370,6 +1369,7 @@ def verifyLineByLine(lines, path):
             elif localstate.reference not in section_titles.exclude_eol_checks:
                 if section_titles.find_eol_heading(line):
                     reportError("Possible section title at end of " + localstate.reference + " in " + path, 76.1)
+
     suppress[9] = (nAscii / len(lines) > 0.05)
     global nFiles
     nFiles += 1
