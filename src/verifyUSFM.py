@@ -688,7 +688,7 @@ def previousVerseCheck():
         else:
             rel = relative_length(state.reference)
             if rel < 0.4:
-                reportError(f"Translation is very short compared to {state.source_id} source: {state.reference}.", 2)
+                reportError(f"Translation is very short compared to {state.source_id} source: {state.reference}", 2)
             # elif rel > 3.2:     # not safe, at least until chunks and verse bridges are supported
             #     reportError(f"Translation is long compared to {state.source_id} source: {state.reference}.", 2.5)
     if not suppress[9] and state.asciiVerse and not empty:
@@ -1086,9 +1086,9 @@ def reportPunctuation(text):
     if '=' in text:
         reportError(f"Equals sign (=) in {state.reference}", 52.3)
 
-numberembed_re = re.compile(r'[^\s,:\.\d\(\[\-]+[\d]+[^\s,;\.\d\)\]]+')
-numberprefix_re = re.compile(r'[^\s,\.\d\(\[]\d+', re.UNICODE)
-numbersuffix_re = re.compile(r'[\d]+[^\s,;:.\-?!"\d\)\]]', re.UNICODE)
+numberembed_re = re.compile(r'[^\s,:\."\d\(\[\-]+[\d]+[^\s,;\."\d\)\]]+')
+numberprefix_re = re.compile(r'[^\s,\."\d\(\[]\d+', re.UNICODE)
+numbersuffix_re = re.compile(r'\d+[^\s,;:."\-?!"\d\)\]]', re.UNICODE)
 unsegmented_re = re.compile(r'[\d][\d][\d][\d]+')
 numberformat_re = re.compile(r'[\d]+[.,]?\s[.,]?[\d]+')    # space between digits
 leadingzero_re = re.compile(r'[\s]0[0-9,]*', re.UNICODE)
