@@ -216,7 +216,10 @@ class State:
 
     def addVerse(self, v: str):
         self.lastVerse = self.verse
-        self.verse = int(v.split('-')[-1])
+        try:
+            self.verse = int(v.split('-')[-1])
+        except ValueError as e:
+            pass
         self.needVerseText = True
         self.inVerse = True
         self.versetext = ""
