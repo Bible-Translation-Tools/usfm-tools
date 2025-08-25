@@ -15,7 +15,7 @@
 import re
 import sentences
 
-exclude_eol_checks = ['LEV 18:5','LEV 91:4',
+exclude_eol_checks = ['LEV 18:5','LEV 19:4',
     'MAT 15:31', 'LUK 2:11', 'JHN 19:19', 'ACT 16:20', 'COL 3:22', 'REV 22:9', 'REV 22:20']
 
 expect_allcaps = True
@@ -63,9 +63,9 @@ def isCapitalized(word):
 
 # Returns the fraction of words in the string which are title case.
 # Consider numbers to be uncapitalized.
-def percentTitlecase(str):
+def percentTitlecase(s):
     n = 0
-    words = str.split()
+    words = s.split()
     for word in words:
         if isCapitalized(word):
             n += 1
@@ -107,17 +107,17 @@ def find_eol_heading(line):
 # See comments at the top of this file for factors that are considered.
 # The threshold parameter specifies the minimum percentage of capitalized words
 #    in a string that is partly title case.
-def is_heading(str):
-    str = str.strip(' \n')
-    threshold = _titlecase_threshold(str)
-    return qualifies(str, threshold)
+def is_heading(s):
+    s = s.strip(' \n')
+    threshold = _titlecase_threshold(s)
+    return qualifies(s, threshold)
 
-def is_possible_heading(str):
-    str = str.strip(' \n')
-    threshold = _titlecase_threshold(str) - 0.21
+def is_possible_heading(s):
+    s = s.strip(' \n')
+    threshold = _titlecase_threshold(s) - 0.21
     if threshold < 0.45:
         threshold = 0.45
-    return qualifies(str, threshold)
+    return qualifies(s, threshold)
 
 anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
 amen_re = re.compile(r'[AE]m[ei]+n')
@@ -126,52 +126,52 @@ forbidden_re = re.compile(r'["“‘‹«”›»]')
 singleWordInParens_re = re.compile(r'\(\s*\w+\s*\)')
 
 # Returns True if the string qualifies as a section heading given the specified threshold of capitalized words.
-def qualifies(str, threshold):
+def qualifies(s, threshold):
     confirmed = False
-    firstword = sentences.firstword(str)
+    firstword = sentences.firstword(s)
     # Initial qualification
-    possible = (threshold <= 1 and not '\n' in str and\
-                not anyMarker_re.search(str) and not amen_re.search(str) and not selah_re.search(str) and\
+    possible = (threshold <= 1 and not '\n' in s and\
+                not anyMarker_re.search(s) and not amen_re.search(s) and not selah_re.search(s) and\
                 (firstword.isupper() or isCapitalized(firstword)) and\
-                # not quotes.partialQuote(str) and\
-                not forbidden_re.search(str) and\
-                not singleWordInParens_re.match(str) and\
-                sentences.sentenceCount(str) == 1)
+                # not quotes.partialQuote(s) and\
+                not forbidden_re.search(s) and\
+                not singleWordInParens_re.match(s) and\
+                sentences.sentenceCount(s) == 1)
     if possible and not confirmed and expect_allcaps:
-        confirmed = str.isupper()
+        confirmed = s.isupper()
     if possible and not confirmed and expect_titlecase:
-        confirmed = (percentTitlecase(str) >= threshold)
+        confirmed = (percentTitlecase(s) >= threshold)
     if possible and not confirmed and expect_parens:
-        confirmed = str[0] == '(' and str[-1] == ')' and (str.isupper() or percentTitlecase(str[1:-1]) >= threshold)
+        confirmed = s[0] == '(' and s[-1] == ')' and (s.isupper() or percentTitlecase(s[1:-1]) >= threshold)
     return confirmed
 
 goodstart_re = re.compile(r'[\w\(]')
 # Calculates the Title Case threshold (percentage of words that must be capitalized)
 # based on characteristics of the string.
 # Assumes that the specified string has already been stripped of leading and trailing white space.
-def _titlecase_threshold(str):
-    if not str or len(str) < 5:
+def _titlecase_threshold(s):
+    if not s or len(s) < 5:
         adj = 2
     else:
         adj = 0.51
-        if str[-1] in "'’,":
+        if s[-1] in "'’,":
             adj = 1.2
-        if ',' in str:
+        if ',' in s:
             adj += 0.16
-        if len(str) > 40:
-            adj += 0.01 * (len(str) - 40)
-        if str.startswith('(') and str.endswith(')'):
+        if len(s) > 40:
+            adj += 0.01 * (len(s) - 40)
+        if s.startswith('(') and s.endswith(')'):
             adj -= 0.03
-        if not goodstart_re.match(str):
+        if not goodstart_re.match(s):
             adj += 0.18
-        for i in range(len(str)-3,len(str)):
-            if str[i] in ".\u0964\u0965\u1361\u1362!?;":    # sentence ending punctuation
+        for i in range(len(s)-3,len(s)):
+            if s[i] in ".\u0964\u0965\u1361\u1362!?;":    # sentence ending punctuation
                 adj += 0.16
-                if _wordcount(str) == 1:
+                if _wordcount(s) == 1:
                     adj = 1.01
-                elif str[i] in "!?;":
+                elif s[i] in "!?;":
                     adj = 0.99
-        lastword = _lastword(str)
+        lastword = _lastword(s)
         if not isCapitalized(lastword) and not lastword.isupper():
             adj += 0.24
     return adj
