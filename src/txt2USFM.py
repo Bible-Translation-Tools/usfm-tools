@@ -594,7 +594,8 @@ condense_re = re.compile(r'[ \t][ \t]+')
 # Converts the section string by adding chapter, label, chunk, and p parkers where needed.
 # Starts each usfm marker on a new line.
 # Fixes white space, such as converting tabs to spaces and removing trailing spaces.def
-def convertSection(section, schap, firstverse, chapterTitle, lastchunk):
+# @param lastchunk is True when it is the last chunk in the chapter
+def convertSection(section, chapterTitle, lastchunk):
     section = re.sub(condense_re, ' ', section)
     section = section.replace(" \\", "\n\\")
     section = section.replace(" \n", "\n")
@@ -828,7 +829,7 @@ def convertBook(folder, bookId, bookTitle):
             txtPath = os.path.join(chapterpath, filename)
             verserange = makeVerseRange(chunks, i, bookId, int(chap))
             section = cleanupTextFile(txtPath, chap, verserange)
-            section = convertSection(section, chap, verserange[0],chapterTitle, i+1 >= len(chunks)).rstrip()
+            section = convertSection(section, chapterTitle, i+1 >= len(chunks)).rstrip()
             usfm.writeStr('\n' + section)
     usfm.close()
 
