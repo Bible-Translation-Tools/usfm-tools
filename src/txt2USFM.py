@@ -25,7 +25,7 @@ import usfmWriter
 config = configmanager.ToolsConfigManager()
 projectInfo = None
 gui = None
-
+nConverted = 0
 precleanup_file = None
 postcleanup_file = None
 
@@ -629,6 +629,9 @@ def isBookFolder(path):
     chapterPath = os.path.join(path, '01')
     return os.path.isdir(chapterPath)
 
+# @TODO Refactor this function, as well as convertFolder() and getBookId().
+# Currently, the first time it is called, ProjectInfo isn't yet using an existing manifest.yaml file.
+# Also these functions have many side effects.
 # Extracts information from the specified manifest.json file.
 # Adds information to ProjectInfo.
 # Returns book ID.
@@ -715,6 +718,7 @@ def appendToProjects(bookId, bookTitle):
                 "path": "./" + makeUsfmFilename(bookId), "categories": [ category ],
                  'versification': 'ufw' }
     assert projectInfo
+    projectInfo.useManifest(docreate=True)  # Needed if this is the first project to be added
     projectInfo.addProject(project)
 
 def shortname(longpath):
@@ -736,13 +740,15 @@ def convertFolder(folder):
             convertBook(folder, bookId, bookTitle)   # converts the pieces in the current folder
             # profile.print_stats()
             appendToProjects(bookId, bookTitle)
+            global nConverted
+            nConverted += 1
         else:
             if not bookId:
                 reportError("Unable to determine book ID in " + shortname(folder))
             if not bookTitle:
                 reportError("Unable to determine book title in " + shortname(folder))
     else:
-        reportError(f"Book folder name ({os.path.basename(folder)}) does not match language code ({language_code})")
+        reportError(f"Book folder name ({os.path.basename(folder)}) does not correspond to language code ({language_code})")
 
 # Returns file name for usfm file in current folder
 def makeUsfmFilename(bookId):
@@ -865,15 +871,16 @@ def main(app = None):
     Path(target_dir).mkdir(exist_ok=True)
     global projectInfo
     projectInfo = ProjectInfo(target_dir, config.get('Txt2USFM', 'language_code'))
-    projectInfo.useManifest()
+    projectInfo.useManifest(docreate=False)
     projectInfo.resetSources()
 
     if config.getboolean('Txt2USFM', 'diagnostics'):
         open_diagnostic_files()
 
     convert(config.get('Txt2USFM', 'source_dir'), target_dir)
-    projectInfo.save()
-    reportStatus("\nDone.")
+    if nConverted > 0:
+        projectInfo.save()
+        reportStatus("\nDone.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 

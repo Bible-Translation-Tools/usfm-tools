@@ -18,10 +18,24 @@ class ProjectInfo:
     def __repr__(self):
         return f'ProjectInfo(f"{self.project_dir}, {self.getLanguageCode()}")'
 
+    # Creates manifest if it is missing or invalid, and docreate is True.
     # Loads the manifest file, if any.
-    # Does not report any load errors, but creates a template yaml in that case.
-    # Syncs the project info and manifest info.
-    def useManifest(self):
+    # Syncs the project info and manifest info, if any.
+    def useManifest(self, docreate):
+        if not self.manifest:
+            if docreate:
+                self.makeManifest()     # makes and loads manifest
+        else:
+            self.manifest.load(self.project_dir)
+        if self.manifest and self.manifest.getLanguageId() != self.getLanguageCode():
+            self.manifest = None
+        if self.manifest:
+            self.sync()
+
+    # Creates manifest file if it does not exist.
+    # Overwrites manifest if it exists and is corrupted.
+    # Does not overwrite a syntactically valid manifest.
+    def makeManifest(self):
         if not self.manifest:
             self.manifest = ManifestYaml()
             errors = self.manifest.load(self.project_dir)
@@ -32,10 +46,6 @@ class ProjectInfo:
                     if not os.path.exists(bakpath):
                         os.rename(yamlpath, bakpath)
                 self.manifest.create(self.project_dir, self.getLanguageCode())
-            elif self.manifest.getLanguageId() != self.getLanguageCode():
-                self.manifest = None
-        if self.manifest:
-            self.sync()
 
     # Syncs self.info and self.manifest if either is missing any values.
     def sync(self):
