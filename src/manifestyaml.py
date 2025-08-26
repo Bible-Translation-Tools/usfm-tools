@@ -22,25 +22,25 @@ class ManifestYaml:
     def __repr__(self):
         return f'ManifestYaml({self.project_dir})'
 
-    # Loads specified file and sets self.contents.
-    # Sets self.contents.
+    # Loads specified file into self.contents, if not already loaded.
     # Returns list of error strings if not successful.
     def load(self, project_dir, filename="manifest.yaml"):
         path = os.path.join(project_dir, filename)
         errors = []
-        if os.path.isfile(path):
-            self.path = path
-            if has_bom(self.path):
-                errors.append(f"{self.path} file has a Byte Order Mark. Remove it.")
-            with io.open(self.path, "tr", encoding='utf-8-sig') as file:
-                try:
-                    self.contents = yaml.safe_load(file)
-                except yaml.scanner.ScannerError as e:
-                    errors.append(f"Yaml syntax error at or before line {e.problem_mark.line} in: {self.path}")
-                except yaml.parser.ParserError as e:
-                    errors.append(f"Yaml parsing error at or before line {e.problem_mark.line} in: {self.path}")
-        else:
-            errors.append(f"File not found: {self.path}")
+        if path != self.path:   # we don't want to reload the same file
+            if os.path.isfile(path):
+                self.path = path
+                if has_bom(self.path):
+                    errors.append(f"{self.path} file has a Byte Order Mark. Remove it.")
+                with io.open(self.path, "tr", encoding='utf-8-sig') as file:
+                    try:
+                        self.contents = yaml.safe_load(file)
+                    except yaml.scanner.ScannerError as e:
+                        errors.append(f"Yaml syntax error at or before line {e.problem_mark.line} in: {self.path}")
+                    except yaml.parser.ParserError as e:
+                        errors.append(f"Yaml parsing error at or before line {e.problem_mark.line} in: {self.path}")
+            else:
+                errors.append(f"File not found: {self.path}")
         return errors
 
     # Creates a resource container manifest.yaml file in the specified folder.
