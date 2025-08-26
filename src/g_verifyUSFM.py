@@ -214,7 +214,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             if not cmp:
                 # cmp = self._getCompareValue(dir, code, "")
                 if not projectInfo.getMainSource():
-                    projectInfo.useManifest()
+                    projectInfo.useManifest(docreate=False)
                 if mainsrc := projectInfo.getMainSource():
                     cmp = f"(locate folder containing {mainsrc['language_id']}_{mainsrc['resource_id']}, vrsn ~{mainsrc['version']})"
                     if "nspecified" in cmp or "nknown" in cmp:

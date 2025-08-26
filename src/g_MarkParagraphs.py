@@ -193,7 +193,7 @@ then don't run this process.")
             model_dir = projectInfo.getSourceDir()
             if not model_dir:
                 if not projectInfo.getMainSource() : # and os.path.isdir(dir):
-                    projectInfo.useManifest()
+                    projectInfo.useManifest(docreate=False)
                 if mainsrc := projectInfo.getMainSource():
                     model_dir = f"(locate folder containing {mainsrc['language_id']}_{mainsrc['resource_id']}, vrsn ~{mainsrc['version']})"
                     if "nspecified" in model_dir or "nknown" in model_dir:
