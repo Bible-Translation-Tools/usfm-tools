@@ -78,9 +78,9 @@ def close_diagnostic_files():
 # Does preliminary cleanup on the chunk of text.
 # verserange is a list of verse number strings that should exist in the file.
 # Returns a string with the (possibly improved) contents of the .txt file.
-def cleanupText(text, chap, verserange):
+def cleanupText(text, chap, verserange, firstchunk):
     text = fixVerseMarkers(text)
-    if verserange[0] == '1':
+    if firstchunk:
         text = fixChapterMarkers(text, chap)
     text = fixPunctuationSpacing(text)
     text = fixVerseOrder(text, chap, verserange)
@@ -88,10 +88,11 @@ def cleanupText(text, chap, verserange):
     #     #text = fixInorMarkers(text, verserange)
     return text
 
-def cleanupTextFile(path, chap, verserange):
+# Reads the text from the specified file and does some cleanup.
+def cleanupChunk(path, chap, verserange, firstchunk):
     with io.open(path, "tr", encoding='utf-8-sig') as input:
         text = input.read()
-    return cleanupText(text, chap, verserange)
+    return cleanupText(text, chap, verserange, firstchunk)
 
 verseMarker_re = re.compile(r'\s*\\v *([\d]{1,3})', re.UNICODE)
 
@@ -198,19 +199,19 @@ def fixVerseMarkers(text):
     return text
 
 # chap0_re = re.compile(r'[\\/]+ *[cC] *[1-9]')
-chap0_re = re.compile(r'[\\/]+ *[cC] *')    # forward slash or capital C
+chap0_re = re.compile(r'[\\/]+ *[cC] *')    # plausible chapter marker
 chap1_re = re.compile(r'\\c *\\')  # missing chapter number
 chap3_re = re.compile(r'\\c +([0-9]+)([^0-9\s])')       # no space after chapter number
 chap7_re = re.compile(r'(^|\s+)c\s+[1-9]')        # missing backslash
 chap8_re = re.compile(r'\\c [0-9]+ +[.!?,:;)]')   # Punctuation after chapter marker
 
 # Fixes missing and malformed chapter markers.
-def fixChapterMarkers(text, schap):
+def fixChapterMarkers(text, chap):
     if found := chap0_re.search(text):
         text = text[0:found.start()] + "\\c " + text[found.end():]
 
     if found := chap1_re.search(text):
-        text = text[0:found.start()] + "\\c " + str(int(schap)) + text[found.end()-1:]
+        text = text[0:found.start()] + "\\c " + str(int(chap)) + text[found.end()-1:]
 
     if found := chap3_re.search(text):
         if found.group(2):
@@ -226,7 +227,7 @@ def fixChapterMarkers(text, schap):
         text = text[0:found.end()-1] + text[found.end()-1:].strip()
 
     if lacksChapter(text):
-        text = "\\c " + str(int(schap)) + " " + text.lstrip()
+        text = "\\c " + str(int(chap)) + " " + text.lstrip()
 
     return text
 
@@ -398,7 +399,7 @@ chapter_re = re.compile(r'\\c\s+([0-9]+)[\s]*', re.UNICODE)
 # before the first verse marker.
 # Inserts \s before unmarked section heading, if found.
 def mark_section_heading_bos(section):
-    chap = chapter_re.search(section)
+    chap = chapter_re.search(section)   # valid chapter marker
     cendpos = chap.end() if chap else 0
     vpos = section.find("\\v")
     if vpos < 0:
@@ -440,11 +441,12 @@ def mark_section_heading_eos(section):
 lbi_re = re.compile(r'^[^\\\n]+$', re.MULTILINE)
 
 # Marks likely section heading on a line by itself.
+# lastref is the verse reference of the last verse in the section.
 # lastchunk specifies whether the section is the last chunk in a chapter.
-def mark_section_heading_lbi(section, lastchunk):
+def mark_section_heading_lbi(section, lastref, lastchunk):
     lbi = lbi_re.search(section)
     while lbi:
-        if lastchunk and lbi.end() >= len(section):
+        if lbi.end() >= len(section) and (lastchunk or lastref in section_titles.exclude_eol_checks):
             break
         candidate = remove_parens(lbi.group(0))
         if section_titles.is_heading(candidate):
@@ -462,28 +464,34 @@ def mark_section_heading_lbi(section, lastchunk):
 #   on lines with no usfm markers
 # Marks at most one section heading.
 # Returns the section, modified or not.
-def mark_section_headings(section, lastchunk):
+# @param lastref is the verse reference of the last verse in the section
+# @param lastchunk is True when it is the last chunk in the chapter
+def mark_section_headings(section, lastref, lastchunk):
     orig_section = section
     section = mark_section_heading_bos(section)
-    if not lastchunk:
+    if not lastchunk and lastref not in section_titles.exclude_eol_checks:
         section = mark_section_heading_eos(section)
     if section == orig_section:
-        section = mark_section_heading_lbi(section, lastchunk)
+        section = mark_section_heading_lbi(section, lastref, lastchunk)
     return section
 
-verse1_re = re.compile(r'([\\p\s]*)\\v\s+1[\-\s]')
+vtag_re = re.compile(r'([\\p\s]*)\\v\s')
 
+# Called only for the first chunk in a chapter.
 # Inserts chapter label if needed.
 # Returns modified section.
-def augmentChapter(section, chapterTitle):
-    if chap := chapter_re.search(section):
-        label = chapterTitle.strip()
-        clstr = ""
-        if label and label != chap.group(1):
-            clstr = "\n\\cl " + label
-        section = section[:chap.end()].rstrip() + clstr + "\n" + section[chap.end():].lstrip()
-    # Ensure \p before verse 1
-    if v1 := verse1_re.search(section):
+def augmentChapter(schap, section, chapterTitle):
+    if chap := chapter_re.search(section):  # valid chapter marker
+        pos = chap.end()
+    else:
+        pos = 0
+    label = chapterTitle.strip()
+    clstr = ""
+    if label and label != schap:
+        clstr = "\n\\cl " + label
+        section = section[:pos].rstrip() + clstr + "\n" + section[pos:].lstrip()
+    # Ensure \p before first verse
+    if v1 := vtag_re.search(section):
         if not v1.group(1).endswith("\\p\n"):
             preceding = v1.group(1)
             ipos = v1.start() + len(preceding)
@@ -594,19 +602,19 @@ condense_re = re.compile(r'[ \t][ \t]+')
 # Converts the section string by adding chapter, label, chunk, and p parkers where needed.
 # Starts each usfm marker on a new line.
 # Fixes white space, such as converting tabs to spaces and removing trailing spaces.def
-# @param lastchunk is True when it is the last chunk in the chapter
-def convertSection(section, chapterTitle, lastchunk):
+def convertSection(schap, section, firstinchapter, lastref, chapterTitle, lastchunk):
     section = re.sub(condense_re, ' ', section)
     section = section.replace(" \\", "\n\\")
     section = section.replace(" \n", "\n")
 
     if config.getboolean('Txt2USFM', 'section_headings'):
-        section = mark_section_headings(section, lastchunk)
+        section = mark_section_headings(section, lastref, lastchunk)
 
     if config.getboolean('Txt2USFM', 'mark_chunks'):
         section = mark_chunk(section)
 
-    section = augmentChapter(section, chapterTitle)
+    if firstinchapter:
+        section = augmentChapter(schap, section, chapterTitle)
     return section
 
 # Returns True if the specified directory is one with text files to be converted
@@ -718,6 +726,7 @@ def shortname(longpath):
         shortname = os.path.relpath(shortname, source_dir)
     return shortname
 
+# Converts one book folder if it can determine the book ID and title.
 def convertFolder(folder):
     language_code = config.get('Txt2USFM', 'language_code')
     if language_code + '_' in os.path.basename(folder):
@@ -806,9 +815,8 @@ def getChapterTitle(chapterpath):
             title = titlefile.read()
     return title
 
-# Converts all the text files in the specified folder to USFM.
+# Converts all the text files under the specified folder to USFM.
 # profile = LineProfiler()
-# @profile
 def convertBook(folder, bookId, bookTitle):
     reportProgress(f"CONVERTING {shortname(folder)}")
     sys.stdout.flush()
@@ -823,14 +831,18 @@ def convertBook(folder, bookId, bookTitle):
     for chap in chapters:
         chapterpath = os.path.join(folder, chap)
         chapterTitle = getChapterTitle(chapterpath)
+        schap = str(int(chap))
         chunks = listChunks(chapterpath)
+        firstchunk = True
         for i in range(len(chunks)):
             filename = chunks[i] + ".txt"
             txtPath = os.path.join(chapterpath, filename)
             verserange = makeVerseRange(chunks, i, bookId, int(chap))
-            section = cleanupTextFile(txtPath, chap, verserange)
-            section = convertSection(section, chapterTitle, i+1 >= len(chunks)).rstrip()
+            section = cleanupChunk(txtPath, chap, verserange, firstchunk)
+            lastref = f"{bookId} {schap}:{verserange[-1]}"
+            section = convertSection(schap, section, firstchunk, lastref, chapterTitle, i+1 >= len(chunks)).rstrip()
             usfm.writeStr('\n' + section)
+            firstchunk = False
     usfm.close()
 
 # Converts the book or books contained in the specified folder
