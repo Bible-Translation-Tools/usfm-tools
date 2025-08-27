@@ -16,7 +16,7 @@ import re
 import sentences
 
 exclude_eol_checks = ['LEV 18:5','LEV 19:4',
-    'MAT 15:31', 'LUK 2:11', 'JHN 19:19', 'ACT 16:20', 'COL 3:22', 'REV 22:9', 'REV 22:20']
+    'MAT 15:31', 'LUK 2:11', 'JHN 19:19', 'ACT 16:20', 'COL 3:22', '2TI 4:18', 'REV 22:9', 'REV 22:20']
 
 expect_allcaps = True
 expect_titlecase = True
