@@ -1279,8 +1279,8 @@ def verifyChapterAndVerseMarkers(text, path):
 
 def verifyParagraphCounts():
     if state.chapter > 0:
-        if state.nParagraphs / state.chapter <= 2.5 and state.nPoetry / state.chapter <= 10:
-            reportError(f"Low paragraph count ({state.nParagraphs + state.nPoetry}) for {state.ID}", 73.5)
+        # if state.nParagraphs / state.chapter <= 2.5 and state.nPoetry / state.chapter <= 10:
+        #     reportError(f"Low paragraph count ({state.nParagraphs + state.nPoetry}) for {state.ID}", 73.5)
         if state.nSectionHeadings == 1:
             reportError(f"Possible error: one lone section is marked in {state.ID}", 73.6)
 
