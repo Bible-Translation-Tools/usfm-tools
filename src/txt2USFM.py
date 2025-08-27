@@ -597,6 +597,17 @@ I have not encountered the situation in any other language.
 #         str = text
 #     return str
 
+marker_re = re.compile(r' \\([a-z]+[a-z1-5]*)')
+
+def newline_markers(s:str):
+    pos = 0
+    for match in marker_re.finditer(s, pos):
+        if match.group(1) in usfmWriter.startline_tags:
+            pos = match.start()
+            s = s[:pos] + '\n' + s[pos+1:]
+            pos += 2
+    return s
+
 condense_re = re.compile(r'[ \t][ \t]+')
 
 # Converts the section string by adding chapter, label, chunk, and p parkers where needed.
@@ -604,7 +615,7 @@ condense_re = re.compile(r'[ \t][ \t]+')
 # Fixes white space, such as converting tabs to spaces and removing trailing spaces.def
 def convertSection(schap, section, firstinchapter, lastref, chapterTitle, lastchunk):
     section = re.sub(condense_re, ' ', section)
-    section = section.replace(" \\", "\n\\")
+    section = newline_markers(section)
     section = section.replace(" \n", "\n")
 
     if config.getboolean('Txt2USFM', 'section_headings'):
