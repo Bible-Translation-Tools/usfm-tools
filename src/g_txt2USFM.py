@@ -56,8 +56,6 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.source_dir = StringVar()
         self.target_dir = StringVar()
         self.headings = BooleanVar(value = False)
-        for var in (self.language_code, self.source_dir, self.target_dir):
-            var.trace_add("write", self._onChangeEntry)
         for col in [2,3]:
             self.columnconfigure(col, weight=1)   # keep column 1 from expanding
         self.columnconfigure(4, minsize=94)
@@ -105,25 +103,33 @@ class Text2USFM_Frame(g_step.Step_Frame):
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack)
         self.controller.showbutton(2, "CONVERT", self._onExecute, tip="Run the conversion script now.")
+        self.controller.bindButtonEvent(2, "<Enter>", self._onCheckInputs)
         self.controller.showbutton(3, "Source folder", self._onOpenTextDir,
                                    tip="Open the folder containing the files to be converted.")
         self.controller.showbutton(4, "Usfm folder", self._onOpenTargetDir)
         self.controller.showbutton(5, ">>>", self._onSkip, tip="Verify USFM")
+        self.language_code.trace_add("write", self._onChangeEntry)
+        self.source_dir.trace_add("write", self._onChangeSourceDir)
+        self.target_dir.trace_add("write", self._onChangeEntry)
         self._set_button_status()
 
     # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
     def _save_values(self):
-        self.values['language_code'] = self.language_code.get()
-        self.values['source_dir'] = self.source_dir.get()
-        self.values['target_dir'] = self.target_dir.get()
-        self.values['section_headings'] = str(self.headings.get())
-        self.controller.mainapp.save_values(stepname, self.values)
-        self._set_button_status()
+        if not self.invalidInputs():
+            self.values['language_code'] = self.language_code.get()
+            self.values['source_dir'] = self.source_dir.get()
+            self.values['target_dir'] = self.target_dir.get()
+            self.values['section_headings'] = str(self.headings.get())
+            self.controller.mainapp.save_values(stepname, self.values)
+            self._set_button_status()
 
     def _onFindSrcDir(self, *args):
         self.controller.askdir(self.source_dir)
     def _onFindTargetDir(self, *args):
         self.controller.askdir(self.target_dir)
+    def _onChangeSourceDir(self, *args):
+        self.language_code.set("")
+        self._set_button_status()
     def _onChangeEntry(self, *args):
         self._set_button_status()
     def _onOpenTextDir(self, *args):
@@ -137,14 +143,32 @@ class Text2USFM_Frame(g_step.Step_Frame):
 run the conversion both ways and keep the better result.\n"
         self.clear_show(msg)
 
+    # Returns a list of incomplete or incorrect inputs.
+    # Used by _onExecute().
+    # Is also called before values are saved to configuration files.
+    # Is also called when the mouse hovers over the CONVERT button.
+    def invalidInputs(self, *args):
+        objections = []
+        code = self.language_code.get()
+        dir = self.source_dir.get()
+        target = self.target_dir.get()
+
+        if not code:
+            objections.append("Language code is required.")
+        if not os.path.isdir(dir):
+            objections.append(f"{dir} is not a valid folder.")
+        target_parent = os.path.dirname(target)
+        if not os.path.isdir(target_parent):
+            objections.append(f"{target} cannot be created.")
+        return objections
+
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
+        self.controller.enablebutton(2, len(self.invalidInputs()) == 0)
         self.controller.showbutton(5, ">>>", self._onNext, tip="Verify USFM")
         self._set_button_status()
 
     def _set_button_status(self):
-        good_sourcedir = os.path.isdir(self.source_dir.get())
-        okay = (self.language_code.get() and good_sourcedir and self.target_dir.get())
-        self.controller.enablebutton(2, okay)
-        self.controller.enablebutton(3, good_sourcedir)
+        self.controller.enablebutton(2, len(self.invalidInputs()) == 0)
+        self.controller.enablebutton(3, os.path.isdir(self.source_dir.get()))
         self.controller.enablebutton(4, os.path.isdir(self.target_dir.get()))
