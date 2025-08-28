@@ -55,6 +55,9 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.language_code = StringVar()
         self.source_dir = StringVar()
         self.target_dir = StringVar()
+        self.lang_cbname = self.language_code.trace_add("write", self._onChangeEntry)
+        self.source_cbname = self.source_dir.trace_add("write", self._onChangeSourceDir)
+        self.target_cbname = self.target_dir.trace_add("write", self._onChangeEntry)
         self.headings = BooleanVar(value = False)
         for col in [2,3]:
             self.columnconfigure(col, weight=1)   # keep column 1 from expanding
@@ -94,6 +97,10 @@ class Text2USFM_Frame(g_step.Step_Frame):
 
     # Called when the frame is first activated. Populate the initial values.
     def show_values(self, values):
+        self.language_code.trace_remove("write", self.lang_cbname)
+        self.source_dir.trace_remove("write", self.source_cbname)
+        self.target_dir.trace_remove("write", self.target_cbname)
+
         self.values = values
         self.language_code.set(values['language_code'])
         self.source_dir.set(values['source_dir'])
@@ -108,9 +115,9 @@ class Text2USFM_Frame(g_step.Step_Frame):
                                    tip="Open the folder containing the files to be converted.")
         self.controller.showbutton(4, "Usfm folder", self._onOpenTargetDir)
         self.controller.showbutton(5, ">>>", self._onSkip, tip="Verify USFM")
-        self.language_code.trace_add("write", self._onChangeEntry)
-        self.source_dir.trace_add("write", self._onChangeSourceDir)
-        self.target_dir.trace_add("write", self._onChangeEntry)
+        self.lang_cbname = self.language_code.trace_add("write", self._onChangeEntry)
+        self.source_cbname = self.source_dir.trace_add("write", self._onChangeSourceDir)
+        self.target_cbname = self.target_dir.trace_add("write", self._onChangeEntry)
         self._set_button_status()
 
     # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
