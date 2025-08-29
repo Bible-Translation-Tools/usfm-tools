@@ -14,7 +14,7 @@ all_markers = {'id','ide','usfm','c','v','p','rem','text',   # text is an intern
                 'w','+w','w*','+w*', 'wg','+wg','wg*','+wg*', 'wh','+wh','wh*','+wh*', 'wj','+wj','wj*','+wj*',
                 'f','f*','fe','fe*','fr','fk','fl','fq','fqa','fp','ft',
                 'fv','+fv','fv*','+fv*','fdc','+fdc','fdc*','+fdc*', 'fm','+fm','fm*','+fm*', 'rq','+rq','rq*','+rq*',
-                'x','x*','xo','xt',
+                'x','x*','xo','xt','ef','ef*','ex','ex*','cat','cat*','esb','esbe',
                 'imt','imt1','imt2','im','imi','imq','ipq','is','is1','is2','is3',
                 'ip','ipi','io','io1','io2','io3','iq','iq1','iq2','iq3','ib',
                 'ili','ili1','ili2','ili3','iot','iex',
@@ -52,7 +52,7 @@ class Token:
     def isFootnote(self):
         return self.type in {'f','f*','fe','fe*','fr','fk','fl','fq','fqa','fp','ft',
             'fv','+fv','fv*','+fv*','fdc','+fdc','fdc*','+fdc*', 'fm','+fm','fm*','+fm*',
-            'rq','+rq','rq*','+rq*'
+            'rq','+rq','rq*','+rq*','ex','ex*'
         }
     def isIntro(self):
         return self.type in {'is','ip','ipi','iot','io','im','imt','imt1'}
