@@ -10,9 +10,10 @@ import os
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Amharic\am_udb.RPP\13-1CH.usfm'
+source_dir = r'C:\DCS\Khawng_Tu\anl-x-khawngtu_reg'
+target_dir = r'C:\DCS\Khawng_Tu\no_qs'
 nChanged = 0
-max_changes = 1
+max_changes = 80
 filename_re = re.compile(r'.*\.usfm$')
 
 yes_backup = True
@@ -31,7 +32,7 @@ heading_re = re.compile(r'#+ ', flags=re.UNICODE)
 def file_qualifies(lines):
     return True
 
-waste_re = re.compile(r'\\v [0-9 ]+$', re.UNICODE)
+waste_re = re.compile(r'\\rem The text in this file was extracted', re.UNICODE)
 
 # This function contains the main logic of the script.
 # Returns True if the line is to be kept, False if not.
@@ -39,7 +40,7 @@ waste_re = re.compile(r'\\v [0-9 ]+$', re.UNICODE)
 def keeper(line, count):
     global prevlost
     keep = True
-    if blankverse := waste_re.match(line):
+    if line == "\\q1\n" or line == "\\q2\n" or line == "\\q\n":
         keep = False
     return keep
 
@@ -66,12 +67,14 @@ def filterLines(path):
             else:
                 changed = True
 
-    if changed:
-        if yes_backup:
-            bakpath = path + ".orig"
-            if not os.path.isfile(bakpath):
-                os.rename(path, bakpath)
-        output = io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n')
+    if changed and source_dir == target_dir:
+        bakpath = path + ".orig"
+        if not os.path.isfile(bakpath):
+            os.rename(path, bakpath)
+
+    if changed or target_dir != source_dir:
+        outpath = os.path.join(target_dir, os.path.basename(path))
+        output = io.open(outpath, "tw", buffering=1, encoding='utf-8', newline='\n')
         output.writelines(outputlines)
         output.close()
     return changed
@@ -101,11 +104,13 @@ def convertFolder(folder):
             if nChanged >= max_changes:
                 break
 
-# Processes all .txt files in specified directory, one at a time
+# Processes all files in specified directory, one at a time
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] != 'hard-coded-path':
         source_dir = sys.argv[1]
 
+    if not os.path.isdir(target_dir):
+        os.mkdir(target_dir)
     if os.path.isdir(source_dir):
         convertFolder(source_dir)
         sys.stdout.write("Done. Changed " + str(nChanged) + " files.\n")
