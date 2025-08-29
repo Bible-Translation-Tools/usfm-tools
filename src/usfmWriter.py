@@ -19,7 +19,7 @@ startline_tags = {'id','ide','usfm','c','cl','v','p','rem',
                 'q','q1','q2','q3','qa','qr','qc','qm','qm1','qm2',
                 's','s1','s2','s3','s4','s5','sr','r','d','sp',
                 'sd','sd1','sd2','sd3',
-                'lit','pb','pm','pmo','pmc','pmr'
+                'esb','esbe','lit','pb','pm','pmo','pmc','pmr'
 }
 inline_tags = {'va','va*','vp','vp*','ca*',
                 'add','add*', 'bd','bd*', 'bdit','bdit*', 'bk','bk*', 'dc','dc*',
@@ -30,6 +30,7 @@ inline_tags = {'va','va*','vp','vp*','ca*',
                 'w','w*', 'wg','wg*', 'wh','wh*', 'wj','wj*',
                 'f','f*','fe','fe*','fr','fk','fq','fqa','fqa*','fp','ft','fv','fv*',
                 'fdc','fdc*','fl','fm','fm*','rq','rq*',
+                'ef','ef*','ex','ex*','cat','cat*',
                 'x','x*','xo','xt',
                 'ior','ior*','iqt','iqt*','qac','qac*',
                 'fig','fig*'
@@ -82,8 +83,9 @@ class usfmWriter:
             self._newlined = False
             if value:
                 self.writeStr(value)
-                if key == 'v':
+                if key in {'v', 'ef','ex','f','fe','x'}:
                     self.writeStr(" ")  # ensure correct verse marker even when next char is phrase-ending
+                    # ensure space after "\f +" etc.
 
     # Inserts the specified number of line breaks (defualt 1) into the file.
     def newline(self, n=1):
