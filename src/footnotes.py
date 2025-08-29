@@ -15,7 +15,7 @@ import usfmReader
 import usfm_utils
 
 # Verses with footnotes in the English ULB. (Default set)
-_footnotedVerses_en_ulb = [
+footnotedVerses_en_ulb = [
   "GEN 1:26",
   "GEN 4:8",
   "GEN 10:4",
@@ -461,6 +461,8 @@ def validSourceDir(dir):
 # Returns True if the specified folder has already been scanned for footnote locations.
 # @TODO Check for .usfm file dates newer than the .json date. (Maybe a separate function.)
 def preScanned(dir):
+    if not dir:
+        return False
     fvpath = os.path.join(dir, "footnotedVerses.json")
     return os.path.isfile(fvpath)
 
@@ -470,13 +472,12 @@ def getFootnotedVerses(dir=""):
     global state
     if not state:
         state = State()
-    if preScanned(dir):
+    if dir and preScanned(dir):
         _loadPrescanned(dir)
     elif validSourceDir(dir):
         _scanFootnotes(dir)
-    if not state.footnoteRefs:
-        state = State()
-        state.footnoteRefs = _footnotedVerses_en_ulb
+    elif not dir:
+        state.footnoteRefs = footnotedVerses_en_ulb
         state.loadedDir = ""
     return set(state.footnoteRefs)
 
