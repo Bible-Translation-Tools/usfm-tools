@@ -120,7 +120,7 @@ def is_possible_heading(s):
     return qualifies(s, threshold)
 
 anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
-amen_re = re.compile(r'[AE]m[ei]+n')
+amen_re = re.compile(r'[AE][mM][eiEI]+[nN]')
 selah_re = re.compile(r'Selah')
 forbidden_re = re.compile(r'["“‘‹«”›»]')
 singleWordInParens_re = re.compile(r'\(\s*\w+\s*\)')
