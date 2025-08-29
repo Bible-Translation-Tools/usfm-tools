@@ -31,6 +31,7 @@ issuesFile = None
 issues: dict = {}   # Can't put in State because we want to accumulate issues across all files.
 wordlist = dict()
 footnotedVerses = {}
+footnotedVerses_en_ulb = {}
 nFiles = 0  # number of .usfm files verified
 nSectionHeadings = 0
 nNoPAfterC = 0
@@ -638,10 +639,13 @@ def load_source(fname):
         state.source_id = identifySource(sourcedir)
 
         # Load footnote references first, for the whole directory
-        if len(footnotedVerses) == 0:
+        global footnotedVerses_en_ulb
+        if len(footnotedVerses) == 0 and len(footnotedVerses_en_ulb) == 0:
             if not footnotes.preScanned(sourcedir):
                 reportStatus(f"Scanning source text for footnotes...")
             footnotedVerses = footnotes.getFootnotedVerses(sourcedir)
+            if len(footnotedVerses) == 0:
+                footnotedVerses_en_ulb = set(footnotes.footnotedVerses_en_ulb)
 
         # Then parse the usfm for the current book.
         sourcepath = os.path.join(sourcedir, fname)
@@ -977,7 +981,8 @@ def findFootnote(text, reference):
     flag = None
     if ref := reference_re.search(text):
         flag = ref.group(0)
-    elif ('(' in text or ')' in text) and (usfm_verses.isOptional(reference) or reference in footnotedVerses):
+    elif ('(' in text or ')' in text) and (usfm_verses.isOptional(reference) or\
+          reference in footnotedVerses or reference in footnotedVerses_en_ulb):
         # Don't suspect numbers in parens as being a footnote
         matches1 = parenNumber_re.findall(text)
         matches2 = parenAmen_re.findall(text)
@@ -1007,10 +1012,14 @@ def reportFootnotes(text):
         if ':' in trigger:
             if not validBracketedFootnote(text):
                 reportError(f"Probable chapter:verse reference ({trigger}) at {reference} belongs in a footnote", 43)
-        elif usfm_verses.isOptional(reference) or reference in footnotedVerses:
+        if reference in footnotedVerses:
             reportError(f"Bracket or parens in {reference} ({state.source_id} has a footnote there)", 43.1)
+        elif usfm_verses.isOptional(reference):
+            reportError(f"Bracket or parens in {reference} may indicate optional or alternative text", 43.2)
+        elif reference in footnotedVerses_en_ulb:
+            reportError(f"Bracket or parens in {reference} (footnotes are common there)", 43.3)
         else:
-            reportError(f"Optional text or untagged footnote at {reference}", 43.2)
+            reportError(f"Optional text or untagged footnote at {reference}", 43.4)
 
 # Warns when a paragraph break appears in what seems to be the middle of a sentence.
 # Warns when the specified string is supposed to start a sentence but the first word is not capitalized.
