@@ -77,12 +77,9 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         self.filename = StringVar()
         self.copy_nb = BooleanVar(value = False)
         self.remove_s5 = BooleanVar(value = True)
-        self.s5_only = BooleanVar(value = False)
-        self.sentence_sensitive = BooleanVar(value = True)
-        # self.language_code.trace_add("write", self._onChangeLanguage)
-        # self.source_dir.trace_add("write", self._onChangeSourceDir)
-        # self.model_dir.trace_add("write", self._set_button_status)
-        # self.filename.trace_add("write", self._set_button_status)
+        # self.s5_only = BooleanVar(value = False)
+        self.s5_to_p = BooleanVar(value = False)
+        self.mark_every_verse = BooleanVar(value = False)
         self.columnconfigure(3, weight=1)   # keep column 1 from expanding
         self.columnconfigure(4, minsize=115)
 
@@ -131,39 +128,47 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         remove_s5_Tip = Hovertip(self.remove_s5_checkbox, hover_delay=500,
              text="Always recommended except for GL source texts")
 
-        self.s5_only_checkbox = ttk.Checkbutton(self, text='\\s5 only',
-                                                      variable=self.s5_only, onvalue=True, offvalue=False)
-        self.s5_only_checkbox.grid(row=8, column=3, sticky=W)
-        s5_only_Tip = Hovertip(self.s5_only_checkbox, hover_delay=500,
-             text="Mark chunks only, not paragraphs.")
+        # self.s5_only_checkbox = ttk.Checkbutton(self, text='\\s5 only',
+        #                                               variable=self.s5_only, onvalue=True, offvalue=False)
+        # self.s5_only_checkbox.grid(row=8, column=3, sticky=W)
+        # s5_only_Tip = Hovertip(self.s5_only_checkbox, hover_delay=500,
+        #      text="Mark chunks only, not paragraphs.")
 
-        sentence_sensitive_checkbox = ttk.Checkbutton(self, text='Sentence sensitive',
-                                                      variable=self.sentence_sensitive, onvalue=True, offvalue=False)
-        sentence_sensitive_checkbox.grid(row=8, column=4, sticky=W)
-        sentence_sensitive_Tip = Hovertip(sentence_sensitive_checkbox, hover_delay=500,
-             text="Only insert marks *between punctuated sentences.")
+        self.s5_to_p_checkbox = ttk.Checkbutton(self, text='\\s5 --> \\p', variable=self.s5_to_p,
+                                             onvalue=True, offvalue=False)
+        self.s5_to_p_checkbox.grid(row=8, column=3, sticky=W)
+        self.s5_to_p_checkbox.state(['disabled'])
+        s5_to_p_Tip = Hovertip(self.s5_to_p_checkbox, hover_delay=500,
+             text="(Future) Make each chunk a paragaph.")
+
+        mark_every_verse_checkbox = ttk.Checkbutton(self, text='Mark every verse',
+                                                      variable=self.mark_every_verse, onvalue=True, offvalue=False)
+        mark_every_verse_checkbox.grid(row=8, column=4, sticky=W)
+        mark_every_verse_checkbox.state(['disabled'])
+        mark_every_verse_Tip = Hovertip(mark_every_verse_checkbox, hover_delay=500,
+             text=r"(Future) Insert \m before every verse that isn't preceded by \p.")
 
         self.clear_show("This process can copy chunk markers, and paragraph and poetry markers from \
 a model text to the file(s) that you specify. \
 If the paragraphs are sufficiently marked in your text already, and you don't need the '\\s5 only' functionality, \
 then don't run this process.")
 
-        self.model_dir_entry.focus()
-
     def show_values(self, values):
-        # self.changingVars = True
         self.values = values
         code = values.get('language_code', fallback="")
         dir = values.get('source_dir', fallback="")
         self.source_dir.set(dir)
         # model_dir = values.get('model_dir', fallback="")
         self.language_code.set(code)
+        if not code:
+            self.set_language_code(dir)
         self.set_model_dir(code, dir)
         self.filename.set(values.get('filename', fallback=""))
         self.copy_nb.set(values.get('copy_nb', fallback=False))
-        self.remove_s5.set(values.get('removes5markers', fallback=True))
-        self.s5_only.set(values.get('s5_only', fallback=False))
-        self.sentence_sensitive.set(values.get('sentence_sensitive', fallback=True))
+        self.remove_s5.set(values.get('removeS5markers', fallback=True))
+        # self.s5_only.set(values.get('s5_only', fallback=False))
+        self.s5_to_p.set(values.get('s5_to_p', fallback=False))
+        self.mark_every_verse.set(values.get('mark_every_verse', fallback=False))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Verify usfm")
@@ -179,11 +184,20 @@ then don't run this process.")
         self._onChanges5()
         self._set_button_status()
         self.remove_s5.trace_add("write", self._onChanges5)
-        self.s5_only.trace_add("write", self._onChanges5)
+        self.s5_to_p.trace_add("write", self._onChanges5)
         self.language_code.trace_add("write", self._onChangeLanguage)
         self.source_dir.trace_add("write", self._onChangeSourceDir)
         self.model_dir.trace_add("write", self._set_button_status)
         self.filename.trace_add("write", self._set_button_status)
+
+    # May be called when Step is activated, and when the source dir changes.
+    def set_language_code(self, dir):
+        if os.path.isdir(dir):
+            my = ManifestYaml()
+            my.load(dir)
+            code = my.getLanguageId()
+            if code != self.language_code.get():
+                self.language_code.set(code)    # this will invoke _onChangeLanguage()
 
     # Called when Step is activated, and when the language code changes.
     # Sets model_dir, based on existence of project info, if any.
@@ -221,23 +235,15 @@ then don't run this process.")
             self._set_button_status()
 
     def _onChanges5(self, *args):
-        if remove := self.remove_s5.get():
-            self.s5_only.set(False)
-        self.s5_only_checkbox.state(['disabled'] if remove else ['!disabled'])
-        if chunks_only := self.s5_only.get():
-            self.remove_s5.set(False)
-        self.remove_s5_checkbox.state(['disabled'] if chunks_only else ['!disabled'])
+        if remove := self.s5_to_p.get():
+            self.remove_s5.set(True)
+        self.remove_s5_checkbox.state(['disabled'] if remove else ['!disabled'])
 
     def _onChangeSourceDir(self, *args):
         self.changingVars = True
-        code = self.language_code.get()
         dir = self.source_dir.get()
         if os.path.isdir(dir):
-            my = ManifestYaml()
-            my.load(dir)
-            code = my.getLanguageId()
-            if code != self.language_code.get():
-                self.language_code.set(code)    # this will invoke _onChangeLanguage()
+            self.set_language_code(dir)
         self.changingVars = False
         self._set_button_status()
 
@@ -250,8 +256,9 @@ then don't run this process.")
             self.values['filename'] = self.filename.get()
             self.values['copy_nb'] = str(self.copy_nb.get())
             self.values['removeS5markers'] = str(self.remove_s5.get())
-            self.values['s5_only'] = str(self.s5_only.get())
-            self.values['sentence_sensitive'] = str(self.sentence_sensitive.get())
+            # self.values['s5_only'] = str(self.s5_only.get())
+            self.values['s5_to_p'] = str(self.s5_to_p.get())
+            self.values['mark_every_verse'] = str(self.mark_every_verse.get())
             self.controller.mainapp.save_values(stepname, self.values)
 
             projectInfo = ProjectInfo(self.source_dir.get(), self.language_code.get())
@@ -285,7 +292,23 @@ then don't run this process.")
         return objections
 
     def _onFindModelDir(self, *args):
+        hints = self._list_sources()
+        if hints:
+            hints = "Locate the folder, for one of these source texts:\n" + hints
+            self.clear_show(hints)
         self.controller.askdir(self.model_dir)
+    # Returns a string properly formatted for showing the known sources texts
+    # for this translation, and how frequently each was used.
+    def _list_sources(self):
+        workdir = self.source_dir.get()
+        code = self.language_code.get()
+        sourcehints = []
+        if os.path.isdir(workdir) and code:
+            pi = ProjectInfo(workdir, code)
+            for src in pi.getSources():
+                sourcehints.append(f"  {src['language_id']}_{src['resource_id']}, vrsn ~{src['version']} was used for {src['count']} book(s).")
+        return "\n".join(sourcehints)
+
     def _onFindSrcDir(self, *args):
         self.controller.askdir(self.source_dir)
     def _onFindFile(self, *args):

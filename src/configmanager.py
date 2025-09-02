@@ -104,8 +104,8 @@ class ToolsConfigManager:
                     'filename': "",
                     'copy_nb': False,
                     'removeS5markers': True,
-                    's5_only': False,
-                    'sentence_sensitive': True }
+                    's5_to_p': False,
+                    'mark_every_verse': False }
             case 'Plaintext2Usfm':
                 sec = {'source_dir': "",
                        'filename': "",
