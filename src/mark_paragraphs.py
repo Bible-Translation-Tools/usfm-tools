@@ -24,9 +24,9 @@ import unicodedata
 # import cProfile
 
 gui = None
-s5_only = False
+# s5_only = False   # s5_only is the inverse of removes5markers
 removes5markers = True
-sentence_sensitive = True
+sentence_sensitive = True   # this is no longer configurable via the config file
 copy_nb = False
 nChanges = 0  # number of changes made
     # includes paragraphs, sections, and terminating punctuation copied from model,
@@ -256,15 +256,15 @@ def mayTerminateLastSentence(punct):
 
 # Inserts \s5 mark if needed
 def mayInsertS5(newchapter=False):
-    if not state.s5Already():
+    if not removes5markers and not state.s5Already():
         global s5_only
-        global removes5markers
 
         smark = ''
-        if not removes5markers and not (newchapter and s5_only):
+        if not newchapter:
             (smark, punct) = state.smarkInModel()
 
-        if (newchapter and s5_only) or (smark == "s5" and not removes5markers):
+        # if (newchapter and s5_only) or (smark == "s5" and not removes5markers):
+        if smark == "s5" or newchapter:
             mayTerminateLastSentence(punct)
             state.usfm.writeUsfm("s5")
             state.addS5()
@@ -303,7 +303,7 @@ def takeP(tag, value, nexttoken):
         state.usfm.writeUsfm(tag, value)
 
 def takeS5():
-    global removes5markers
+    # global removes5markers
     if not state.s5Already() and not removes5markers:
         state.usfm.writeUsfm("s5", None)
         state.addS5()
@@ -323,7 +323,7 @@ def takeV(v):
 
     mayInsertS5()
     state.addVerse(v)
-    if not state.pAlready(current=True) and not s5_only:
+    if not state.pAlready(current=True) and removes5markers:
         (pmark, punct) = state.pmarkInModel()
         if pmark:
             if punct and not isPoetry(pmark):
@@ -340,7 +340,6 @@ def takeV(v):
 
 def takeText(t):
     global nChanges
-    global sentence_sensitive
     smark = None
     t = t.strip()
     if not state.expectingText() and (not state.isMidSentence() or not sentence_sensitive):
@@ -372,10 +371,7 @@ def takeC(c):
     if not punct:
         (mark, punct) = state.pmarkInModel()
     mayTerminateLastSentence(punct)
-
-    global s5_only
-    if s5_only:
-        mayInsertS5(newchapter=True)
+    mayInsertS5(newchapter=True)
     state.addChapter(c)
     state.usfm.writeUsfm("c", c)
 
@@ -716,15 +712,15 @@ def main(app = None):
     gui = app
     global nChanges
     nChanges = 0
-    global s5_only
+    # global s5_only
     global removes5markers
-    global sentence_sensitive
+    # global sentence_sensitive
     global copy_nb
 
     config = ToolsConfigManager()
-    s5_only = config.getboolean('MarkParagraphs', 's5_only')
-    removes5markers = config.getboolean('MarkParagraphs', 'removes5markers')
-    sentence_sensitive = config.getboolean('MarkParagraphs', 'sentence_sensitive')
+    # s5_only = config.getboolean('MarkParagraphs', 's5_only')
+    removes5markers = config.getboolean('MarkParagraphs', 'removeS5markers')
+    # sentence_sensitive = config.getboolean('MarkParagraphs', 'sentence_sensitive')
     copy_nb = config.getboolean('MarkParagraphs', 'copy_nb')
     identifyModel(config.get('MarkParagraphs', 'model_dir'))
     source_dir = config.get('MarkParagraphs', 'source_dir')
