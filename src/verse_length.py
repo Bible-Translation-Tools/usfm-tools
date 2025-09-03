@@ -500,6 +500,16 @@ def referencekey(sref):
         sref = f"{ref.group(1)} {schap}:{sverse}"
     return sref
 
+# Returns the ratio of lengths of source and translation for the specified book.
+# Returns 1.0 if the value can't be calculated
+def booklen_ratio(bookid):
+    ratio = 1.0
+    srclength = lengths_src[bookid] if bookid in lengths_src else 1
+    txln_len = lengths[bookid] if bookid in lengths else 0
+    if srclength > 1 and txln_len > 0:
+        ratio = txln_len / srclength
+    return ratio
+
 # Writes the verse lengths data to a file.
 def dumpLengths():
     global lengths_src
@@ -512,20 +522,28 @@ def dumpLengths():
     # sourcelength = len(state.sourcetext[state.reference])
 
     if len(books) == 1:
-        path = os.path.join(workdir, f"verselengths-{books[0]}.tsv")
+        path = os.path.join(workdir, f"verselengths-{books[0]}.csv")
     elif len(books) > 1:
-        path = os.path.join(workdir, "verselengths.tsv")
+        path = os.path.join(workdir, "verselengths.csv")
     if path:
         references = list(lengths.keys() | lengths_src.keys())
+        booklength_ratio = 1.0
 
         with io.open(path, "tw", encoding='utf-8', newline = '\n') as file:
-            file.write(f"Reference\tSource\tTarget\tRatio\n")
-            file.write(f"\t{sourcedir}\t{workdir}\t\n")
+            file.write(f"Reference,Source,Target,Ratio,Adj_ratio,Special\n")
+            file.write(f",{sourcedir},{workdir},,,\n")
             for ref in sorted(references, key=referencekey):
                 srclength = lengths_src[ref] if ref in lengths_src else 1
-                targetlength = lengths[ref] if ref in lengths else 0
-                ratio = targetlength / srclength
-                file.write(f"{ref}\t{srclength}\t{targetlength}\t{ratio}\n")
+                txln_len = lengths[ref] if ref in lengths else 0
+                ratio = txln_len / srclength
+                special = " "
+                if len(ref) == 3:
+                    booklength_ratio = booklen_ratio(ref)
+                    special = "Book"
+                adj_ratio = txln_len / (srclength * booklength_ratio)
+                if adj_ratio < 0.4 or adj_ratio > 2.5:
+                    special = "Outlier"
+                file.write(f"{ref},{srclength},{txln_len},{ratio},{adj_ratio},{special}\n")
 
 psalmv1_re = re.compile(r'PSA \d+:1$')
 
