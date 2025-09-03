@@ -662,12 +662,13 @@ psalmv1_re = re.compile(r'PSA \d+:1$')
 # Returns (length of verse) / 100 if the verse is less than 12 characters and is not in the list of known short verses.
 def relative_length(ref):
     rlen = 1.0
-    if not psalmv1_re.match(ref) and state.reference in state.sourcetext:
-        sourcelength = len(state.sourcetext[state.reference])
-        if sourcelength > 0:
-            rlen = state.getTextLength() / (sourcelength * (state.booklength / state.booklength_src))
-    elif state.getTextLength() < 12 and not usfm_verses.isShortVerse(state.reference):
-        rlen = state.getTextLength() / 100.0
+    if not psalmv1_re.match(ref):
+        sourcelength = len(state.sourcetext[state.reference]) if state.reference in state.sourcetext else 1
+        txln_len = state.getTextLength()
+        if sourcelength > 1:
+            rlen = txln_len / (sourcelength * (state.booklength / state.booklength_src))
+        elif txln_len < 12 and not usfm_verses.isShortVerse(state.reference):
+            rlen = txln_len / 100.0
     return rlen
 
 # Compares current verse to the source text
