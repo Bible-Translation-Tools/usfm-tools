@@ -104,11 +104,11 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         suppressions_label = ttk.Label(self, text="Suppress these warnings?", font=subheadingFont)
         suppressions_label.grid(row=10, column=1, columnspan=2, sticky=W, pady=(4,2))
 
-        suppress1_checkbox = ttk.Checkbutton(self, text='Numbers', variable=self.suppress[1],
-                                             onvalue=True, offvalue=False)
-        suppress1_checkbox.grid(row=11, column=1, sticky=W)
-        suppress1_Tip = Hovertip(suppress1_checkbox, hover_delay=500,
-             text="Suppress all warnings about numbers. (possible verse number in verse, space in number, number prefix/suffix, etc.)")
+        # suppress1_checkbox = ttk.Checkbutton(self, text='Numbers', variable=self.suppress[1],
+        #                                      onvalue=True, offvalue=False)
+        # suppress1_checkbox.grid(row=11, column=1, sticky=W)
+        # suppress1_Tip = Hovertip(suppress1_checkbox, hover_delay=500,
+        #      text="Suppress all warnings about numbers. (possible verse number in verse, space in number, number prefix/suffix, etc.)")
         # suppress2_checkbox = ttk.Checkbutton(self, text=r'No \p after \c', variable=self.suppress[2],
         #                                      onvalue=True, offvalue=False)
         # suppress2_checkbox.grid(row=11, column=2, sticky=W)
@@ -124,11 +124,11 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         suppress4_checkbox.grid(row=11, column=4, sticky=W)
         suppress4_Tip = Hovertip(suppress4_checkbox, hover_delay=500,
              text=r"Suppress warnings about invalid placement of paragraph/poetry markers")
-        suppress5_checkbox = ttk.Checkbutton(self, text=r'Verse counts', variable=self.suppress[5],
-                                             onvalue=True, offvalue=False)
-        suppress5_checkbox.grid(row=12, column=1, sticky=W)
-        suppress5_Tip = Hovertip(suppress5_checkbox, hover_delay=500,
-             text=r"Suppress checks for verse counts")
+        # suppress5_checkbox = ttk.Checkbutton(self, text=r'Verse counts', variable=self.suppress[5],
+        #                                      onvalue=True, offvalue=False)
+        # suppress5_checkbox.grid(row=12, column=1, sticky=W)
+        # suppress5_Tip = Hovertip(suppress5_checkbox, hover_delay=500,
+        #      text=r"Suppress checks for verse counts")
         suppress6_checkbox = ttk.Checkbutton(self, text=r'Straight quotes', variable=self.suppress[6],
                                              onvalue=True, offvalue=False)
         suppress6_checkbox.grid(row=12, column=2, sticky=W)

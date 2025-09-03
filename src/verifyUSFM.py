@@ -8,11 +8,11 @@
 #       against which the translated text may be compared.
 #   filename  (optional, checks all files if omitted)
 #   standard_chapter_title (optional)
-#   suppress[1]  - Suppress all warnings about numbers. (possible verse number in verse, space in number, number prefix/suffix, etc.)
+#   suppress[1]  - (removed: Suppress all warnings about numbers. (possible verse number in verse, space in number, number prefix/suffix, etc.))
 #   suppress[2]  - (removed: Suppress warnings about missing paragraph marker before verse 1.)
 #   suppress[3]  - Suppress most warnings about punctuation
 #   suppress[4]  - Suppress warnings about invalid placement of paragraph/poetry markers
-#   suppress[5]  - Suppress checks for verse counts
+#   suppress[5]  - (removed: Suppress checks for verse counts)
 #   suppress[6]  - Suppress warnings about straight double and single quotes
 #   suppress[7]  - Suppress warnings about straight single quotes  (report straight double quotes only)
 #   suppress[8]  - Suppress warnings about UPPER CASE BOOK TITLES
@@ -490,8 +490,8 @@ def reportSuppressedIssues():
     if any:
         issuesfile = openIssuesFile()
         issuesfile.write(f"But these kinds of warnings were suppressed:\n")
-        if suppress[1]:
-            issuesfile.write(f"    Irregular numbers.\n")
+        # if suppress[1]:
+        #     issuesfile.write(f"    Irregular numbers.\n")
         if suppress[3]:
             issuesfile.write(f"    Punctuation.\n")
         if suppress[11]:
@@ -500,8 +500,8 @@ def reportSuppressedIssues():
         #     issuesfile.write(f"    Missing paragraph marker after chapter marker.\n")
         if suppress[4]:
             issuesfile.write(f"    Invalid placement of paragraph/poetry markers.\n")
-        if suppress[5]:
-            issuesfile.write(f"    Unexpected verse counts per chapter.\n")
+        # if suppress[5]:
+        #     issuesfile.write(f"    Unexpected verse counts per chapter.\n")
         if suppress[6]:
             issuesfile.write(f"    Straight quotes.\n")
         elif suppress[7]:
@@ -1171,8 +1171,8 @@ def takeText(t, footnote=False):
             reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
     if state.lastToken and state.inVerse and not state.inFootnote() and not state.aligned_usfm:
         reportFootnotes(t)
-    if not suppress[1]:
-        reportNumbers(t, footnote)
+    # if not suppress[1]:
+    reportNumbers(t, footnote)
     if not footnote:
         reportCaps(t)
         state.endSentence( sentences.endsSentence(t) )
@@ -1226,8 +1226,8 @@ def take(token: usfmReader.Token):
     elif token.type == 'v':
         takeV(token.value)
     elif token.type == 'c':
-        if not suppress[5]:
-            verifyVerseCount()  # for the preceding chapter
+        # if not suppress[5]:
+        verifyVerseCount()  # for the preceding chapter
         if not state.ID:
             reportError("Missing book ID: " + state.reference + " Cannot check this file.", 62.1)
             state.canContinue = False
@@ -1442,8 +1442,9 @@ def verifyFile(path):
             reportError("No \\toc3 tag in " + shortname(path), 81)
         previousVerseCheck()       # checks last verse in the file
         verifyNotEmpty(path)
-        if not suppress[5]:
-            verifyVerseCount()      # for the last chapter
+        # if not suppress[5]:
+        verifyVerseCount()      # for the last chapter
+
         verifyChapterCount()
         verifyFootnotes()
         verifyChapterTitles()
