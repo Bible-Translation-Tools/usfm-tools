@@ -533,9 +533,7 @@ def dumpWords():
     books = state.IDs
     hapaxcount = 0
     oldpath = path = None
-    if len(books) == 1:
-        path = os.path.join(config['source_dir'], f"wordlist-{books[0]}.tsv")
-    elif len(books) > 1:
+    if len(books) > 1:
         path = os.path.join(config['source_dir'], "wordlist.tsv")
         oldpath = os.path.join(config['source_dir'], "wordlist.txt")
     if path:
