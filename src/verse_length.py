@@ -37,10 +37,11 @@ class State:
     def __init__(self):
         self.IDs = []       # list of book IDs that have been processed
         self.ID = ""
+        self.vvreference = ""
         self.reference = ""
         self.errorRefs = set()
         self.scanning = False    # True when scanning source text
-        self.sourcetext = {}    # verse-reference: verse-text
+        self.sourcetext = {}    # vvreference: verse-text
         self.source_nverses = {}  # chapter-reference: number of verses
         self.sourcefootnote = {}    # verse-reference: text of footnote(s)
         self.booklength_src = 1
@@ -61,7 +62,6 @@ class State:
         self.verse = 0
         self.lastVerse = 0
         self.lastToken = None
-        self.startChunkVerse = 1
         self.needPP = False
         self.needQQ = False
         self.needVerseText = False
@@ -72,21 +72,22 @@ class State:
         self.footnote_ends = 0
         self.endnote_starts = 0
         self.endnote_ends = 0
+        self.vvreference = ""   # the verse or verse bridge reference
         self.reference = ""
         self.lastRef = ""
-        self.startChunkRef = ""
         self.currItemCategory = OTHER
         self.prevItemCategory = OTHER
         self.toc3 = None
         self.upperCaseReported = False
 
     def __repr__(self):
-        return f'State({self.reference})'
+        return f'State({self.vvreference})'
 
     # Resets state data for a new book
     # The scan parameter is set when source text is being parsed.
     def addID(self, id):
         self.initBook()
+        self.vvreference = id + " header/intro"
         self.reference = id + " header/intro"
         self.ID = id
         if self.scanning:
@@ -120,8 +121,8 @@ class State:
         self.needVerseText = False
         self.textOkayHere = False
         self.lastRef = self.reference
+        self.vvreference = self.ID + " " + c
         self.reference = self.ID + " " + c
-        self.startChunkRef = self.reference + ":1"
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = C
         if self.scanning:
@@ -165,11 +166,11 @@ class State:
         self.currItemCategory = S
         self.inVerse = False
 
-    # Records the start of a new chunk
-    def addS5(self):
-        self.startChunkVerse = self.verse + 1
-        self.startChunkRef = self.ID + " " + str(self.chapter) + ":" + str(self.startChunkVerse)
+    # Registers the specified verse or verse bridge
+    def addvstr(self, vv:str):
+        self.vvreference = self.ID + " " + str(self.chapter) + ":" + vv
 
+    # Registers the specified verse
     def addVerse(self, v: str):
         self.lastVerse = self.verse
         try:
@@ -231,7 +232,7 @@ class State:
             self.versetext += text + " "
         self.textOkayHere = True
         global lengths
-        lengths[state.reference] = len(self.versetext)
+        lengths[state.vvreference] = len(self.versetext)
 
     def inFootnote(self):
         return self.footnote_starts > self.footnote_ends or self.endnote_starts > self.endnote_ends
@@ -266,12 +267,12 @@ class State:
 
     # Simply appends the text to the sourcetext for the current verse
     def addSourceText(self, t):
-        if self.reference in self.sourcetext:
-            state.sourcetext[state.reference] += " " + t
+        if self.vvreference in self.sourcetext:
+            state.sourcetext[state.vvreference] += " " + t
         else:
-            state.sourcetext[state.reference] = t
+            state.sourcetext[state.vvreference] = t
         global lengths_src
-        lengths_src[state.reference] = len(t)
+        lengths_src[state.vvreference] = len(state.sourcetext[state.vvreference])
 
     def addSourceFootnote(self, t):
         if self.reference in self.sourcefootnote:
@@ -434,6 +435,7 @@ def scan(token: usfmReader.Token):
     if token.type == 'text':
         state.addSourceText(token.value)
     elif token.type == 'v':
+        state.addvstr(token.value)
         state.addVerse(token.value)
     elif token.type == 'c':
         state.addChapter(token.value)
@@ -519,7 +521,6 @@ def dumpLengths():
     config = ToolsConfigManager()
     workdir = config.get('VerseLength', 'work_dir')
     sourcedir = config.get('VerseLength', 'compare_dir')
-    # sourcelength = len(state.sourcetext[state.reference])
 
     if len(books) == 1:
         path = os.path.join(workdir, f"verselengths-{books[0]}.csv")
@@ -536,27 +537,27 @@ def dumpLengths():
                 srclength = lengths_src[ref] if ref in lengths_src else 1
                 txln_len = lengths[ref] if ref in lengths else 0
                 ratio = txln_len / srclength
-                special = " "
+                special = ""
                 if len(ref) == 3:
                     booklength_ratio = booklen_ratio(ref)
-                    special = "Book"
+                    # special = "Book"
                 adj_ratio = txln_len / (srclength * booklength_ratio)
                 if adj_ratio < 0.4 or adj_ratio > 2.5:
                     special = "Outlier"
                 file.write(f"{ref},{srclength},{txln_len},{ratio},{adj_ratio},{special}\n")
 
-psalmv1_re = re.compile(r'PSA \d+:1$')
+psalmv1_re = re.compile(r'PSA \d+:1(-|$)')
 
 # Returns (length of verse) / (expected length)
 # Based on (1) length of verse in source text, and (2) overall book length.
 # Returns 1.0 for the first verse of every Psalm.
 # Returns 1.0 if the verse isn't in the source text.
 # Returns (length of verse) / 100 if the verse is less than 12 characters and is not in the list of known short verses.
-def relative_length(ref):
+def relative_length():
     rlen = 1.0
-    sourcelength = len(state.sourcetext[state.reference]) if state.reference in state.sourcetext else 1
+    sourcelength = len(state.sourcetext[state.vvreference]) if state.vvreference in state.sourcetext else 1
     txln_len = state.getTextLength()
-    if not psalmv1_re.match(ref):
+    if not psalmv1_re.match(state.vvreference):
         if sourcelength > 1:
             rlen = txln_len / (sourcelength * (state.booklength / state.booklength_src))
         elif txln_len < 12 and not usfm_verses.isShortVerse(state.reference):
@@ -568,8 +569,8 @@ def relative_length(ref):
 def similarToSource():
     similarity = 0
     n = 0
-    if state.sourcetext and state.reference in state.sourcetext:
-        A = set(state.sourcetext[state.reference].split())
+    if state.sourcetext and state.vvreference in state.sourcetext:
+        A = set(state.sourcetext[state.vvreference].split())
         if state.reference in state.sourcefootnote:
             A.update(state.sourcefootnote[state.reference].split())
         B = set(state.versetext.split())
@@ -582,17 +583,17 @@ def similarToSource():
 def previousVerseCheck():
     if state.verse != 0:
         if state.getTextLength() > 0:
-            rel = relative_length(state.reference)
+            rel = relative_length()
             if rel < 0.4:
-                msg = f"Translation is very short compared to {state.source_id} source: {state.reference}"
+                msg = f"Translation is very short compared to {state.source_id} source: {state.vvreference}"
                 if usfm_verses.isOptional(state.reference):
-                    msg += ", but the verse is optional."
+                    msg += ", but {state.reference} is optional."
                 reportError(msg, 2)
             # elif rel > 3.2:     # not safe, at least until chunks and verse bridges are supported
-            #     reportError(f"Translation is long compared to {state.source_id} source: {state.reference}.", 2.5)
+            #     reportError(f"Translation is long compared to {state.source_id} source: {state.vvreference}.", 2.5)
     (sim, n) = similarToSource()
     if sim > 0.4:
-        reportError(f"Verse may be untranslated (based on words in common with source text): {state.reference}", 3.5)
+        reportError(f"Verse may be untranslated (based on words in common with source text): {state.vvreference}", 3.5)
 
 # Verifies correct number of verses for the current chapter.
 # This method is called just before the next chapter begins.
@@ -631,7 +632,7 @@ def takeC(c):
         # Report missing text in previous verse
         previousVerseCheck()
     if not c.isnumeric():
-        reportError("Missing or invalid chapter number after " + state.reference, 13.1)
+        reportError("Missing or invalid chapter number after " + state.vvreference, 13.1)
     else:
         state.addChapter(c)
         if state.chapter < 1 or state.chapter > nChapters(state.ID):
@@ -683,9 +684,6 @@ def takeP(type):
 def takeQ(type, value):
     state.addPoetry(value)
 
-def takeS5():
-    state.addS5()
-
 def takeSection(tag):
     state.addSection(tag)
 
@@ -713,12 +711,13 @@ def takeV(vstr):
             for vn in range(vnStart, vnEnd + 1):
                 vlist.append(vn)
         else:
-            reportError("Problem in verse range near " + state.reference, 34)
+            reportError("Problem in verse range after " + state.reference, 34)
     elif not vstr:
         reportError("Unnumbered verse after " + state.reference, 35)
     else:
         vlist.append(int(vstr))
 
+    state.addvstr(vstr)
     for vn in vlist:
         # v = str(vn)
         state.addVerse(str(vn))
@@ -795,15 +794,15 @@ badmarker_re = re.compile(r'\\\w+')
 # Performs checks on some text, at most a verse in length.
 def takeText(t, footnote=False):
     if bad := badmarker_re.search(t):
-        reportError(f'Unsupported USFM marker ({bad.group(0)}) near {state.reference}', 53)
+        reportError(f'Unsupported USFM marker ({bad.group(0)}) near {state.vvreference}', 53)
     if not state.textOkay() and not isTextCarryingToken(state.lastToken):
-        reportError("Missing verse marker or extra text near " + state.reference, 54)
+        reportError("Missing verse marker or extra text near " + state.vvreference, 54)
         if state.lastToken:
             reportError("  preceding Token was \\" + state.lastToken.type, 0)
         else:
             reportError("  top of file", 0)
     if "Conflict Parsing Error" in t:
-        reportError("BTT Writer artifact in " + state.reference, 57)
+        reportError("BTT Writer artifact in " + state.vvreference, 57)
     if state.lastToken and state.inVerse and not state.inFootnote() and not state.aligned_usfm:
         reportFootnotes(t)
     state.addText(t)
@@ -846,12 +845,10 @@ def take(token: usfmReader.Token):
     elif token.type in {'p','pi','pc','nb','m'}:
         takeP(token.type)
         if token.value:     # paragraph markers can be followed by text
-            reportError("Unexpected: text returned as part of paragraph token." +  state.reference, 63)
+            reportError("Unexpected: text returned as part of paragraph token." +  state.vvreference, 63)
             takeText(token.value)
     elif token.isFootnote():
         takeFootnote(token)
-    elif token.type == 's5':
-        takeS5()
     elif token.type in {'s','s1','s2','mr','ms','sp'}:
         takeSection(token.type)
     elif token.type == 'qa':
@@ -862,7 +859,7 @@ def take(token: usfmReader.Token):
         takeB()
     elif token.type == 'ide':
         if token.value != 'UTF-8':
-            reportError(f"Unsupported character encoding in {state.reference}: \\ide {token.value}", 64)
+            reportError(f"Unsupported character encoding in {state.vvreference}: \\ide {token.value}", 64)
     elif token.isTitleToken():
         takeTitle(token)
     elif token.type == 'usfm' and token.value.isnumeric():   # non-standard USFM token used by UnfoldingWord software
@@ -921,8 +918,9 @@ def verifyLineByLine(lines, path):
             case 'v':
                 vs = payload.split('-')
                 localstate.addVerse(vs[-1])
+                localstate.addvstr(payload)
         if conflict_re.search(line):
-            reportError(f"Unresolved translation conflict near {localstate.reference}", 76.2)
+            reportError(f"Unresolved translation conflict near {localstate.vvreference}", 76.2)
         elif marker not in {'id','c'}:
             if line.isascii():
                 nAscii += 1
