@@ -148,6 +148,7 @@ class State:
         self.inVerse = False
         self.lastVerse = 0
         self.verse = 0
+        self.versetext = ""
         self.needVerseText = False
         self.textOkayHere = False
         self.lastRef = self.reference
@@ -651,7 +652,7 @@ def load_source(fname):
             reportStatus(f"Loading source text...")
             scanSourceFile(sourcepath)
 
-psalmv1_re = re.compile(r'PSA \d+:1$')
+psalmv1_re = re.compile(r'PSA \d+:1(-|$)')
 
 # Returns (length of verse) / (expected length)
 # Based on (1) length of verse in source text, and (2) overall book length.
