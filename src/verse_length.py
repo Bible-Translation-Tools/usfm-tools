@@ -118,6 +118,7 @@ class State:
         self.inVerse = False
         self.lastVerse = 0
         self.verse = 0
+        self.versetext = ""
         self.needVerseText = False
         self.textOkayHere = False
         self.lastRef = self.reference
@@ -531,19 +532,23 @@ def dumpLengths():
         booklength_ratio = 1.0
 
         with io.open(path, "tw", encoding='utf-8', newline = '\n') as file:
-            file.write(f"Reference,Source,Target,Ratio,Adj_ratio,Special\n")
+            file.write(f"Reference,Source,Translation,Ratio,Adj_ratio,Special\n")
             file.write(f",{sourcedir},{workdir},,,\n")
             for ref in sorted(references, key=referencekey):
                 srclength = lengths_src[ref] if ref in lengths_src else 1
+                if srclength < 1:
+                    srclength = 1
                 txln_len = lengths[ref] if ref in lengths else 0
                 ratio = txln_len / srclength
                 special = ""
                 if len(ref) == 3:
                     booklength_ratio = booklen_ratio(ref)
-                    # special = "Book"
+                    special = "Book"
                 adj_ratio = txln_len / (srclength * booklength_ratio)
-                if adj_ratio < 0.4 or adj_ratio > 2.5:
+                if (0.0 < adj_ratio < 0.4 or adj_ratio > 2.5) and srclength > 1:
                     special = "Outlier"
+                if srclength < 2 or txln_len < 2:   # ratios are not meaningful
+                    ratio = adj_ratio = 1.0
                 file.write(f"{ref},{srclength},{txln_len},{ratio},{adj_ratio},{special}\n")
 
 psalmv1_re = re.compile(r'PSA \d+:1(-|$)')
