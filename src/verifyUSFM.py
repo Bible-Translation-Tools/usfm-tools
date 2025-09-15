@@ -188,10 +188,10 @@ class State:
         self.needQQ = False
         self.needPP = False
         self.textOkayHere = True
+        self.prevItemCategory = self.currItemCategory
         if value:
             self.needVerseText = False
-        self.prevItemCategory = self.currItemCategory
-        self.currItemCategory = QQ
+        self.currItemCategory = OTHER if value else QQ
 
     def addSection(self, tag):
         self.prevItemCategory = self.currItemCategory
@@ -208,8 +208,7 @@ class State:
         self.startChunkRef = self.ID + " " + str(self.chapter) + ":" + str(self.startChunkVerse)
 
     # Returns False if there is a unwanted repetition of tokens.
-    # Records the marker in state.
-    def addMarker(self, token):
+    def okMarker(self, token):
         cat = category(token)
         okay = (cat == OTHER or cat != self.currItemCategory)
         # self.prevMarker = self.currMarker
@@ -552,7 +551,7 @@ def dumpWords():
         percent = int(hapaxcount * 100 / len(wordlist))
         reportError(f"{len(wordlist)} unique words. {hapaxcount} ({percent}%) of them occur only once.", 0.2)
 
-punct_table = str.maketrans('', '', "'’\"-_()–&")
+punct_table = str.maketrans('', '', "'’\"-_()–&—")
 
 # Returns True if s is a mixed case word.
 def isMixed(word):
@@ -1144,40 +1143,42 @@ def reportNumbers(t, footnote):
         reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61.2)
 
 period_re = re.compile(r'[\s]*[\.,;:!\?]')  # detects phrase-ending punctuation standing alone or starting a phrase
-badmarker_re = re.compile(r'\\\w+')
+badmarker_re = re.compile(r'\\\w+\*?')
+conflict_re = re.compile(f'<<<|>>>|===')
 
 # Performs checks on some text, at most a verse in length.
 def takeText(t, footnote=False):
-    if bad := badmarker_re.search(t):
-        reportError(f'Unsupported USFM marker ({bad.group(0)}) near {state.reference}', 53)
-    if not state.textOkay() and not isTextCarryingToken(state.lastToken):
-        reportError("Missing verse marker or extra text near " + state.reference, 54)
-        if state.lastToken:
-            reportError("  preceding Token was \\" + state.lastToken.type, 0)
-        else:
-            reportError("  top of file", 0)
-    if state.textOkay() and state.verse == 0 and state.chapter > 0:
-        reportError(f"Unmarked text before {state.reference + ':1'}", 54.1)
-    if ("<" in t) ^ (">" in t) and not conflict_re.search(t) and not ">>>" in t:
-        reportError("Unmatched angle bracket at " + state.reference, 56)
-    if "Conflict Parsing Error" in t:
-        reportError("BTT Writer artifact in " + state.reference, 57)
-    if not suppress[3] and not state.aligned_usfm:    # report punctuation issues
-        reportPunctuation(t)
-    if period := period_re.match(t):    # text starts with a period
-        if len(t) <= period.end() + 1:
-            reportError(f"Orphaned punctuation at {state.reference}", 58)
-        else:
-            reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
-    if state.lastToken and state.inVerse and not state.inFootnote() and not state.aligned_usfm:
-        reportFootnotes(t)
-    # if not suppress[1]:
-    reportNumbers(t, footnote)
-    if not footnote:
-        reportCaps(t)
-        state.endSentence( sentences.endsSentence(t) )
-    state.addText(t)
+    if not conflict_re.match(t):
+        if bad := badmarker_re.search(t):
+            reportError(f'Unsupported USFM marker ({bad.group(0)}) near {state.reference}', 53)
+        if not state.textOkay() and not isTextCarryingToken(state.lastToken):
+            reportError("Missing verse marker or extra text near " + state.reference, 54)
+            if state.lastToken:
+                reportError("  preceding Token was \\" + state.lastToken.type, 0)
+            else:
+                reportError("  top of file", 0)
+        if state.textOkay() and state.verse == 0 and state.chapter > 0:
+            reportError(f"Unmarked text before {state.reference + ':1'}", 54.1)
+        if ("<" in t) ^ (">" in t) and not conflict_re.search(t) and not ">>>" in t:
+            reportError("Unmatched angle bracket at " + state.reference, 56)
+        if "Conflict Parsing Error" in t:
+            reportError("BTT Writer artifact in " + state.reference, 57)
+        if not suppress[3] and not state.aligned_usfm:    # report punctuation issues
+            reportPunctuation(t)
+        if period := period_re.match(t):    # text starts with a period
+            if len(t) <= period.end() + 1:
+                reportError(f"Orphaned punctuation at {state.reference}", 58)
+            else:
+                reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
+        if state.lastToken and state.inVerse and not state.inFootnote() and not state.aligned_usfm:
+            reportFootnotes(t)
+        # if not suppress[1]:
+        reportNumbers(t, footnote)
+        if not footnote:
+            reportCaps(t)
+            state.endSentence( sentences.endsSentence(t) )
     addWords(t)
+    state.addText(t)
 
 endpunc = ".።,፣:፥;፤!?+-[]{}()<>'\"‹«“‘’”»›`*/"
 midpunc_re = re.compile(   r"[\d.።,፣:፥;፤!?+\\\[\]{}()<>\"‹«“‘’”»›*]")
@@ -1216,7 +1217,7 @@ def isTextCarryingToken(token):
 
 def take(token: usfmReader.Token):
     if token.type != 'text':
-        if not state.addMarker(token):
+        if not state.okMarker(token):
             reportError(f"Back to back markers of type {token.type} at {state.reference}", 62)
     else:
         takeText(token.value, state.inFootnote())
@@ -1349,7 +1350,7 @@ def said_word(line):
             word = said.group(1)
     return word
 
-conflict_re = re.compile(r'<+ HEAD')   # conflict resolution tag
+conflict_head_re = re.compile(r'<+ HEAD')   # conflict resolution tag
 
 # Reports lines of text that may contain section headings.
 # Also determines whether to check for ASCII content, and sets suppress[9] accordingly.
@@ -1369,7 +1370,7 @@ def verifyLineByLine(lines, path):
             case 'v':
                 vs = payload.split('-')
                 localstate.addVerse(vs[-1])
-        if conflict_re.search(line):
+        if conflict_head_re.search(line):
             reportError(f"Unresolved translation conflict near {localstate.reference}", 76.2)
         elif marker not in {'id','c'}:
             if line.isascii():
