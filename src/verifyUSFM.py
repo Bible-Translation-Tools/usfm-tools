@@ -551,7 +551,7 @@ def dumpWords():
         percent = int(hapaxcount * 100 / len(wordlist))
         reportError(f"{len(wordlist)} unique words. {hapaxcount} ({percent}%) of them occur only once.", 0.2)
 
-punct_table = str.maketrans('', '', "'’\"-_()–&—")
+punct_table = str.maketrans('', '', "'’\"-_()–&")
 
 # Returns True if s is a mixed case word.
 def isMixed(word):
@@ -1180,6 +1180,15 @@ def takeText(t, footnote=False):
     addWords(t)
     state.addText(t)
 
+def listwords(t):
+    words = []
+    for item in t.split():
+        if '—' in item:
+            words += item.split('—')
+        else:
+            words.append(item)
+    return words
+
 endpunc = ".።,፣:፥;፤!?+-[]{}()<>'\"‹«“‘’”»›`*/"
 midpunc_re = re.compile(   r"[\d.።,፣:፥;፤!?+\\\[\]{}()<>\"‹«“‘’”»›*]")
 quoteend_re = re.compile(  r"[.።,፣:፥;፤!?+-\\\[\]{}()<>'\"‹«“‘’”»›`*/]'$")    # punct ' EOL
@@ -1188,7 +1197,7 @@ notnumberinfootnote_re = re.compile(r'[^\d:\-.,]')
 
 # Parses all the words out of the t string and adds them to the wordlist[].
 def addWords(t):
-    for item in t.split():
+    for item in listwords(t):
         word = item.strip(".።,፣:፥;፤!?+-\\[]{}()<>\"‹«“‘’”»›*/")
         if quoteend_re.search(word):
             word = word.rstrip(endpunc)
