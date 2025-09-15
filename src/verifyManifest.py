@@ -717,7 +717,7 @@ def verifySource(source):
             reportError("Use a language code in source:language, not \'" + dict['language'] + '\'')
         elif dict['language'] == language_code:
             reportWarning("source:language matches target language")
-        elif dict['language'] not in {'ar','en','fa','fr','id','my','sw','pa','tpi'}:
+        elif dict['language'] not in {'ar','en','fa','fr','id','my','ne','sw','pa','tpi'}:
             reportWarning("source:language: " + dict['language'])
         verifyStringField(dict, 'version', 1)
 
