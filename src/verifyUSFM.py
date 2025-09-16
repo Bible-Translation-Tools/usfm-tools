@@ -1313,7 +1313,7 @@ def verifyWholeFile(contents, path):
     verifyChapterAndVerseMarkers(contents, path)
 
     lines = contents.split('\n')
-    verifyLineByLine(lines, path)
+    verifyLineByLine(lines)
 
     if not suppress[6]:
         nembedded = len(embeddedquotes_re.findall(contents))
@@ -1359,12 +1359,26 @@ def said_word(line):
             word = said.group(1)
     return word
 
-conflict_head_re = re.compile(r'<+ HEAD')   # conflict resolution tag
+fspace_re = re.compile(r' (\\fe?)\s')
+def reportFootnoteSpacing(line, reference):
+    if fspace := fspace_re.search(line):
+        reportError(f"Space before footnote marker {fspace.group(1)} at {reference}", 78)
 
-# Reports lines of text that may contain section headings.
-# Also determines whether to check for ASCII content, and sets suppress[9] accordingly.
-# Also collects "said" words.
-def verifyLineByLine(lines, path):
+def reportSectionTitles(line, reference):
+    if line[0] != '\\' and section_titles.is_possible_heading(line):
+        reportError(f"Possible section title on a line by itself at {reference}", 76)
+    elif reference not in section_titles.exclude_eol_checks:
+        if section_titles.find_eol_heading(line):
+            reportError(f"Possible section title at end of {reference}", 76.1)
+
+conflict_head_re = re.compile(r'<+ HEAD')   # conflict resolution tag
+# Performs checks that are best done on a line-by-line basis.
+#   Reports lines of text that may contain section headings.
+#   Determines whether to check for ASCII content, and sets suppress[9] accordingly.
+#   Collects "said" words.
+#   Reports problems with unresolved merge conflicts.
+#   Reports problems with
+def verifyLineByLine(lines):
     localstate = State()
     nAscii = 0
     for line in lines:
@@ -1386,11 +1400,8 @@ def verifyLineByLine(lines, path):
                 nAscii += 1
             if word := said_word(line):
                 saidwords.addWord(word)
-            if line[0] != '\\' and section_titles.is_possible_heading(line):
-                reportError("Possible section title on a line by itself at " + localstate.reference + " in " + path, 76)
-            elif localstate.reference not in section_titles.exclude_eol_checks:
-                if section_titles.find_eol_heading(line):
-                    reportError("Possible section title at end of " + localstate.reference + " in " + path, 76.1)
+            reportSectionTitles(line, localstate.reference)
+            reportFootnoteSpacing(line, localstate.reference)
 
     suppress[9] = (nAscii / len(lines) > 0.05)
     global nFiles
