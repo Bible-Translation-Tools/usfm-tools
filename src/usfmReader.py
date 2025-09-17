@@ -13,19 +13,20 @@ all_markers = {'id','ide','usfm','c','v','p','rem','text',   # text is an intern
                 'sc','+sc','sc*','+sc*', 'sig','+sig','sig*','+sig*', 'sls','+sls','sls*','+sls*', 'tl','+tl','tl*','+tl*',
                 'w','+w','w*','+w*', 'wg','+wg','wg*','+wg*', 'wh','+wh','wh*','+wh*', 'wj','+wj','wj*','+wj*',
                 'f','f*','fe','fe*','fr','fk','fl','fq','fqa','fp','ft',
-                'fv','+fv','fv*','+fv*','fdc','+fdc','fdc*','+fdc*', 'fm','+fm','fm*','+fm*', 'rq','+rq','rq*','+rq*',
+                'fv','+fv','fv*','+fv*','fdc','+fdc','fdc*','+fdc*', 'fm','+fm','fm*','+fm*',
+                'rq','+rq','rq*','+rq*',
                 'x','x*','xo','xt','ef','ef*','ex','ex*','cat','cat*','esb','esbe',
                 'imt','imt1','imt2','im','imi','imq','ipq','is','is1','is2','is3',
                 'ip','ipi','io','io1','io2','io3','iq','iq1','iq2','iq3','ib',
                 'ili','ili1','ili2','ili3','iot','iex',
                 'ior','+ior','ior*','+ior*', 'iqt','iqt*','ie',
                 'm','pi','pc','nb','b',
-                'q','q1','q2','q3','qa','qr','qc','qac','qac*',
+                'q','q1','q2','q3','qa','qr','qc','qac','qac*','qs','qs*','qm','qm1','qm2',
                 's','s1','s2','s3','s4','s5','sr','r','d','sp',
                 'sd','sd1','sd2','sd3',
                 'h','toc1','toc2','toc3',
                 'mt','mt1','mt2','mt3','mte','mte1','mte2','ms','ms1','ms2','mr',
-                'lit','pb','fig','fig*','pm','pmo','pmc','pmr','qm','qm1','qm2'
+                'lit','pb','fig','fig*','pm','pmo','pmc','pmr'
 }
 
 class Token:
@@ -59,7 +60,7 @@ class Token:
     def isParagraph(self):
         return self.type in {'p','m','pi','pc','nb','b','ip','iot','io','io2'}
     def isPoetry(self):
-        return self.type in {'q','q1','q2','q3','qa','qr','qc'}
+        return self.type in {'q','q1','q2','q3','qa','qr','qc','qm','qm1','qm2','qs','qac'}
     def isSection(self):
         return self.type in {'s','s1','s2','s3','s4','s5','sr','r','d','sp'}
     def isSpecialText(self):
