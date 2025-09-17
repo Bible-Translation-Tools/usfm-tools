@@ -51,13 +51,14 @@ import sentences
 import section_titles
 from datetime import date, datetime
 
-# Item categories
+# Constants
 PP = 1      # paragraph or quote
 QQ = 2      # poetry
 B = 3       # \b for blank line; no titles, text, or verse markers may immediately follow
 C = 4       # \c
 S = 5
 OTHER = 9
+ID_CONFLICTS = 999   # ID for unresolved translation conflict error
 
 # Manages the verify state for a single usfm file.
 class State:
@@ -110,6 +111,7 @@ class State:
         self.toc3 = None
         self.upperCaseReported = False
         self.nSectionHeadings = 0
+        self.inConflict = False
 
     def __repr__(self):
         return f'State({self.reference})'
@@ -120,10 +122,12 @@ class State:
         self.initBook()
         self.reference = id + " header/intro"
         self.ID = id
+        self.nconflicts = 0
         if self.scanning:
             self.sourcetext.clear()
             self.source_nverses.clear()
             self.sourcefootnote.clear()
+            self.nchunks_src = 0
         elif id and id not in self.IDs:
             self.IDs.append(id)
 
@@ -204,6 +208,8 @@ class State:
 
     # Records the start of a new chunk
     def addS5(self):
+        if self.scanning:
+            self.nchunks_src += 1
         self.startChunkVerse = self.verse + 1
         self.startChunkRef = self.ID + " " + str(self.chapter) + ":" + str(self.startChunkVerse)
 
@@ -349,6 +355,16 @@ class State:
     def reportedUpperCase(self):
         self.upperCaseReported = True
 
+    def setConflictCount(self, count):
+        self.nconflicts = count
+    def trackConflict(self, text):
+        if '<<<' in text:
+            self.inConflict = True
+        elif '>>>' in text:
+            self.inConflict = False
+    def inTranslationConflict(self):
+        return self.inConflict
+
 state: State
 
 # Returns the category of the specified marker.
@@ -435,22 +451,23 @@ def long_substring(s1, s2):
 # Writes error message to stderr and to issues.txt.
 # Keeps track of how many errors of each type.
 def reportError(msg, errorId=0.0, summarize_only=False):
-    if not summarize_only:
-        reportToGui('<<ScriptMessage>>', msg)
-        write(msg, sys.stderr)
-        openIssuesFile().write(msg + "\n")
-    if listener:
-        listener.error(msg, errorId)
+    if not state.inTranslationConflict():
+        if not summarize_only:
+            reportToGui('<<ScriptMessage>>', msg)
+            write(msg, sys.stderr)
+            openIssuesFile().write(msg + "\n")
+        if listener:
+            listener.error(msg, errorId)
 
-    if errorId > 0:
-        global issues
-        if errorId in issues:
-            newmsg = long_substring(msg, issues[errorId][0])
-            newcount = issues[errorId][1] + 1
-        else:
-            newmsg = msg
-            newcount = 1
-        issues[errorId] = (newmsg, newcount, " not reported individually" if summarize_only else "")
+        if errorId > 0:
+            global issues
+            if errorId in issues:
+                newmsg = long_substring(msg, issues[errorId][0])
+                newcount = issues[errorId][1] + 1
+            else:
+                newmsg = msg
+                newcount = 1
+            issues[errorId] = (newmsg, newcount, " not reported individually" if summarize_only else "")
 
 # Sends a progress message to the GUI, and to stdout.
 def reportProgress(msg):
@@ -512,10 +529,11 @@ def reportSuppressedIssues():
             issuesfile.write(f"    Capitalization. (Only the total counts were reported.)\n")
         if suppress[12]:
             issuesfile.write(f"    Mixed case words.\n")
+    if ID_CONFLICTS in issues:
+        issuesfile.write(f"    Most issues involving translation conflicts.\n")
 
 # Write summary of issues to issuesFile
 def reportIssues():
-    global issues
     total = 0
     issuesfile = openIssuesFile()
     issuesfile.write("\nSUMMARY:\n")
@@ -605,6 +623,8 @@ def scan(token: usfmReader.Token):
         state.addChapter(token.value)
     elif token.type == 'id':
         state.addID(token.value[0:3].upper())
+    elif token.type == 's5':
+        state.addS5()
     elif token.isFootnote():
         state.addSourceFootnote(token.value)
 
@@ -696,6 +716,7 @@ def previousVerseCheck():
             if rel < 0.4:
                 reportError(f"Translation is very short compared to {state.source_id} source: {state.reference}", 2)
             # elif rel > 3.2:     # not safe, at least until chunks and verse bridges are supported
+            # would also need to account for translation conflicts
             #     reportError(f"Translation is long compared to {state.source_id} source: {state.reference}.", 2.5)
     if not suppress[9] and state.asciiVerse and not empty:
         reportError("Verse is entirely ASCII: " + state.reference, 3)
@@ -1020,7 +1041,6 @@ def reportFootnotes(text):
         else:
             reportError(f"Optional text or untagged footnote at {reference}", 43.4)
 
-# Warns when a paragraph break appears in what seems to be the middle of a sentence.
 # Warns when the specified string is supposed to start a sentence but the first word is not capitalized.
 # Warns when a sentence later in the string does not start with a capital letter.
 def reportCaps(s):
@@ -1144,39 +1164,37 @@ def reportNumbers(t, footnote):
 
 period_re = re.compile(r'[\s]*[\.,;:!\?]')  # detects phrase-ending punctuation standing alone or starting a phrase
 badmarker_re = re.compile(r'\\\w+\*?')
-conflict_re = re.compile(f'<<<|>>>|===')
 
 # Performs checks on some text, at most a verse in length.
 def takeText(t, footnote=False):
-    if not conflict_re.match(t):
-        if bad := badmarker_re.search(t):
-            reportError(f'Unsupported USFM marker ({bad.group(0)}) near {state.reference}', 53)
-        if not state.textOkay() and not isTextCarryingToken(state.lastToken):
-            reportError("Missing verse marker or extra text near " + state.reference, 54)
-            if state.lastToken:
-                reportError("  preceding Token was \\" + state.lastToken.type, 0)
-            else:
-                reportError("  top of file", 0)
-        if state.textOkay() and state.verse == 0 and state.chapter > 0:
-            reportError(f"Unmarked text before {state.reference + ':1'}", 54.1)
-        if ("<" in t) ^ (">" in t) and not conflict_re.search(t) and not ">>>" in t:
-            reportError("Unmatched angle bracket at " + state.reference, 56)
-        if "Conflict Parsing Error" in t:
-            reportError("BTT Writer artifact in " + state.reference, 57)
-        if not suppress[3] and not state.aligned_usfm:    # report punctuation issues
-            reportPunctuation(t)
-        if period := period_re.match(t):    # text starts with a period
-            if len(t) <= period.end() + 1:
-                reportError(f"Orphaned punctuation at {state.reference}", 58)
-            else:
-                reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
-        if state.lastToken and state.inVerse and not state.inFootnote() and not state.aligned_usfm:
-            reportFootnotes(t)
-        # if not suppress[1]:
-        reportNumbers(t, footnote)
-        if not footnote:
-            reportCaps(t)
-            state.endSentence( sentences.endsSentence(t) )
+    if bad := badmarker_re.search(t):
+        reportError(f'Unsupported USFM marker ({bad.group(0)}) near {state.reference}', 53)
+    if not state.textOkay() and not isTextCarryingToken(state.lastToken):
+        reportError("Missing verse marker or extra text near " + state.reference, 54)
+        if state.lastToken:
+            reportError("  preceding Token was \\" + state.lastToken.type, 0)
+        else:
+            reportError("  top of file", 0)
+    if state.textOkay() and state.verse == 0 and state.chapter > 0:
+        reportError(f"Unmarked text before {state.reference + ':1'}", 54.1)
+    if ("<" in t) ^ (">" in t) and not conflict_re.search(t) and not ">>>" in t:
+        reportError("Unmatched angle bracket at " + state.reference, 56)
+    if "Conflict Parsing Error" in t:
+        reportError("BTT Writer artifact in " + state.reference, 57)
+    if not suppress[3] and not state.aligned_usfm:    # report punctuation issues
+        reportPunctuation(t)
+    if period := period_re.match(t):    # text starts with a period
+        if len(t) <= period.end() + 1:
+            reportError(f"Orphaned punctuation at {state.reference}", 58)
+        else:
+            reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
+    if state.lastToken and state.inVerse and not state.inFootnote() and not state.aligned_usfm:
+        reportFootnotes(t)
+    # if not suppress[1]:
+    reportNumbers(t, footnote)
+    if not footnote:
+        reportCaps(t)
+        state.endSentence( sentences.endsSentence(t) )
     addWords(t)
     state.addText(t)
 
@@ -1224,14 +1242,19 @@ def isTextCarryingToken(token):
 # def isNumericCandidate(token):
 #     return token.type in {'text','cl','cp','ft'} or token.isTitleToken()
 
+conflict_re = re.compile(f'<<< +HEAD|>>>>>|=====')
+
 def take(token: usfmReader.Token):
     if token.type != 'text':
         if not state.okMarker(token):
             reportError(f"Back to back markers of type {token.type} at {state.reference}", 62)
-    else:
-        takeText(token.value, state.inFootnote())
+    if conflict_re.search(token.value):
+        state.trackConflict(token.value)
 
-    if token.type == 'id':
+    if token.type == 'text':
+        if not conflict_re.search(token.value):
+            takeText(token.value, state.inFootnote())
+    elif token.type == 'id':
         takeID(token.value)
     elif token.type == 'v':
         takeV(token.value)
@@ -1327,6 +1350,17 @@ def verifyWholeFile(contents, path):
         elif nsingle > 0 and not suppress[7]:
             reportError(f"Straight quotes in {shortname(path)}: {nsingle} singles not counting {nembedded} word-medial.", 75)
 
+    if state.nconflicts > 0:
+        # When there are unresolved conflicts, we must adjust state.booklength
+        if state.nchunks_src:
+            conflicted_portion = state.nconflicts / state.nchunks_src
+        else:
+            nchunks = sum(usfm_verses.verseCounts[state.ID]['verses']) / 2.4
+            conflicted_portion = state.nconflicts / nchunks
+        est = state.booklength * (1.0 - conflicted_portion * 0.55)
+        state.booklength = int(est)
+
+
 usfm_re = re.compile(r'\\([a-z][a-z1-5]*\*?)(\s+.*)?')
 cvnumber_re = re.compile(r'[1-9][-0-9]*')
 # Simplistically parses a single line as usfm.
@@ -1372,6 +1406,7 @@ def reportSectionTitles(line, reference):
             reportError(f"Possible section title at end of {reference}", 76.1)
 
 conflict_head_re = re.compile(r'<+ HEAD')   # conflict resolution tag
+conflict_tail_re = re.compile(r'>>>')   # conflict resolution tag
 # Performs checks that are best done on a line-by-line basis.
 #   Reports lines of text that may contain section headings.
 #   Determines whether to check for ASCII content, and sets suppress[9] accordingly.
@@ -1381,6 +1416,7 @@ conflict_head_re = re.compile(r'<+ HEAD')   # conflict resolution tag
 def verifyLineByLine(lines):
     localstate = State()
     nAscii = 0
+    nconflicts = 0
     for line in lines:
         if not line.strip():
             continue
@@ -1394,7 +1430,11 @@ def verifyLineByLine(lines):
                 vs = payload.split('-')
                 localstate.addVerse(vs[-1])
         if conflict_head_re.search(line):
-            reportError(f"Unresolved translation conflict near {localstate.reference}", 76.2)
+            reportError(f"Unresolved translation conflict near {localstate.reference}", ID_CONFLICTS)
+            localstate.trackConflict(line)
+            nconflicts += 1
+        elif conflict_tail_re.match(line):
+            localstate.trackConflict(line)
         elif marker not in {'id','c'}:
             if line.isascii():
                 nAscii += 1
@@ -1406,6 +1446,7 @@ def verifyLineByLine(lines):
     suppress[9] = (nAscii / len(lines) > 0.05)
     global nFiles
     nFiles += 1
+    state.setConflictCount(nconflicts)
 
 usfmname_re = re.compile(r'([0-9AB][0-9])-(\w\w\w)\.')
 # Returns True if the specified fname is a peripheral usfm (back matter, etc.)
@@ -1437,8 +1478,7 @@ def verifyFile(path):
     state.setAlignedUsfm("lemma=" in contents or "x-occurrences" in contents)
     if state.aligned_usfm:
         contents = usfm_utils.unalign_usfm(contents)
-    state.booklength = len(contents) if len(contents) > 0 else 1
-
+    state.booklength = len(contents) if contents else 1
     state.canContinue = True
 
     if len(contents) < 100:
@@ -1546,7 +1586,7 @@ def main(app=None):
                 reportError(f"No such file: {path}")
         else:
             verifyDir(workdir)
-        if not suppress[12]:
+        if not suppress[12] and not ID_CONFLICTS in issues:
             reportMixedCase()
         reportSections()
         saveResults()
