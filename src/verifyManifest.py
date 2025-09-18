@@ -52,10 +52,10 @@
 
 nIssues = 0
 projtype = ''
-manifestDir = None
+manifestDir = ""
 language_code = ""
 
-import configmanager
+from configmanager import ToolsConfigManager
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
@@ -74,7 +74,7 @@ def getLanguageFromDirName():
     return parts[0]
 
 def expectAscii(language_id=None):
-    expectAsciiTitles = config.getboolean('expectascii')
+    expectAsciiTitles = ToolsConfigManager().getboolean('VerifyManifest', 'expectascii')
     return expectAsciiTitles
 
 # Writes error message to stderr.
@@ -144,7 +144,7 @@ def getBookTitles(path):
 def isBibleType(id):
     isbible = (isAlignedBibleType(id) or id in {'ulb','udb','reg', 'ayt', 'blv','cuv','nav','det','juds','opcb'})
     if not isbible:
-        isbible = config.getboolean('bibletype')
+        isbible = ToolsConfigManager().getboolean('VerifyManifest', 'bibletype')
     return isbible
 
 # Returns True if the specified string is a recognized Aligned Bible type of project type
@@ -378,16 +378,16 @@ def verifyDir(dirpath):
 
 # Manifest file verification
 def verifyFile(dir):
-    manifest = yamlcontents(dir, "manifest.yaml")
-    try:
-        verifyKeys("", manifest, ['dublin_core', 'checking', 'projects'])
-        verifyCore(manifest['dublin_core'])
-        verifyChecking(manifest['checking'])
-        verifyProjects(manifest['projects'], manifest['dublin_core']['language']['identifier'])
-    except TypeError as e:
-        reportError(f"Syntax error in manifest.yaml: \"{str(e)}.\"")
-        reportError("    -- It most likely involves quotes around strings.")
-        reportError("    -- If you can't find the mistake, it may help to use an online yaml checker, like yamllint.com.")
+    if manifest := yamlcontents(dir, "manifest.yaml"):
+        try:
+            verifyKeys("", manifest, ['dublin_core', 'checking', 'projects'])
+            verifyCore(manifest['dublin_core'])
+            verifyChecking(manifest['checking'])
+            verifyProjects(manifest['projects'], manifest['dublin_core']['language']['identifier'])
+        except TypeError as e:
+            reportError(f"Syntax error in manifest.yaml: \"{str(e)}.\"")
+            reportError("    -- It most likely involves quotes around strings.")
+            reportError("    -- If you can't find the mistake, it may help to use an online yaml checker, like yamllint.com.")
 
 # Verifies format field is a valid string, depending on project type.
 # Done with iev, irv, isv, obs, obs-tn, obs-tq, obs-sn, obs-sq, reg, ta, tq, tn, tw, tsv, ulb, udb, ust
@@ -637,21 +637,7 @@ def verifyReadme(dirpath):
         readmepath = os.path.join(dirpath, "README")
     if not os.path.isfile(readmepath):
         reportError("No README file is found")
-    # else:
-        # pathlibpath = pathlib.Path(readmepath)
-        # modtime = datetime.fromtimestamp(pathlibpath.stat().st_mtime)
-        # gitpath = os.path.join(dirpath, ".git/config")
-        # if os.path.isfile(gitpath):
-        #     pathlibpath = pathlib.Path(gitpath)
-        #     delta = modtime - datetime.fromtimestamp(pathlibpath.stat().st_mtime)
-        # else:
-        #     delta = timedelta(hours=2)
-        # # if modtime.date() != date.today():
-        # #     reportWarning("README file was not updated today")
-        # # else:
-        # reportStatus("Remember to update README file.")
 
-# NOT DONE - need to support UHG-type entries
 def verifyRelation(rel):
     if not isinstance(rel, str):
         reportError("Relation element is not a string: " + str(rel))
@@ -861,17 +847,14 @@ def verifyVersion(version, sourceversion):
         reportStatus("Verify that the version number listed in front/intro.md is: " + version + "\n")
 
 def verifyManifest():
-    global config
-    config = configmanager.ToolsConfigManager().get_section('VerifyManifest')   # configmanager version
-    if config:
-        global manifestDir
-        manifestDir = config['source_dir']
-        verifyDir(manifestDir)
+    global manifestDir
+    manifestDir = ToolsConfigManager().get('VerifyManifest', 'source_dir')
+    verifyDir(manifestDir)
 
-        if nIssues == 0:
-            reportStatus("Done, no errors found.")
-        else:
-            reportStatus("\nFinished checking, found " + str(nIssues) + " issue(s).")
+    if nIssues == 0:
+        reportStatus("Done, no issues found.")
+    else:
+        reportStatus("\nFinished checking, found " + str(nIssues) + " issue(s).")
 
 def main(app = None):
     global gui
