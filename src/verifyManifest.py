@@ -707,7 +707,7 @@ def verifySource(source):
             reportError(f"Incorrect source:identifier for project type: {projtype}: should be 'obs'")
         if dict['identifier'] != projtype and projtype in {'obs', 'tn', 'tq', 'tw'}:
             reportError("Inappropriate source:identifier (" + dict['identifier'] + ") for project type: " + projtype)
-        if dict['identifier'] != 'ulb' and projtype == 'reg':
+        if dict['identifier'] not in {'ulb','f10','ayt'} and projtype == 'reg':
             reportWarning("Unusual source:identifier for reg project: " + dict['identifier'])
         if dict['identifier'] != 'tn' and projtype == 'tn-tsv':
             reportError("Incorrect source:identifier for tn-tsv project: " + dict['identifier'])
