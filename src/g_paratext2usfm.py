@@ -2,9 +2,8 @@
 # GUI interface for USFM to USX file conversion.
 #
 
-from tkinter import *
 from tkinter import ttk
-from tkinter import font
+from tkinter import StringVar, W, DISABLED
 from tkinter import filedialog
 from idlelib.tooltip import Hovertip
 import g_step
@@ -27,11 +26,10 @@ class Paratext2Usfm(g_step.Step):
         self.frame.clear_messages()
 
     # Called by the main app.
-    def onScriptEnd(self, status: str):
-        if status:
-            self.frame.show_progress(status)
-        # self.frame.show_progress("\nConversion complete")
-        self.frame.onScriptEnd()
+    # def onScriptEnd(self, status: str):
+    #     if status:
+    #         self.frame.show_progress(status)
+    #     self.frame.onScriptEnd()
 
 class Paratext2Usfm_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):

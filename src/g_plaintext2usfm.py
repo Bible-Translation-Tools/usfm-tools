@@ -3,9 +3,8 @@
 # for operating the plaintxt2usfm.py script.
 # GUI interface for merging BTTW text files and converting to USFM
 
-from tkinter import *
 from tkinter import ttk
-from tkinter import font
+from tkinter import StringVar, W, DISABLED
 from tkinter import filedialog
 from idlelib.tooltip import Hovertip
 import os
@@ -107,7 +106,7 @@ To be converted, the text files must meet these conditions:\n\
   * File names must be like XXX.txt or NN-XXX.txt, where XXX=book id and NN is the book number.\n\
   * UTF-8 encoding is required.\n\
   * The first line of each file contains the book title, no longer than 40 characters.\n\
-  * Alternatively, the book title is marked by \mt or \h, anywhere prior to chapter 1.\n\
+  * Alternatively, the book title is marked by \\mt or \\h, anywhere prior to chapter 1.\n\
   * Chapter and verse numbers in Arabic numerals (0-9).\n\n\
 The process creates one USFM file per book, with \
 standardized names, like 41-MAT.usfm. \

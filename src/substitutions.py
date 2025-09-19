@@ -123,7 +123,7 @@ subs = [
     (" )", ")"),
     ("\\f+", "\\f +"),
     ("+\\f", "+ \\f"),
-    ("\\wj \\wj\*", " "),
+    ("\\wj \\wj*", " "),
 
 # Remove space before phrase ending punctuation
 	(" :", ":"),
