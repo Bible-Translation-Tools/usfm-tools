@@ -12,7 +12,6 @@ https://anaconda.com also has a product that can make it easier to create and us
 
 ## Requirements
 - Python 3.10 or later
-- pyparsing
 - python-docx
 - pyyaml
 - requests
