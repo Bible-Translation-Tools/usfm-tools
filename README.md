@@ -16,4 +16,4 @@ https://anaconda.com also has a product that can make it easier to create and us
 - pyyaml
 - requests
 
-You may be able to install these with `pip install pyparsing python-docx pyyaml requests`
+You may be able to install these with `pip install python-docx pyyaml requests`
