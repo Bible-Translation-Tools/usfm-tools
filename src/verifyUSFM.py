@@ -1396,7 +1396,8 @@ def said_word(line):
 fspace_re = re.compile(r' (\\fe?)\s')
 def reportFootnoteSpacing(line, reference):
     if fspace := fspace_re.search(line):
-        reportError(f"Space before footnote marker {fspace.group(1)} at {reference}", 78)
+        if not (line.startswith('\\v ') and fspace.start() < 7):  # ignore footnotes right after verse number
+            reportError(f"Space before footnote marker {fspace.group(1)} at {reference}", 78)
 
 def reportSectionTitles(line, reference):
     if line[0] != '\\' and section_titles.is_possible_heading(line):
