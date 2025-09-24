@@ -20,7 +20,7 @@ import usfmWriter
 import yaml
 import section_titles
 from datetime import datetime
-import unicodedata
+from usfm_utils import unicodeBlock
 # import cProfile
 
 gui = None
@@ -572,19 +572,6 @@ def reportStatus(msg):
             gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
         gui.event_generate('<<ScriptMessage>>', when="tail")
     print(msg)
-
-# Returns the first word of the Unicode name of most of the characters in the string.
-# This is not exactly the same as the Unicode Block, but better.
-def unicodeBlock(text):
-    blocks = {}
-    primary_block = 'Unknown'
-    for char in text:
-        if char.strip():
-            block_name = unicodedata.name(char, "Unknown").split()[0]
-            blocks[block_name] = blocks.get(block_name, 0) + 1
-    if blocks:
-        primary_block = max(blocks, key=lambda key: blocks[key])
-    return primary_block
 
 # Sets the chapter number in the state object
 # If there is still a tentative paragraph mark, remove it.
