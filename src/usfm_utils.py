@@ -1,7 +1,11 @@
 # coding=utf-8
+# Miscellaneous utility functions needed by various usfm tools
+#    unalign_usfm()
+#    unicodeBlock()
 
 from __future__ import unicode_literals
 import re
+import unicodedata
 
 
 def unalign_usfm(aligned_usfm):
@@ -39,3 +43,19 @@ def unalign_usfm(aligned_usfm):
     usfm = re.sub(r'([{(\[-]) +', r'\1', usfm, flags=re.UNICODE | re.MULTILINE)
 
     return usfm.strip()
+
+# Returns the first word of the Unicode name of most of the characters in the string.
+# This is not exactly the same as the Unicode Block, but better.
+def unicodeBlock(text):
+    blocks = {}
+    if text.isascii():
+        primary_block = 'LATIN' # our simplification
+    else:
+        primary_block = 'Unknown'
+        for char in text:
+            if char.strip():
+                block_name = unicodedata.name(char, "Unknown").split()[0]
+                blocks[block_name] = blocks.get(block_name, 0) + 1
+        if blocks:
+            primary_block = max(blocks, key=lambda key: blocks[key])
+    return primary_block
