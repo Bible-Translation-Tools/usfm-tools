@@ -55,6 +55,8 @@ def test_nChapters(str, result):
         ('before”after', False),
         ('Before”', False),
         ('”After', False),
+        ('Yahweh—that', True),  # isMixed() returns True but listWords() splits it into two words
+        ('laws—I', True),     # isMixed() returns True but listwords() splits it into two words
     ])
 def test_isMixed(word, expected):
     assert verifyUSFM.isMixed(word) == expected

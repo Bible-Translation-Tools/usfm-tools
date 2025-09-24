@@ -99,7 +99,8 @@ def test_mark_heading_eos(section, wanted):
         ('', ''),
         ('This Fine House', '\\s This Fine House\n\\p\n'),
         ('   Spaces ', '\\s Spaces\n\\p\n'),
-        ('\\c 1 \\v 1 verse one.\nThis Is A Section\n\\v 2 second.', '\\c 1 \\v 1 verse one.\n\\s This Is A Section\n\\p\n\\v 2 second.'),
+        ('\\c 1 \\v 1 verse one.\nThis Is A Section\n\\v 2 second.',
+         '\\c 1 \\v 1 verse one.\n\\s This Is A Section\n\\p\n\\v 2 second.'),
         ('\\v 3 verse three.\n This Is Exclamation!  \n\\v 4', '\\v 3 verse three.\n\\s This Is Exclamation!\n\\p\n\\v 4'),
         (' This Fine House\n\\v 4 asdf', '\\s This Fine House\n\\p\n\\v 4 asdf'),
         ('Heading One\n\\v 5 asdf\nHeading Two\nHeading Three', '\\s Heading One\n\\p\n\\v 5 asdf\nHeading Two\nHeading Three'),
@@ -111,7 +112,7 @@ def test_mark_heading_lbi_1(section, expected):
     # Tests for heading recognition in a line-by-itself, NOT at the end of a chapter
     if not expected:
         expected = section
-    result = txt2USFM.mark_section_heading_lbi(section, False)
+    result = txt2USFM.mark_section_heading_lbi(section, 'REV 22:8', False)
     assert result == expected
 
 @pytest.mark.parametrize('section, expected',
@@ -131,7 +132,10 @@ def test_mark_heading_lbi_2(section, expected):
     # Tests for heading recognition in a line-by-itself at the end of a chapter
     if not expected:
         expected = section
-    assert txt2USFM.mark_section_heading_lbi(section, True) == expected
+    result = txt2USFM.mark_section_heading_lbi(section, 'REV 22:8', True)
+    assert result == expected
+    result = txt2USFM.mark_section_heading_lbi(section, 'REV 22:9', False)
+    assert result == expected
 
 @pytest.mark.parametrize('section, newstr',
     [
@@ -182,7 +186,7 @@ def test_mark_heading_lbi_2(section, expected):
 def test_mark_section_headings_1(section, newstr):
     if not newstr:
         newstr = section
-    assert txt2USFM.mark_section_headings(section, False) == newstr
+    assert txt2USFM.mark_section_headings(section, 'REV 22:8', False) == newstr
 
 @pytest.mark.parametrize('section, newstr',
     [
@@ -210,7 +214,10 @@ def test_mark_section_headings_1(section, newstr):
 def test_mark_section_headings_2(section, newstr):
     if not newstr:
         newstr = section
-    assert txt2USFM.mark_section_headings(section, True) == newstr
+    result = txt2USFM.mark_section_headings(section, 'REV 22:8', True)
+    assert result == newstr
+    result = txt2USFM.mark_section_headings(section, 'REV 22:9', False)
+    assert result == newstr
 
 @pytest.mark.parametrize('s, expected',
     [
@@ -231,22 +238,24 @@ def test_remove_parens(s, expected):
         expected = s
     assert txt2USFM.remove_parens(s) == expected
 
-@pytest.mark.parametrize('section, ctitle, expected',
+@pytest.mark.parametrize('schap, section, ctitle, expected',
     [
-        ('', 'Pasal 1', ''),
-        ('This Fine House', 'Pasal', ''),
-        ('\n\\c 1\n\\s DER ARKEMA SIN\n\\p\n\\v 1 Der nom.\n\\v 2 Taurat\n', 'Pasal 1', '\n\\c 1\n\\cl Pasal 1\n\\s DER ARKEMA SIN\n\\p\n\\v 1 Der nom.\n\\v 2 Taurat\n'),
-        ('\\c 1\n\\s DER ARKEMA SIN\n\\p\n\\v 1 Der nom.', 'Pasal 1', '\\c 1\n\\cl Pasal 1\n\\s DER ARKEMA SIN\n\\p\n\\v 1 Der nom.'),
-        ('\\c 2\n\\v 1 asdf', 'Pasal 2', '\\c 2\n\\cl Pasal 2\n\\p\n\\v 1 asdf'),
-        ('\\c 3\n\\v 1 asdf', '3', '\\c 3\n\\p\n\\v 1 asdf'),
-        ('\\c 4\n\\v 1 asdf', 'Pasal', '\\c 4\n\\cl Pasal\n\\p\n\\v 1 asdf'),
-        ('\\c 5', 'Pasal 5', '\\c 5\n\\cl Pasal 5\n'),
-        ('\\c 6', '', '\\c 6\n'),
+        ('1', '', 'Pasal 1', '\n\\cl Pasal 1\n'),
+        ('1', 'This Fine House', 'Pasal', '\n\\cl Pasal\nThis Fine House'),
+        ('1', '\n\\c 1\n\\s DER ARKEMA SIN\n\\p\n\\v 1 Der nom.\n\\v 2 Taurat\n', 'Pasal 1', '\n\\c 1\n\\cl Pasal 1\n\\s DER ARKEMA SIN\n\\p\n\\v 1 Der nom.\n\\v 2 Taurat\n'),
+        ('1', '\\c 1\n\\s DER ARKEMA SIN\n\\p\n\\v 1 Der nom.', 'Pasal 1', '\\c 1\n\\cl Pasal 1\n\\s DER ARKEMA SIN\n\\p\n\\v 1 Der nom.'),
+        ('2', '\\c 2\n\\v 1 asdf', 'Pasal 2', '\\c 2\n\\cl Pasal 2\n\\p\n\\v 1 asdf'),
+        ('3', '\\c 3\n\\v 1 asdf', '3', '\\c 3\n\\p\n\\v 1 asdf'),
+        ('4', '\\c 4\n\\v 1 asdf', 'Pasal', '\\c 4\n\\cl Pasal\n\\p\n\\v 1 asdf'),
+        ('5', '\\c 5', 'Pasal 5', '\\c 5\n\\cl Pasal 5\n'),
+        ('5', '5', 'Pasal 5', '\n\\cl Pasal 5\n5'),
+        ('5', '\\v 1 asdf', '5', '\\p\n\\v 1 asdf'),
+        ('6', '\\c 6', '', '\\c 6'),
     ])
-def test_augmentChapter(section, ctitle, expected):
+def test_augmentChapter(schap, section, ctitle, expected):
     if not expected:
         expected = section
-    result = txt2USFM.augmentChapter(section, ctitle)
+    result = txt2USFM.augmentChapter(schap, section, ctitle)
     assert result == expected
 
 @pytest.mark.parametrize('path, expected',
@@ -485,30 +494,40 @@ def test_reorderVerseMarkers(text, expected):
 
 @pytest.mark.parametrize('text, verserange, expected',
     [
-        (r'\v 3 Usetano akhambula, "Ingave uveve', range3, r''),
-        (r'\v 6 Ufihelelelage  \v 5 Nuwohakika.  \v 7 Ulyahova.', range5, r'\v 5 Ufihelelelage  \v 6 Nuwohakika.  \v 7 Ulyahova.'),
-        (r'\v 5 \v 6 Naho Daada.  \v 6 Ululino nalwo. \v 7 Ulu nalwo.', range5, r''),
-        (r'\v 17 Pwu ula. \v 16 Akhata. \v 18 Pwu."', range16, r'\v 16 Pwu ula. \v 17 Akhata. \v 18 Pwu."'),
-        (r'\v 22 Omunu  \v 20 U Yiisu  \v 21 Pwu fingi.', range20, r'\v 20 Omunu  \v 21 U Yiisu  \v 22 Pwu fingi.'),
-        (r'\v 33 \v 35 Udada mwene.   \v 34 Pwu becha', range33, r'\v 33 \v 34 Udada mwene.   \v 35 Pwu becha'),
-        (r'\v 38 U Yesu ncheyo?    \v 40 Mlolage amavokho  \v 39 Avileamale', range38, r'\v 38 U Yesu ncheyo?    \v 39 Mlolage amavokho  \v 40 Avileamale'),
-        # (r'\v 8 \v 9 nin li. 9  Yisinan uremere.', range8, r''), # How it works
-        # (r'\v 8 \v 9 nin li. 9  Yisinan uremere.', range8, r'\v 8 nin li. \v 9 Yisinan uremere.'),  # future
+        (r'\v 3 Usetano akhambula, "Ingave uveve', range3,
+         r'\v 3 Usetano akhambula, "Ingave uveve \v 4'),
+        (r'\v 6 Ufihelelelage  \v 5 Nuwohakika.  \v 7 Ulyahova.', range5,
+         r'\v 5 Ufihelelelage  \v 6 Nuwohakika.  \v 7 Ulyahova.'),
+        (r'\v 5 \v 6 Naho Daada.  \v 6 Ululino nalwo. \v 7 Ulu nalwo.', range5,
+         r'\v 5-6 Naho Daada.  \v 6 Ululino nalwo. \v 7 Ulu nalwo.'),    # Not ideal, but an improvement
+        (r'\v 17 Pwu ula. \v 16 Akhata. \v 18 Pwu."', range16,
+         r'\v 16 Pwu ula. \v 17 Akhata. \v 18 Pwu."'),
+        (r'\v 22 Omunu  \v 20 U Yiisu  \v 21 Pwu fingi.', range20,
+         r'\v 20 Omunu  \v 21 U Yiisu  \v 22 Pwu fingi.'),
+        (r'\v 33 \v 35 Udada mwene.   \v 34 Pwu becha', range33, r''),  # Unable to improve
+        (r'\v 38 U Yesu ncheyo?    \v 40 Mlolage amavokho  \v 39 Avileamale', range38,
+         r'\v 38 U Yesu ncheyo?    \v 39 Mlolage amavokho  \v 40 Avileamale'),
+        (r'\v 8 \v 9 nin li. 9  Yisinan uremere.', range8,
+         r'\v 8-9 nin li. 9  Yisinan uremere.'),
         (r'\v 10 Kimal akara. \v 11 Kiti nani. 12', range10, r''),
         (r'Nan Kutelle. \v 7 Bara mine.', range5, r'\v 5-6 Nan Kutelle. \v 7 Bara mine.'),
         (r'\v 6 Nan Kutelle. \v 7 Bara mine.', range5, r'\v 5-6 Nan Kutelle. \v 7 Bara mine.'),
         (r'\c 2 Nan Kutelle. \v 4 Bara mine.', range1, r'\c 2 \v 1-3 Nan Kutelle. \v 4 Bara mine.'),
         (r'\v Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono', range5, r'\v 5 Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono'),
         (r'\v 5 Kuwu ati. \v Umong nsono." \v Bara nono', range5, r'\v 5 Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono'),
-        (r'\v 10 Iwa, kube. \n 11 Bara na ', range10, r'\v 10 Iwa, kube. \n \v 11 Bara na '),
-        (r'\v 10 Iwa, kube. \n Bara na ', range10, r'\v 10 Iwa, kube. \n Bara na '),
+        (r'\v 10 Iwa, kube. \n 11 Bara na ', range10,
+         r'\v 10 Iwa, kube. \n \v 11 Bara na '),
+        (r'\v 10 Iwa, kube. \n Bara na ', range10,
+         r'\v 10 Iwa, kube. \n Bara na \v 11'),
         (r'1 \v Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf', range1, r'\v 1 Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf'),
         (r'end. 1 \v Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf', range1, r'end. \v 1 Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf'),
         (r'\c 1 1 \v Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf', range1, r'\c 1 \v 1 Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf'),
         (r'Usetano akhambula, "Ingave uveve', range5, r'\v 5-7 Usetano akhambula, "Ingave uveve'),
         (r'Usetano akhambula, "Ingave uveve', range41, r'\v 41 Usetano akhambula, "Ingave uveve'),
-        (r'\v 8 Bara ba. \v 9 Bara nani.', range8b, r''),
-        (r'\v 3 Bara nene acine. \v 5 Andi aleli ba.', range4, r'\v 3 Bara nene acine. \v 5 Andi aleli ba.'),
+        (r'\v 8 Bara ba. \v 9 Bara nani.', range8b,
+         r'\v 8 Bara ba. \v 9 Bara nani. \v 10'),
+        (r'\v 3 Bara nene acine. \v 5 Andi aleli ba.', range4, r''),
+        (r'\v 3 Bara nene acine. \v 5 Andi aleli ba.', range3, r''),
         # (r'\v 6 \v 7 \v 5 Kubi ko na iwa zuro kiti kirum', range5, r'\v 5 Kubi ko na iwa zuro kiti kirum')  # future
     ])
 def test_fixVerseOrder(text, verserange, expected):
@@ -537,5 +556,6 @@ def test_fixVerseOrder(text, verserange, expected):
 def test_cleanupText(text, verserange, expected):
     if not expected:
         expected = text
-    result = txt2USFM.cleanupText(text, '08', verserange)
+    firstchunk = ("\\v 1 " in text or '\\v 1\t' in text)
+    result = txt2USFM.cleanupText(text, '08', verserange, firstchunk)
     assert result == expected

@@ -57,9 +57,9 @@ def parse_using_usfmReader():
             except UnicodeDecodeError as e:
                 file.write(str(e))
 
-# Run this test after successful completion of test_parseUsfm and test_usfmReader.
 # It compares the results of the two methods of parsing a usfm file.
-def test_compare_files():
+# I quit using this as a unit test because there are intentional differences.
+def omit_test_compare_files():
     parse_using_parseUsfm()
     parse_using_usfmReader()
     path1 = os.path.join(testdata_path, "usfmParse.txt")

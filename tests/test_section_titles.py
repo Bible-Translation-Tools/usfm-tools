@@ -135,6 +135,8 @@ def test_is_heading(str, expected):
     ('(Single)', False),
     ('"Hosana!', False),
     ('گریان و شیوەنێکی گەورە! ڕاخێل  نەمابوون!»', False),
+    ('ਪ੍ਰਭੂ ਯਿਸ਼ੂ ਮਸੀਹ ਦੀ ਪੀਹੜੀ ਅਤੇ ਜਨਮ', True),  # this is a section title from Malwai language
+    ('ਯਿਸੂ ਦੀ ਵੰਸ਼ਾਵਲੀ', True),    # Punjabi
     ])
 def test_is_possibleheading(str, expected):
     import section_titles

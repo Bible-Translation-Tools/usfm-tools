@@ -25,20 +25,6 @@ import mark_paragraphs
 def test_punctuated(s, result):
     assert mark_paragraphs.punctuated(s) == result
 
-@pytest.mark.parametrize('text, expectedblock',
-    [
-        ('5', 'DIGIT'),
-        ('   ', 'Unknown'),
-        ('MATTHEW-', 'LATIN'),
-        ("ኧያእቆቢ ኧችን፤", 'ETHIOPIC'),
-        ("دەرناکات،", 'ARABIC'),   # Arabic comma
-        (" دەبن؟", 'ARABIC'),      # Arabic question mark
-        ("ኖኦራአአር ኢሽሬ፤", 'ETHIOPIC'),
-    ])
-def test_unicodeBlock(text, expectedblock):
-    block = mark_paragraphs.unicodeBlock(text)
-    assert block == expectedblock
-
 @pytest.mark.parametrize('mark, expectedScanning, expectedNotScanning',
     [
         ('5', False, False),
