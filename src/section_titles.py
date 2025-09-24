@@ -14,6 +14,7 @@
 
 import re
 import sentences
+from usfm_utils import unicodeBlock
 
 exclude_eol_checks = ['LEV 18:5','LEV 19:4',
     'MAT 15:31', 'LUK 2:11', 'JHN 19:19', 'ACT 16:20', 'COL 3:22', '2TI 4:18', 'REV 22:9', 'REV 22:20']
@@ -115,7 +116,7 @@ def is_heading(s):
 def is_possible_heading(s):
     s = s.strip(' \n')
     threshold = _titlecase_threshold(s) - 0.21
-    if threshold < 0.45:
+    if 0.0 < threshold < 0.45:
         threshold = 0.45
     return qualifies(s, threshold)
 
@@ -132,7 +133,7 @@ def qualifies(s, threshold):
     # Initial qualification
     possible = (threshold <= 1 and not '\n' in s and\
                 not anyMarker_re.search(s) and not amen_re.search(s) and not selah_re.search(s) and\
-                (firstword.isupper() or isCapitalized(firstword)) and\
+                (firstword.isupper() or isCapitalized(firstword) or threshold <= 0.0) and\
                 # not quotes.partialQuote(s) and\
                 not forbidden_re.search(s) and\
                 not singleWordInParens_re.match(s) and\
@@ -151,7 +152,9 @@ goodstart_re = re.compile(r'[\w\(]')
 # Assumes that the specified string has already been stripped of leading and trailing white space.
 def _titlecase_threshold(s):
     if not s or len(s) < 5:
-        adj = 2
+        adj = 2.0
+    elif unicodeBlock(s) == 'GURMUKHI':  # Gurmukhi has no capitalization
+        adj = 0.0
     else:
         adj = 0.51
         if s[-1] in "'’,":
