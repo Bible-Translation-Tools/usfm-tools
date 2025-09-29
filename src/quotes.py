@@ -61,7 +61,7 @@ dblquote1_re = re.compile(r'[ \(\[]("+)[\w‘\']')     # SPACE|PAREN " word => �
 dblquote2_re = re.compile(r': +[\'‘]*("+)[^\.!?)]')     # colon SPACE " ... => “
 dblquote3_re = re.compile(r'[,;][’\']*("+)[’\']*[\)\]]')     # comma/semicolon " PAREN => ”
 dblquote4_re = re.compile(r'[\.!\?][’\']*("+)')     # period/bang/question " => ”
-dblquote5_re = re.compile(r'\w[’\']*("+)\s*$')        # word " EOS => ”
+# dblquote5_re = re.compile(r'\w[’\']*("+)\s*$')        # word " EOS => ”
 dblquote6_re = re.compile(r'\w[\w ][’”]*("+\?)')       # " question => ” question
 dblquote8_re = re.compile(r'^ *("+)[\w\'‘]', re.MULTILINE)   # " word at start of line => “
 dblquote9_re = re.compile(r'“[^“‘\'’”\n\\]+[^\s“‘\'’”\n\\](")[^\w]')  # quote at end of word if there is a matching open quote on the same line
@@ -100,7 +100,7 @@ def promoteDoubleQuotes(s):
     s = _translate(s, dblquote2_re, dblopentrans)
     s = _translate(s, dblquote3_re, dblclosetrans)
     s = _translate(s, dblquote4_re, dblclosetrans)
-    s = _translate(s, dblquote5_re, dblclosetrans)
+    # s = _translate(s, dblquote5_re, dblclosetrans)   # unsafe
     s = _translate(s, dblquote6_re, dblclosetrans)
     s = _translate(s, dblquote8_re, dblopentrans)
     s = _translate(s, dblquote9_re, dblclosetrans)
