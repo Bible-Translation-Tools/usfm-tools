@@ -8,6 +8,7 @@
 # Ensures a paragraph mark after every section heading.
 
 from configmanager import ToolsConfigManager
+from manifestyaml import ManifestYaml
 import sys
 import os
 import usfmReader
@@ -239,14 +240,14 @@ def parseYaml(path):
         reportError(f"File missing: {path}")
     return contents
 
+# Sets the model identity in the state object, based on its manifest in model_dir.
 def identifyModel(model_dir):
-    path = os.path.join(model_dir, "manifest.yaml")
-    manifest = parseYaml(path)
-    if manifest:
-        core = manifest['dublin_core']
-        language = core['language']['title']
-        identifier = core['identifier'].upper()
-        version = core['version']
+    my = ManifestYaml()
+    errors = my.load(model_dir)
+    if not errors:
+        language = my.getLanguageName()
+        identifier = my.getLanguageId().upper()
+        version = my.getVersion()
         state.identifyModel(f"{language} {identifier} version {version}")
 
 punctuated_re = re.compile(r'[^\w\s]\s*$')
@@ -335,9 +336,9 @@ def takeV(v):
     if not state.pAlready(current=True) and removes5markers:
         (pmark, punct) = state.pmarkInModel()
         if pmark:
-            if punct and not isPoetry(pmark):
+            if punct and not isPoetryMark(pmark):
                 mayTerminateLastSentence(punct)
-            if isPoetry(pmark) or not state.isMidSentence() or not sentence_sensitive:
+            if isPoetryMark(pmark) or not state.isMidSentence() or not sentence_sensitive:
                 state.usfm.writeUsfm(pmark)
                 state.addP(state.verse)
                 nChanges += 1
@@ -396,7 +397,7 @@ def take(token, nexttoken):
         takeC(token.value)
     elif isParagraph(token, scanning=False):
         takeP(token.type, token.value, nexttoken)
-    elif isPoetry(token.type):
+    elif isPoetryMark(token.type):
         # takeQ(token.type, token.value, nexttoken)
         takeP(token.type, token.value, nexttoken)
     elif token.type == 's5':
@@ -418,8 +419,9 @@ def isParagraph(token: usfmReader.Token, scanning):
         isp = False
     return isp
 
-def isPoetry(mark):
-    return mark in {'q','q1','q2','q3','qa','qr','qc', 'qss','d','sp'}
+def isPoetryMark(mark):
+    token = usfmReader.Token(mark, "")
+    return token.isPoetry() or mark in {'d','sp'}
 
 backslash_re = re.compile(r'\\\s')
 jammed_re = re.compile(r'(\\v +[-0-9]+[^-\s0-9])', re.UNICODE)
@@ -651,7 +653,7 @@ def scan(token: usfmReader.Token):
         scanV(token.value)
     elif token.type == 'text':
         scanText(token.value)
-    elif isParagraph(token, scanning=True) or isPoetry(token.type):
+    elif isParagraph(token, scanning=True) or isPoetryMark(token.type):
         scanPQ(token.type)
     elif token.isSection():
         scanS(token.type)
