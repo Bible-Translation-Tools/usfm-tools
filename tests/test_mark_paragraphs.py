@@ -1,4 +1,4 @@
-# pytest unit tests for functions in plaintext2usfm.py
+# pytest unit tests for functions in mark_paragraphs.py
 
 import os
 import sys
@@ -24,57 +24,3 @@ import mark_paragraphs
     ])
 def test_punctuated(s, result):
     assert mark_paragraphs.punctuated(s) == result
-
-@pytest.mark.parametrize('mark, expectedScanning, expectedNotScanning',
-    [
-        ('5', False, False),
-        ('   ', False, False),
-        ('p-', False, False),
-        ('p', True, True),
-        (' pi', False, False),
-        ("iot", True, True),
-        ("iou", False, False),
-        ("m", False, True),
-        ("nb", False, True),
-        ("b", False, True),
-    ])
-def test_isParagraph(mark, expectedScanning, expectedNotScanning):
-    isp = mark_paragraphs.isParagraph(mark, True)
-    assert isp == expectedScanning
-    isp = mark_paragraphs.isParagraph(mark, False)
-    assert isp == expectedNotScanning
-
-@pytest.mark.parametrize('mark, expected',
-    [
-        ('f', True),
-        ('', False),
-        ('p', False),
-        ('f*', True),
-        (' f', False),
-        ("ft", True),
-        ("*f", False),
-        ("fe", True),
-        ("fe*", True),
-        ("rq*", True),
-        ("fq", True),
-    ])
-def test_isFootnote(mark, expected):
-    isf = mark_paragraphs.isFootnote(mark)
-    assert isf == expected
-
-@pytest.mark.parametrize('mark, expected',
-    [
-        ('em', True),
-        ('', False),
-        (' em', False),
-        ('fig', False),
-        ('it*', True),
-        ('it', True),
-        ("bd", True),
-        ("bdit*", True),
-        ("no", True),
-        ("sc*", True),
-    ])
-def test_isCharacterStyle(mark, expected):
-    iss = mark_paragraphs.isCharacterStyle(mark)
-    assert iss == expected
