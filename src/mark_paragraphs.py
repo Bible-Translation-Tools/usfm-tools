@@ -21,6 +21,9 @@ import yaml
 import section_titles
 from datetime import datetime
 from usfm_utils import unicodeBlock
+from yaml.scanner import ScannerError
+from yaml.parser import ParserError
+
 # import cProfile
 
 gui = None
@@ -222,10 +225,16 @@ def parseYaml(path):
         with io.open(path, "tr", encoding='utf-8-sig') as file:
             try:
                 contents = yaml.safe_load(file)
-            except yaml.scanner.ScannerError as e:
-                reportError(f"Yaml syntax error at or before line {e.problem_mark.line} in: {path}")
-            except yaml.parser.ParserError as e:
-                reportError(f"Yaml parsing error at or before line {e.problem_mark.line} in: {path}")
+            except ScannerError as e:
+                line_info = ''
+                if hasattr(e, 'problem_mark') and e.problem_mark is not None and hasattr(e.problem_mark, 'line'):
+                    line_info = f" at or before line {e.problem_mark.line}"
+                reportError(f"Yaml syntax error{line_info} in: {path}")
+            except ParserError as e:
+                line_info = ''
+                if hasattr(e, 'problem_mark') and e.problem_mark is not None and hasattr(e.problem_mark, 'line'):
+                    line_info = f" at or before line {e.problem_mark.line}"
+                reportError(f"Yaml parsing error{line_info} in: {path}")
     else:
         reportError(f"File missing: {path}")
     return contents
