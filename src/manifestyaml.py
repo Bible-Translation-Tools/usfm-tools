@@ -12,12 +12,15 @@ import io
 import yaml
 import codecs
 import operator
+from yaml.scanner import ScannerError
+from yaml.parser import ParserError
 
 class ManifestYaml:
     def __init__(self):
         self.project_dir = ""
         self.contents:dict = {}
         self.path = ""
+        self.last_load_time = None  # Track last file modification time at load
 
     def __repr__(self):
         return f'ManifestYaml({self.project_dir})'
@@ -27,7 +30,19 @@ class ManifestYaml:
     def load(self, project_dir, filename="manifest.yaml"):
         path = os.path.join(project_dir, filename)
         errors = []
-        if path != self.path:   # we don't want to reload the same file
+        reload_needed = False
+        if path == self.path:
+            # Check if file has been modified since last load
+            if os.path.isfile(path):
+                mtime = os.path.getmtime(path)
+                if self.last_load_time is None or mtime > self.last_load_time:
+                    reload_needed = True
+            else:
+                errors.append(f"File not found: {path}")
+                return errors
+        else:
+            reload_needed = True
+        if reload_needed:
             if os.path.isfile(path):
                 self.path = path
                 if has_bom(self.path):
@@ -35,12 +50,20 @@ class ManifestYaml:
                 with io.open(self.path, "tr", encoding='utf-8-sig') as file:
                     try:
                         self.contents = yaml.safe_load(file)
-                    except yaml.scanner.ScannerError as e:
-                        errors.append(f"Yaml syntax error at or before line {e.problem_mark.line} in: {self.path}")
-                    except yaml.parser.ParserError as e:
-                        errors.append(f"Yaml parsing error at or before line {e.problem_mark.line} in: {self.path}")
+                    except ScannerError as e:
+                        line_info = ''
+                        if hasattr(e, 'problem_mark') and e.problem_mark is not None and hasattr(e.problem_mark, 'line'):
+                            line_info = f" at or before line {e.problem_mark.line}"
+                        errors.append(f"Yaml syntax error{line_info} in: {self.path}")
+                    except ParserError as e:
+                        line_info = ''
+                        if hasattr(e, 'problem_mark') and e.problem_mark is not None and hasattr(e.problem_mark, 'line'):
+                            line_info = f" at or before line {e.problem_mark.line}"
+                        errors.append(f"Yaml parsing error{line_info} in: {self.path}")
+                # Update last load time
+                self.last_load_time = os.path.getmtime(self.path)
             else:
-                errors.append(f"File not found: {self.path}")
+                errors.append(f"File not found: {path}")
         return errors
 
     # Creates a resource container manifest.yaml file in the specified folder.
