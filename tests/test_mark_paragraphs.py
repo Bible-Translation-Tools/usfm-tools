@@ -24,3 +24,21 @@ import mark_paragraphs
     ])
 def test_punctuated(s, result):
     assert mark_paragraphs.punctuated(s) == result
+
+@pytest.mark.parametrize('mark, expected',
+    [
+        ('5', False),
+        ('   ', False),
+        ('p', False),
+        ('qss', False),
+        ('q', True),
+        (' q', False),
+        ("qm2", True),
+        ("q3", True),
+        ("m", False),
+        ('d', True),
+        ("sp", True),
+    ])
+def test_isPoetryMark(mark, expected):
+    isp = mark_paragraphs.isPoetryMark(mark)
+    assert isp == expected

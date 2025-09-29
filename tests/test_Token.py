@@ -64,3 +64,21 @@ def test_isParagraph(mark, expected):
     token = Token(mark, "")
     isp = token.isParagraph()
     assert isp == expected
+
+@pytest.mark.parametrize('mark, expected',
+    [
+        ('5', False),
+        ('   ', False),
+        ('p', False),
+        ('qss', False),
+        ('q', True),
+        (' q', False),
+        ("qm2", True),
+        ("m", False),
+        ("sp", False),
+        ("q3", True),
+    ])
+def test_isPoetry(mark, expected):
+    token = Token(mark, "")
+    isp = token.isPoetry()
+    assert isp == expected
