@@ -10,7 +10,8 @@ all_markers = {'id','ide','usfm','c','v','p','rem','text',   # text is an intern
                 'em','+em','em*','+em*', 'it','+it','it*','+it*', 'k','+k','k*','+k*',
                 'nd','+nd','nd*','+nd*', 'no','+no','no*','+no*', 'ndx','+ndx','ndx*','+ndx*', 'ord','+ord','ord*','+ord*',
                 'pn','+pn','pn*','+pn*', 'pro','+pro','pro*','+pro*', 'qt','+qt','qt*','+qt*',
-                'sc','+sc','sc*','+sc*', 'sig','+sig','sig*','+sig*', 'sls','+sls','sls*','+sls*', 'tl','+tl','tl*','+tl*',
+                'sc','+sc','sc*','+sc*', 'sup', '+sup','sup*','+sup*',
+                'sig','+sig','sig*','+sig*', 'sls','+sls','sls*','+sls*', 'tl','+tl','tl*','+tl*',
                 'w','+w','w*','+w*', 'wg','+wg','wg*','+wg*', 'wh','+wh','wh*','+wh*', 'wj','+wj','wj*','+wj*',
                 'f','f*','fe','fe*','fr','fk','fl','fq','fqa','fp','ft',
                 'fv','+fv','fv*','+fv*','fdc','+fdc','fdc*','+fdc*', 'fm','+fm','fm*','+fm*',
@@ -44,6 +45,7 @@ class Token:
             'nd','+nd','nd*','+nd*', 'no','+no','no*','+no*', 'ndx','+ndx','ndx*','+ndx*', 'ord','+ord','ord*','+ord*',
             'pn','+pn','pn*','+pn*', 'pro','+pro','pro*','+pro*', 'qt','+qt','qt*','+qt*',
             'sc','+sc','sc*','+sc*', 'sig','+sig','sig*','+sig*', 'sls','+sls','sls*','+sls*', 'tl','+tl','tl*','+tl*',
+            'sup', '+sup','sup*','+sup*',
             'w','+w','w*','+w*', 'wg','+wg','wg*','+wg*', 'wh','+wh','wh*','+wh*', 'wj','+wj','wj*','+wj*'
         }
 
