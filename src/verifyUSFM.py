@@ -1198,35 +1198,39 @@ def takeText(t, footnote=False):
     addWords(t)
     state.addText(t)
 
+split_re = re.compile(r' | |--|—')  # space, no-break-space, em dash, double hyphen
+
+# Returns a list of the words in the specified text string.
 def listwords(t):
     words = []
-    for item in t.split():
-        if '—' in item:
-            words += item.split('—')
-        else:
-            words.append(item)
+    for item in re.split(split_re, t):
+        word = item.strip(endpunc)
+        if swiq := singleWordInQuotes_re.match(word):
+            if word[0] == word[-1]: # quotes match
+                word = swiq.group(1)
+        if quoteend_re.search(word):
+            word = word[0:-2].rstrip(endpunc)
+        if quotebegin_re.match(word):
+            word = word[2:].lstrip(endpunc)
+        if word:
+            if any(c.isalpha() for c in word) and not midpunc_re.search(word):
+                words.append(word)
     return words
 
-endpunc = ".።,፣:፥;፤!?+-[]{}()<>'\"‹«“‘’”»›`*/"
-midpunc_re = re.compile(   r"[\d.።,፣:፥;፤!?+\\\[\]{}()<>\"‹«“‘’”»›*]")
-quoteend_re = re.compile(  r"[.።,፣:፥;፤!?+-\\\[\]{}()<>'\"‹«“‘’”»›`*/]'$")    # punct ' EOL
-quotebegin_re = re.compile(r"'[.።,፣:፥;፤!?+-\\\[\]{}()<>'\"‹«“‘’”»›`*/]")    # ' punct
+midpunc_re = re.compile(   r"[\d.።,፣:፥;፤!?+\\\[\]{}()<>\"‹«“‘”»›*]")    # punc include digits
+quoteend_re = re.compile(  r"[.።,፣:፥;፤!?+-\\\[\]{}()<>'\"‹«“‘’”»›`*/]['’]$")    # punct ' EOL
+endpunc =                    ".።,፣:፥;፤!?+-\\[]{}()<>\"‹«“‘”»›`*/"
+quotebegin_re = re.compile(r"['’]([.።,፣:፥;፤!?+-\\\[\]{}()<>'\"‹«“‘’”»›`*/])")    # ' punct
 notnumberinfootnote_re = re.compile(r'[^\d:\-.,]')
+singleWordInQuotes_re = re.compile(r"['’]([\w'’]+)['’]") # quotes that are possible word-forming characters
 
 # Parses all the words out of the t string and adds them to the wordlist[].
 def addWords(t):
-    for item in listwords(t):
-        word = item.strip(".።,፣:፥;፤!?+-\\[]{}()<>\"‹«“‘’”»›*/")
-        if quoteend_re.search(word):
-            word = word.rstrip(endpunc)
-        if quotebegin_re.match(word):
-            word = word.lstrip(endpunc)
-        if word:
-            if not state.inFootnote() or notnumberinfootnote_re.search(word):
-                if any(c.isalpha() for c in word) and not midpunc_re.search(word):
-                    (count, ref) = wordlist.get(word, (0, None))
-                    ref = state.reference if count == 0 else ""
-                    wordlist[word] = (count+1, ref)
+    for word in listwords(t):
+        if not state.inFootnote() or notnumberinfootnote_re.search(word):
+            (count, ref) = wordlist.get(word, (0, None))
+            ref = state.reference if count == 0 else ""
+            wordlist[word] = (count+1, ref)
 
 # Returns True if the specified token is followed by a *separate text token
 def isTextCarryingToken(token):

@@ -55,11 +55,52 @@ def test_nChapters(str, result):
         ('before”after', False),
         ('Before”', False),
         ('”After', False),
-        ('Yahweh—that', True),  # isMixed() returns True but listWords() splits it into two words
-        ('laws—I', True),     # isMixed() returns True but listwords() splits it into two words
+        ('Yahweh—that', True),  # isMixed() returns True but em-dash -> two words
+        ('laws—I', True),     # isMixed() returns True but em-dash -> two words
     ])
 def test_isMixed(word, expected):
     assert verifyUSFM.isMixed(word) == expected
+
+@pytest.mark.parametrize('s, expected',
+    [
+        ('', []),
+        ('XYZ', ['XYZ']),
+        ('embed"ded', []),  # most mid-word punctuation disqualifies the word
+        ("embed'ded", ["embed'ded"]),
+        ("embed’ded", ["embed’ded"]),
+        ("no-break space", ['no-break','space']),  # no-break-space splits words
+        ("’leading", ['’leading']),
+        ("trailing’", ['trailing’']),
+        ('"leading', ['leading']),
+        ("'QuoTed'", ['QuoTed']),
+        ("'", []),
+        ("`bwo ", ['bwo']),
+        ("a'iy", ["a'iy"]),
+        ("ab'b'eh", ["ab'b'eh"]),
+        ("aka-iy", ['aka-iy']),
+        ("d'Jerusalem", ["d'Jerusalem"]),
+        ("Śâulo", ['Śâulo']),
+        ("Bârśâbbâś", ['Bârśâbbâś']),
+        ('Two Words', ['Two','Words']),
+        ('before”after', []),
+        ('Yahweh—that', ['Yahweh','that']),  # em dash separates words
+        ('laws’—I', ['laws’','I']),     # em dash
+        ('double\'--*hyphen', ['double\'', 'hyphen']),
+        ("repeat repeat", ['repeat','repeat']),
+        ("''abc’’", ["abc"]),     # arguably, should be ["'abc’"]
+        ("'[def]’", ['def']),
+        ("'()(def))’", ['def']),
+        ("’-def!'", ['def']),
+        ("’*def`'", ['def']),
+        ("['ghi’]", ["'ghi’"]),
+        ("('ghi)’)", ["'ghi"]),
+        ("’-’ghi'!", ["’ghi'"]),
+        ("**’ghi'`", ["’ghi'"]),
+        ("asdf8jkl", []),   # digits disqualify
+    ])
+def test_listwords(s, expected):
+    result = verifyUSFM.listwords(s)
+    assert result == expected
 
 @pytest.mark.parametrize('s, nchapter, expname',
     [
