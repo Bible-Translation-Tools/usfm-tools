@@ -1,4 +1,4 @@
-# pytest unit tests for functions in projectinfo.py
+# pytest unit tests for functions in manifestyaml.py
 
 import os
 import sys
@@ -32,7 +32,6 @@ def test_all():
     addRelations()
 
 def init_newfile():
-    # This test function backs up the existing .json file before deleting it.
     path = os.path.join(dir, 'manifest.yaml')
     bakpath = path + ".bak"
     if os.path.exists(path):
@@ -46,7 +45,16 @@ def init_newfile():
     my.setLanguageName(language_name)
     my.setLanguageDirection('rtl')
     my.save()
+    project = { "title": "1 Corinthians", "identifier": "1co", "sort": 46, \
+            "path": "./47-1CO.usfm", "categories": [ 'bible-nt' ],
+                'versification': 'ufw' }
+    my.addProject(project)  # added but not saved
+    my.load(dir)
+    projects = my.getProjects()
+    assert len(projects) == 1
+    assert projects[0]['identifier'] == "1co"
     assert my.contents['dublin_core']['language']['identifier'] == language_code
+
     my2 = ManifestYaml()
     assert my2.load(dir) == []
     assert my2.contents['dublin_core']['language']['title'] == language_name

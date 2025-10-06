@@ -32,7 +32,7 @@ class ManifestYaml:
         errors = []
         reload_needed = False
         if path == self.path:
-            # Check if file has been modified since last load
+            # Check if file has been modified since last load or save
             if os.path.isfile(path):
                 mtime = os.path.getmtime(path)
                 if self.last_load_time is None or mtime > self.last_load_time:
@@ -88,8 +88,8 @@ class ManifestYaml:
             self.contents['projects'].sort(key=operator.itemgetter('sort'))
             self.contents['dublin_core']['contributor'].sort()
             with io.open(self.path, "tw", encoding='utf-8', newline='\n') as file:
-                # yaml.safe_dump(self.contents, file, default_flow_style=False, default_style="'")
                 yaml.safe_dump(self.contents, stream=file, allow_unicode=True, sort_keys=False)
+            self.last_load_time = os.path.getmtime(self.path)
 
     # Returns the full path of the current manifest file.
     def getPath(self):
@@ -192,6 +192,10 @@ class ManifestYaml:
             if proj['identifier'] == project['identifier']:
                 self.contents['projects'].pop(i)
         self.contents['projects'].append(project)
+
+    # For unit test purposes only
+    def getProjects(self):
+        return self.contents.get('projects', [])
 
     def addRelation(self, lang, rsrc):
         relation = lang + "/" + rsrc
