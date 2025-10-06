@@ -735,11 +735,14 @@ def previousVerseCheck():
 def verifyBookTitle():
     title_ok = False
     en_name = bookTitleEnglish(state.ID)
-    for title in state.booktitles:
-        if title and title != en_name:
-            title_ok = True
-    if not title_ok:
-        reportError("Book title matches English: " + en_name, 5)
+    if not state.booktitles:
+        reportError(f"No book title found for {en_name}", 5.1)
+    else:
+        for title in state.booktitles:
+            if title and title != en_name:
+                title_ok = True
+        if not title_ok:
+            reportError("Book title matches English: " + en_name, 5)
 
 # Reports inconsistent chapter titling
 def verifyChapterTitles():
@@ -922,7 +925,7 @@ def takeSection(tag):
 def takeTitle(token: usfmReader.Token):
     if token.type == 'toc3':
         state.addToc3(token.value)
-    else:
+    elif token.value:
         state.addTitle(token.value)
     if token.type in {'mt','mt1'} and token.value.isascii() and not suppress[9]:
         reportError("mt token has ASCII value in " + state.reference, 30)
@@ -1198,7 +1201,7 @@ def takeText(t, footnote=False):
     addWords(t)
     state.addText(t)
 
-split_re = re.compile(r' | |--|—')  # space, no-break-space, em dash, double hyphen
+split_re = re.compile(r' | |--|—')  # space, no-break-space, double hyphen, em dash
 
 # Returns a list of the words in the specified text string.
 def listwords(t):
