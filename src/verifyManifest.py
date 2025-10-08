@@ -213,11 +213,11 @@ def verifyBookTitle(booktitle, bookId, relpath):
     if digits := re.findall(r'[\d]', booktitle):
         unwanted = set(digits)
         if bookId in {'1sa', '1ki', '1ch', '1co', '1th', '1ti', '1pe', '1jn'}:
-            unwanted -= {'1','२','১','၁'}
+            unwanted -= {'1','२','১','၁','۱'}
         elif bookId in {'2sa', '2ki', '2ch', '2co', '2th', '2ti', '2pe', '2jn'}:
-            unwanted -= {'2','२','২','၂'}
+            unwanted -= {'2','२','২','၂','۲'}
         elif bookId in {'3jn'}:
-            unwanted -= {'3','३','৩','၃'}
+            unwanted -= {'3','३','৩','၃','۳'}
         if unwanted:
             reportError(f"Unwanted digits {unwanted} in project:title: {booktitle}")
         elif len(digits) > 1:
