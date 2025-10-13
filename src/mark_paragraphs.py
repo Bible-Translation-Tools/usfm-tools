@@ -32,6 +32,7 @@ gui = None
 removes5markers = True
 sentence_sensitive = True   # this is no longer configurable via the config file
 copy_nb = False
+punctuate = True
 nChanges = 0  # number of changes made
     # includes paragraphs, sections, and terminating punctuation copied from model,
     # and the number of \s5 markers removed.
@@ -256,18 +257,19 @@ punctuated_re = re.compile(r'[^\w\s]\s*$')
 def punctuated(s):
     return (punctuated_re.search(s) != None)
 
-def mayTerminateLastSentence(punct):
-    if punct and state.getBlock() == state.getModelBlock() and state.lastText and not punctuated(state.lastText):
-        state.usfm.writeStr(punct)
+def mayTerminateLastSentence(punctuation):
+    global punctuate
+    if punctuate and punctuation and state.getBlock() == state.getModelBlock() and state.lastText and not punctuated(state.lastText):
+        state.usfm.writeStr(punctuation)
         state.terminateSentence()
-        # reportStatus(f"Added punctuation at {state.reference}")
+        reportError(f"Added missing end-of-paragraph punctuation before {state.reference}", True)
         global nChanges
         nChanges += 1
 
 # Inserts \s5 mark if needed
 def mayInsertS5(newchapter=False):
     if not removes5markers and not state.s5Already():
-        global s5_only
+        # global s5_only
 
         smark = ''
         if not newchapter:
@@ -528,7 +530,7 @@ def openIssuesFile():
     global issuesFile
     if not issuesFile:
         workdir = ToolsConfigManager().get('MarkParagraphs', 'source_dir')
-        path = os.path.join(workdir, "issues.txt")
+        path = os.path.join(workdir, "issues.mark_paragraphs.txt")
         if os.path.exists(path):
             timestamp = get_timestamp(path)
             bakpath = os.path.join(workdir, f"issues-{timestamp}.txt")
@@ -714,12 +716,14 @@ def main(app = None):
     global removes5markers
     # global sentence_sensitive
     global copy_nb
+    global punctuate
 
     config = ToolsConfigManager()
     # s5_only = config.getboolean('MarkParagraphs', 's5_only')
     removes5markers = config.getboolean('MarkParagraphs', 'removeS5markers')
     # sentence_sensitive = config.getboolean('MarkParagraphs', 'sentence_sensitive')
     copy_nb = config.getboolean('MarkParagraphs', 'copy_nb')
+    punctuate = config.getboolean('MarkParagraphs', 'punctuate')
     identifyModel(config.get('MarkParagraphs', 'model_dir'))
     source_dir = config.get('MarkParagraphs', 'source_dir')
     file = config.get('MarkParagraphs', 'filename')
