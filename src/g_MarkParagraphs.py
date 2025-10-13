@@ -80,6 +80,7 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         # self.s5_only = BooleanVar(value = False)
         self.s5_to_p = BooleanVar(value = False)
         self.mark_every_verse = BooleanVar(value = False)
+        # self.punctuate = BooleanVar(value = True)
         self.columnconfigure(3, weight=1)   # keep column 1 from expanding
         self.columnconfigure(4, minsize=115)
 
@@ -148,6 +149,12 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         mark_every_verse_Tip = Hovertip(mark_every_verse_checkbox, hover_delay=500,
              text=r"(Future) Insert \m before every verse that isn't preceded by \p.")
 
+        # punctuate_checkbox = ttk.Checkbutton(self, text='Punctuate',
+        #                                     variable=self.punctuate, onvalue=True, offvalue=False)
+        # punctuate_checkbox.grid(row=9, column=1, sticky=W)
+        # punctuate_Tip = Hovertip(punctuate_checkbox, hover_delay=500,
+        #      text="Add missing end-of-paragraph punctuation (match model text).")
+
         self.clear_show("This process can copy chunk markers, and paragraph and poetry markers from \
 a model text to the file(s) that you specify. \
 If the paragraphs are sufficiently marked in your text already, and you don't need the '\\s5 only' functionality, \
@@ -169,6 +176,7 @@ then don't run this process.")
         # self.s5_only.set(values.get('s5_only', fallback=False))
         self.s5_to_p.set(values.get('s5_to_p', fallback=False))
         self.mark_every_verse.set(values.get('mark_every_verse', fallback=False))
+        # self.punctuate.set(values.get('punctuate', fallback=True))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Verify usfm")
@@ -259,6 +267,7 @@ then don't run this process.")
             # self.values['s5_only'] = str(self.s5_only.get())
             self.values['s5_to_p'] = str(self.s5_to_p.get())
             self.values['mark_every_verse'] = str(self.mark_every_verse.get())
+            # self.values['punctuate'] = str(self.punctuate.get())
             self.controller.mainapp.save_values(stepname, self.values)
 
             projectInfo = ProjectInfo(self.source_dir.get(), self.language_code.get())
