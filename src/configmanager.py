@@ -55,14 +55,15 @@ class ToolsConfigManager:
         return self.configpath
 
     def get(self, sectionname, option):
-        value = ""
         if not self.cfgParser.has_section(sectionname) or len(self.cfgParser[sectionname]) == 0:
             defaultvalues = self.default_section(sectionname)
             if defaultvalues:
                 self.set_section(sectionname, defaultvalues)
-                value = self.cfgParser.get(sectionname, option, fallback="")
-        else:
-            value = self.cfgParser.get(sectionname, option, fallback="")
+        elif option not in self.cfgParser[sectionname]:
+            defaultvalues = self.default_section(sectionname)
+            if option in defaultvalues:
+                self.set(sectionname, option, defaultvalues[option])
+        value = self.cfgParser.get(sectionname, option, fallback="")
         return value
 
     def getboolean(self, sectionname, option):
@@ -105,7 +106,8 @@ class ToolsConfigManager:
                     'copy_nb': False,
                     'removeS5markers': True,
                     's5_to_p': False,
-                    'mark_every_verse': False }
+                    'mark_every_verse': False,
+                    'punctuate': True }
             case 'Plaintext2Usfm':
                 sec = {'source_dir': "",
                        'filename': "",
