@@ -30,6 +30,7 @@ from yaml.parser import ParserError
 gui = None
 # s5_only = False   # s5_only is the inverse of removes5markers
 removes5markers = True
+s5_to_p = True
 sentence_sensitive = True   # this is no longer configurable via the config file
 copy_nb = False
 punctuate = True
@@ -117,6 +118,7 @@ class State:
         self.sTag = tag
         self.needPmarker = self.bridge + 1
 
+    # Sets s5chapter and s5verse to prevent duplicate \s5 markers
     def addS5(self):
         self.midSentence = False
         self.lastText = ''
@@ -124,6 +126,8 @@ class State:
         self.sTag = "s5"
         self.s5chapter = self.chapter
         self.s5verse = self.bridge
+        if s5_to_p:
+            self.needPmarker = self.bridge + 1
 
     # Called only during the marking phase, not the scanning phase
     def addText(self, text):
@@ -151,6 +155,7 @@ class State:
         self.prevTokenType = self.currTokenType
         self.currTokenType = type
 
+    # Returns the number of the next verse known to be needing a paragraph mark.
     def needP(self):
         return self.needPmarker
 
@@ -271,7 +276,7 @@ def mayInsertS5(newchapter=False):
     if not removes5markers and not state.s5Already():
         # global s5_only
 
-        smark = ''
+        smark = punct = ''
         if not newchapter:
             (smark, punct) = state.smarkInModel()
 
@@ -344,7 +349,8 @@ def takeV(v):
                 state.usfm.writeUsfm(pmark)
                 state.addP(state.verse)
                 nChanges += 1
-    if not state.pAlready(current=True) and state.needP() == state.verse:  # occasioned by chapter or section heading
+    # occasioned by chapter or section heading, or when removes5markers is False
+    if not state.pAlready(current=True) and state.needP() == state.verse:
         state.usfm.writeUsfm("p")
         state.addP(state.verse)
         nChanges += 1
@@ -352,7 +358,7 @@ def takeV(v):
 
 def takeText(t):
     global nChanges
-    smark = None
+    smark = punct = None
     t = t.strip()
     if not state.expectingText() and (not state.isMidSentence() or not sentence_sensitive):
         (smark, punct) = state.smarkInModel()
@@ -470,7 +476,7 @@ def convertFile(usfmpath, fname):
         if nChanges > startn:
             renameUsfmFiles(usfmpath)
         else:
-            sys.stdout.write(f"  No changes to {fname}\n")
+            reportStatus(f"  No changes to {fname}\n")
             removeTempFiles(usfmpath)
     else:
         state.usfmClose()
@@ -611,6 +617,11 @@ def scanPQ(type):
             state.paragraphs_model.remove(pp)
     state.paragraphs_model.append(p)
 
+def scanS5():
+    if s5_to_p:
+        scanPQ('p')
+    scanS('s5')
+
 # Save the section mark and its location.
 # Unlike paragraph marks, sections marks take the previous verse number as their location.
 def scanS(type):
@@ -657,6 +668,8 @@ def scan(token: usfmReader.Token):
         scanText(token.value)
     elif isParagraph(token, scanning=True) or isPoetryMark(token.type):
         scanPQ(token.type)
+    elif token.type == 's5':
+        scanS5()
     elif token.isSection():
         scanS(token.type)
     elif token.type== 'id':
@@ -714,6 +727,7 @@ def main(app = None):
     nChanges = 0
     # global s5_only
     global removes5markers
+    global s5_to_p
     # global sentence_sensitive
     global copy_nb
     global punctuate
@@ -721,6 +735,7 @@ def main(app = None):
     config = ToolsConfigManager()
     # s5_only = config.getboolean('MarkParagraphs', 's5_only')
     removes5markers = config.getboolean('MarkParagraphs', 'removeS5markers')
+    s5_to_p = config.getboolean('MarkParagraphs', 's5_to_p')
     # sentence_sensitive = config.getboolean('MarkParagraphs', 'sentence_sensitive')
     copy_nb = config.getboolean('MarkParagraphs', 'copy_nb')
     punctuate = config.getboolean('MarkParagraphs', 'punctuate')

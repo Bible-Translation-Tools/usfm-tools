@@ -127,7 +127,7 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
                                              onvalue=True, offvalue=False)
         self.remove_s5_checkbox.grid(row=8, column=2, sticky=W)
         remove_s5_Tip = Hovertip(self.remove_s5_checkbox, hover_delay=500,
-             text="Always recommended except for GL source texts")
+             text=r"No \s5 in target text. (Always recommended except for GLs)")
 
         # self.s5_only_checkbox = ttk.Checkbutton(self, text='\\s5 only',
         #                                               variable=self.s5_only, onvalue=True, offvalue=False)
@@ -138,9 +138,8 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         self.s5_to_p_checkbox = ttk.Checkbutton(self, text='\\s5 --> \\p', variable=self.s5_to_p,
                                              onvalue=True, offvalue=False)
         self.s5_to_p_checkbox.grid(row=8, column=3, sticky=W)
-        self.s5_to_p_checkbox.state(['disabled'])
         s5_to_p_Tip = Hovertip(self.s5_to_p_checkbox, hover_delay=500,
-             text="(Future) Make each chunk a paragaph.")
+             text="Make each chunk a paragaph.")
 
         mark_every_verse_checkbox = ttk.Checkbutton(self, text='Mark every verse',
                                                       variable=self.mark_every_verse, onvalue=True, offvalue=False)
@@ -188,11 +187,7 @@ then don't run this process.")
                                    tip="Restore any and all .usfmorig backup files in the folder.")
         self.controller.enablebutton(4, False)
         self.controller.showbutton(5, ">>>", self._onNext, tip="Verify manifest")
-        # self.changingVars = False
-        self._onChanges5()
         self._set_button_status()
-        self.remove_s5.trace_add("write", self._onChanges5)
-        self.s5_to_p.trace_add("write", self._onChanges5)
         self.language_code.trace_add("write", self._onChangeLanguage)
         self.source_dir.trace_add("write", self._onChangeSourceDir)
         self.model_dir.trace_add("write", self._set_button_status)
@@ -241,11 +236,6 @@ then don't run this process.")
             # invokes _set_button_status() implicitly
         else:
             self._set_button_status()
-
-    def _onChanges5(self, *args):
-        if remove := self.s5_to_p.get():
-            self.remove_s5.set(True)
-        self.remove_s5_checkbox.state(['disabled'] if remove else ['!disabled'])
 
     def _onChangeSourceDir(self, *args):
         self.changingVars = True
