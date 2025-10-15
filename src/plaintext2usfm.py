@@ -173,7 +173,10 @@ state = State()
 # Not all languages and translation follow the same versification scheme, however.
 # Returns VERSE, CHAPTER, or EOF
 def whatsNext(book, chapter, verse):
-    if verse < usfm_verses.verseCounts[book]['verses'][chapter-1]:
+    if chapter > len(usfm_verses.verseCounts[book]['verses']):
+        reportError(f"Invalid chapter number ({chapter}) in {book}")
+        next = EOF
+    elif verse < usfm_verses.verseCounts[book]['verses'][chapter-1]:
         next = VERSE
     elif chapter < usfm_verses.verseCounts[book]['chapters']:
         next = CHAPTER
@@ -189,16 +192,24 @@ def writePending():
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 # cstr is the entire chapter label, often just the chapter number.
+# Validates chapter number nchap.
+# Writes \c nchap and possibly \cl cstr to the usfm file.
+# Updates state.
 def takeChapter(cstr, nchap):
     writePending()
     if state.lastEntity == TITLE and not wroteHeader:
         writeHeader()
-    schap = str(nchap)
-    state.writeUsfm("c", schap)
-    if len(cstr) > len(schap):
-        # cl = cstr[len(schap):] if cstr.startswith(schap) else cstr
-        state.writeUsfm("cl", cstr)
-    state.addChapter(nchap)
+    if nchap > usfm_verses.verseCounts[state.ID]['chapters']:
+        reportError(f"Invalid chapter number ({nchap}) in {state.ID}")
+    else:
+        if nchap != state.chapter + 1:
+            reportError(f"Unexpected chapter {nchap} following {state.reference}. ")
+        schap = str(nchap)
+        state.writeUsfm("c", schap)
+        if len(cstr) > len(schap):
+            # cl = cstr[len(schap):] if cstr.startswith(schap) else cstr
+            state.writeUsfm("cl", cstr)
+        state.addChapter(nchap)
 
 vrange_re = re.compile(r'([0-9])+-([0-9]+)')
 
@@ -214,12 +225,13 @@ def takeVerseNumber(vstr):
     else:
         state.addVerse(vstr)
 
-nrun_re = re.compile(r'[\d\-]+')
+nrun_re = re.compile(r'\d+')
+nrun_vv_re = re.compile(r'[\d\-]+')
 
 # The string s starts with verse number and continues with the first line of verse text.
 # The string must have been preceded by \\v.
 def takeV(s, lineno):
-    nrun = nrun_re.match(s)
+    nrun = nrun_vv_re.match(s)
     if nrun:
         vstr = nrun.group(0)
         if vstr.endswith('-'):
@@ -238,7 +250,6 @@ def takeC(s, lineno):
         takeChapter(s, int(schap))
         if len(s) > len(schap):
             state.writeUsfm("cl", s[len(schap):])
-        state.addChapter(int(schap))
     else:
         take("\\c " + s, lineno)
 
@@ -309,6 +320,8 @@ def takeLine(line, lineno):
         else:   # no tag
             take(line, lineno)
 
+slashv_re = re.compile(r'/v |$')
+
 # Handles the next bit of text, which may be a line or part of a line.
 # Uses recursion to handle complex lines.
 def take(s, lineno):
@@ -346,7 +359,7 @@ def take(s, lineno):
             if vv:
                 reportError(f"Can't find {missingVerse}.")
         if vv:
-            if pretext:
+            if pretext and not slashv_re.search(pretext):
                 take(pretext, lineno)
             takeVerseNumber(vv)
             if remainder:
@@ -357,8 +370,8 @@ def take(s, lineno):
             state.addTextData(s)
         else:
             reportError("Expected verse not found. (" + state.reference + str(state.verse+1) + ", line " + str(lineno) + ")")
-            if state.chapter > 0 and state.verse == 0:
-                reportError(f"Is {state.ID} {state.chapter-1}:{state.chapter} missing?")
+            if state.chapter > 1 and state.verse == 0:
+                reportError(f"Is {state.ID} {state.chapter-1} incomplete?")
     elif state.priority == TEXT:
         (pretext, vv, remainder) = getvv(s, state.verse+1)
         if not vv and state.verse+1 < usfm_verses.verseCounts[state.ID]['verses'][state.chapter-1]:

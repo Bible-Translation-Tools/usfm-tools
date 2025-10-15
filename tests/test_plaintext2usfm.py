@@ -33,6 +33,8 @@ def test_hasnumber(str, n, pos):
         ("Have2", 2, "Have", "2", ""),
         ("H2ave", 2, "H", "2", "ave"),
         ("3.Today is 3 tomorrow is 4", 3, "", "3", ".Today is 3 tomorrow is 4"),
+        ('/v 1 asdf', 1, "/v ", "1", " asdf"),
+        ('/v1 asdf', 1, "/v", "1", " asdf"),
     ])
 def test_getvv(str, n, pretext, vv, remainder):
     (p,v,r) = plaintext2usfm.getvv(str, n)
