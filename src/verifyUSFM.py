@@ -213,14 +213,6 @@ class State:
         self.startChunkVerse = self.verse + 1
         self.startChunkRef = self.ID + " " + str(self.chapter) + ":" + str(self.startChunkVerse)
 
-    # Returns False if there is a unwanted repetition of tokens.
-    def okMarker(self, token):
-        cat = category(token)
-        okay = (cat == OTHER or cat != self.currItemCategory)
-        # self.prevMarker = self.currMarker
-        # self.currMarker = token.type
-        return okay
-
     def addVerse(self, v: str):
         self.lastVerse = self.verse
         try:
@@ -366,19 +358,6 @@ class State:
         return self.inConflict
 
 state: State
-
-# Returns the category of the specified marker.
-def category(token: usfmReader.Token):
-    category = OTHER
-    if token.type == 'b':
-        category = B
-    elif token.type == 'c':
-        category = C
-    elif token.type in {'p','pi','pc','nb','m'}:
-        category = PP
-    elif token.isPoetry():
-        category = QQ
-    return category
 
 # Tries to interpret the specified string as an integer, regardless of language.
 # Returns 0 if unable to interpret.
@@ -602,6 +581,45 @@ def reportMixedCase():
         if len(mcwords) >= limit:
             reportError("Too many mixed case words; reporting cancelled", 0.6)
 
+# Returns the category of the specified marker.
+def category(token: usfmReader.Token):
+    category = OTHER
+    if token.type == 'b':
+        category = B
+    elif token.type == 'c':
+        category = C
+    elif token.isParagraph():
+        category = PP
+    elif token.isPoetry():
+        category = QQ
+    elif token.isSection():
+        category = S
+    return category
+
+def scategory(cat) -> str:
+    if cat == PP:
+        scat = "paragraph"
+    elif cat == QQ:
+        scat = "poetry"
+    elif cat == B:
+        scat = "blank line"
+    elif cat == C:
+        scat = "chapter"
+    elif cat == S:
+        scat = "section"
+    else:
+        scat = "other"
+    return scat
+
+def reportBackToBackMarkers(token: usfmReader.Token):
+    if state.lastToken and token.type != 'text':
+        cat = category(token)
+        if cat != OTHER:
+            prevcat = category(state.lastToken)
+            if (cat == prevcat and cat != S) or (cat in {QQ,PP} and prevcat in {QQ,PP}):
+                scat = scategory(cat) if cat == prevcat else "paragraph/poetry"
+                reportError(f"Back to back {scat} markers after {state.reference}", 62)
+
 def reportSections():
     if nFiles > 2 and nSectionHeadings > 0:
         if nSectionHeadings < (6 if nFiles > 5 else 4):
@@ -695,13 +713,13 @@ def similarToSource():
     similarity = 0
     n = 0
     if state.sourcetext and state.reference in state.sourcetext:
-        A = set(state.sourcetext[state.reference].split())
+        setA = set(state.sourcetext[state.reference].split())
         if state.reference in state.sourcefootnote:
-            A.update(state.sourcefootnote[state.reference].split())
-        B = set(state.versetext.split())
-        wordsincommon = [w for w in A&B if len(w) > 2 and w.islower()]
+            setA.update(state.sourcefootnote[state.reference].split())
+        setB = set(state.versetext.split())
+        wordsincommon = [w for w in setA&setB if len(w) > 2 and w.islower()]
         n = len(wordsincommon)
-        similarity = n / len(A|B)
+        similarity = n / len(setA|setB)
     return (similarity, n)
 
 # Report empty verse, verse fragment or all ASCII text, in previous verse
@@ -879,8 +897,6 @@ def takeID(id):
     state.addID(id)
 
 def reportParagraphMarkerErrors(type):
-    if state.currItemCategory in {QQ,PP} and not suppress[4]:
-        reportError("Warning: back to back paragraph/poetry markers near: " + state.reference, 24)
     if type == 'p' and state.needText() and not usfm_verses.isOptional(state.reference):
         reportError("Paragraph marker after verse marker, or empty verse: " + state.reference, 25)
     if type == 'nb' and state.currItemCategory != C:
@@ -913,13 +929,11 @@ def reportSectionPrecedentErrors(tag):
     elif state.currItemCategory == QQ:
         reportError(f"Warning: useless \\q before \\{tag} marker at: {state.reference}", 28)
     elif state.currItemCategory == B:
-        reportError(f"\\b may not be used before or after section heading. {state.reference}", 29)
+        reportError(f"\\b should not be used before or after section heading. {state.reference}", 29)
 
 def takeSection(tag):
     if tag != 's5' and not suppress[4]:
         reportSectionPrecedentErrors(tag)
-    if state.currItemCategory == S:
-        reportError(f"Back to back section markers after {state.reference}", 29.5)
     state.addSection(tag)
 
 def takeTitle(token: usfmReader.Token):
@@ -1252,9 +1266,7 @@ def isTextCarryingToken(token):
 conflict_re = re.compile(f'<<< +HEAD|>>>>>|=====')
 
 def take(token: usfmReader.Token):
-    if token.type != 'text':
-        if not state.okMarker(token):
-            reportError(f"Back to back markers of type {token.type} at {state.reference}", 62)
+    reportBackToBackMarkers(token)
     if conflict_re.search(token.value):
         state.trackConflict(token.value)
 
