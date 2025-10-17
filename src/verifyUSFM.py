@@ -494,8 +494,8 @@ def reportSuppressedIssues():
             issuesfile.write(f"    Paragraph-final punctuation. (Only the total counts were reported.)\n")
         # if suppress[2]:
         #     issuesfile.write(f"    Missing paragraph marker after chapter marker.\n")
-        if suppress[4]:
-            issuesfile.write(f"    Invalid placement of paragraph/poetry markers.\n")
+        # if suppress[4]:
+        #     issuesfile.write(f"    Invalid placement of paragraph/poetry markers.\n")
         # if suppress[5]:
         #     issuesfile.write(f"    Unexpected verse counts per chapter.\n")
         if suppress[6]:
@@ -862,9 +862,7 @@ def takeCL(value):
         reportError(f"Non-standard chapter label at {state.reference}: {value}", 42)
 
 def takeD():
-    if not suppress[4]:
-        reportSectionPrecedentErrors('d')
-    reportParagraphMarkerErrors('d')
+    reportSectionPrecedentErrors('d')
     state.addUncountedParagraph()
 
 # Handles all the footnote and endnote token types
@@ -932,7 +930,7 @@ def reportSectionPrecedentErrors(tag):
         reportError(f"\\b should not be used before or after section heading. {state.reference}", 29)
 
 def takeSection(tag):
-    if tag != 's5' and not suppress[4]:
+    if tag != 's5':
         reportSectionPrecedentErrors(tag)
     state.addSection(tag)
 

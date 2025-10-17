@@ -119,11 +119,11 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         suppress3_checkbox.grid(row=11, column=3, sticky=W)
         suppress3_Tip = Hovertip(suppress3_checkbox, hover_delay=500,
              text=r"Suppress most warnings about punctuation")
-        suppress4_checkbox = ttk.Checkbutton(self, text=r'Useless markers', variable=self.suppress[4],
-                                             onvalue=True, offvalue=False)
-        suppress4_checkbox.grid(row=11, column=4, sticky=W)
-        suppress4_Tip = Hovertip(suppress4_checkbox, hover_delay=500,
-             text=r"Suppress warnings about invalid placement of paragraph/poetry markers")
+        # suppress4_checkbox = ttk.Checkbutton(self, text=r'Useless markers', variable=self.suppress[4],
+        #                                      onvalue=True, offvalue=False)
+        # suppress4_checkbox.grid(row=11, column=4, sticky=W)
+        # suppress4_Tip = Hovertip(suppress4_checkbox, hover_delay=500,
+        #      text=r"Suppress warnings about invalid placement of paragraph/poetry markers")
         # suppress5_checkbox = ttk.Checkbutton(self, text=r'Verse counts', variable=self.suppress[5],
         #                                      onvalue=True, offvalue=False)
         # suppress5_checkbox.grid(row=12, column=1, sticky=W)
