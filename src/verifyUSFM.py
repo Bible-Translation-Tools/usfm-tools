@@ -1132,20 +1132,21 @@ def reportPunctuation(text):
     if '=' in text:
         reportError(f"Equals sign (=) in {state.reference}", 52.3)
 
-numberembed_re = re.compile(r'[^\s,:\."\d\(\[\-]+[\d]+[^\s,;\."\d\)\]]+')
+numberembed_re = re.compile(r'[^\s,:\."\d\(\[\-]+\d+[^\s,;\."\d\)\]]+')
 numberprefix_re = re.compile(r'[^\s,\."\d\(\[]\d+', re.UNICODE)
 numbersuffix_re = re.compile(r'\d+[^\s,;:."\-?!"\d\)\]]', re.UNICODE)
-unsegmented_re = re.compile(r'[\d][\d][\d][\d]+')
+unsegmented_re = re.compile(r'\d\d\d\d+')
 numberformat_re = re.compile(r'[\d]+[.,]?\s[.,]?[\d]+')    # space between digits
-leadingzero_re = re.compile(r'[\s]0[0-9,]*', re.UNICODE)
+leadingzero_re = re.compile(r'\s0[0-9,]*', re.UNICODE)
 number_re = re.compile(r'[^\d(](\d+)[^\d,]')       # possible verse number in text
 chapverse_re = re.compile(r'(\d+)([:\-])(\d+)')
 
 def reportNumbers(t, footnote):
     verseflag = False
     if state.chapter > 0 and not footnote:
-        if t.startswith(str(state.verse) + " "):
-            reportError("Verse number in text (probable): " + state.reference, 59)
+        sverse = str(state.verse)
+        if t.startswith(sverse) and (t == sverse or not t[len(sverse)].isdigit()):
+            reportError("Verse number in text: " + state.reference, 59)
             verseflag = True
         elif v := number_re.search(t):
             while v:
@@ -1203,7 +1204,7 @@ def takeText(t, footnote=False):
             reportError(f"Orphaned punctuation at {state.reference}", 58)
         else:
             reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
-    if state.lastToken and state.inVerse and not state.inFootnote() and not state.aligned_usfm:
+    if state.inVerse and not state.inFootnote() and not state.aligned_usfm:
         reportFootnotes(t)
     # if not suppress[1]:
     reportNumbers(t, footnote)
