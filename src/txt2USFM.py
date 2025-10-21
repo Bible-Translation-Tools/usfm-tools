@@ -75,11 +75,13 @@ def close_diagnostic_files():
         postcleanup_file.close()
         postcleanup_file = None
 
+ptag_re = re.compile(r'\\p\s*')
+
 # Does preliminary cleanup on the chunk of text.
 # verserange is a list of verse number strings that should exist in the file.
 # Returns a string with the (possibly improved) contents of the .txt file.
 def cleanupText(text, chap, verserange, firstchunk):
-    text = fixVerseMarkers(text)
+    text = ptag_re.sub('', text)    # Remove \p markers (added artifically by versions of BTTW up thru 1.5.3).
     if firstchunk:
         text = fixChapterMarkers(text, chap)
     text = fixPunctuationSpacing(text)
