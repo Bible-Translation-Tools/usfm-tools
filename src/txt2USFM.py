@@ -81,7 +81,8 @@ ptag_re = re.compile(r'\\p\s*')
 # verserange is a list of verse number strings that should exist in the file.
 # Returns a string with the (possibly improved) contents of the .txt file.
 def cleanupText(text, chap, verserange, firstchunk):
-    text = ptag_re.sub('', text)    # Remove \p markers (added artifically by versions of BTTW up thru 1.5.3).
+    text = ptag_re.sub('', text)    # Remove \p markers (added artificially by versions of BTTW up thru 1.5.3).
+    text = fixVerseMarkers(text)
     if firstchunk:
         text = fixChapterMarkers(text, chap)
     text = fixPunctuationSpacing(text)
