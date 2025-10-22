@@ -20,6 +20,7 @@ import os
 import sys
 import json
 import usfmWriter
+from manifestjson import ManifestJson
 # from line_profiler import LineProfiler
 
 config = configmanager.ToolsConfigManager()
@@ -341,6 +342,7 @@ def reorderVerseMarkers(text):
 
 # Many chunks contain verses numbered in reverse, or omit verse numbers, etc.
 # This all happens because it is difficult to place the verse bubbles correctly in BTTW.
+# This function can fix verse markers in some of these situations.
 def fixVerseOrder(text, chap, verserange):
     if precleanup_file:
         precleanup_file.write(text + '\n')
@@ -643,55 +645,28 @@ def isBookFolder(path):
     chapterPath = os.path.join(path, '01')
     return os.path.isdir(chapterPath)
 
-# @TODO Refactor this function, as well as convertFolder() and getBookId().
-# Currently, the first time it is called, ProjectInfo isn't yet using an existing manifest.yaml file.
-# Also these functions have many side effects.
-# Extracts information from the specified manifest.json file.
-# Adds information to ProjectInfo.
-# Returns book ID.
-def parseManifest(path):
-    bookId = ""
-    try:
-        jsonFile = io.open(path, "tr", encoding='utf-8-sig')
-    except IOError as e:
-        reportError("   Can't open: " + path + "!")
-    else:
-        # global contributors
-        try:
-            manifest = json.load(jsonFile)
-        except ValueError as e:
-            reportError("   Can't parse: " + path + ".")
-        else:
-            global projectInfo
-            assert projectInfo
-            language_id = manifest['target_language']['id']
-            if config.get('Txt2USFM', 'language_code') != language_id:
-                reportError(f"Language code ({config.get('Txt2USFM', 'language_code')}) does not match Language Id ({language_id}) in {shortname(path)}.")
-            projectInfo.setLanguage(manifest['target_language']['name'], manifest['target_language']['direction'])
-            bookId = manifest['project']['id']
-            # contributors += [x.title() for x in manifest['translators']]
-            projectInfo.addContributors(manifest['translators'])
-            for source in manifest['source_translations']:
-                projectInfo.addSource(source['language_id'], source['resource_id'], source['version'])
-            projectInfo.setResourceType(manifest['resource']['id'])
-        jsonFile.close()
-    return bookId.upper()
+# Copies information from the manifest to ProjectInfo.
+def extractDataFromManifest(manifest):
+    global projectInfo
+    assert projectInfo
+    language_id = manifest.getLanguageId()
+    language_code = config.get('Txt2USFM', 'language_code')
+    if language_code != language_id:
+        reportError(f"Language code ({language_code}) does not match target_language Id ({language_id}) in {shortname(manifest.getPath())}.")
+    projectInfo.setLanguage(manifest.getLanguageName(), manifest.getLanguageDirection())
+    projectInfo.addContributors(manifest.getTranslators())
+    for source in manifest.getSources():
+        projectInfo.addSource(source['language_id'], source['resource_id'], source['version'])
+    projectInfo.setResourceType(manifest.getResourceId())
 
-# Parses all manifest***.json files in the current folder.
-# Return upper case bookId, or empty string if failed to retrieve.
-# Also parses other information out of the manifest.
-def getBookId(folder):
+# Attempts to determine the book ID from the folder name.
+# Assumes folder name contains language code and book ID in the format.
+def getBookIdFromFolderName(folder):
     bookId = ""
-    for fname in os.listdir(folder):
-        if re.match(r'manifest.*\.json$', fname):
-            path = os.path.join(folder, fname)
-            if os.path.isfile(path):
-                bookId = parseManifest(path)
-    if not bookId:
-        language_code = config.get('Txt2USFM', 'language_code')
-        matchstr = language_code + "_([a-zA-Z1-3][a-zA-Z][a-zA-Z])_"
-        if okname := re.search(matchstr, os.path.basename(folder)):
-            bookId = okname.group(1).upper()
+    language_code = config.get('Txt2USFM', 'language_code')
+    matchstr = language_code + "_([a-zA-Z1-3][a-zA-Z][a-zA-Z])_"
+    if okname := re.search(matchstr, os.path.basename(folder)):
+        bookId = okname.group(1)
     return bookId
 
 # Locates title.txt in either the front folder or 00 folder.
@@ -712,9 +687,9 @@ def getBookTitle(folder, bookId):
         if not bookTitle.istitle():
             bookTitle = bookTitle.title().replace("Iii", 'III')
             bookTitle = bookTitle.replace("Ii", 'II')
-    elif bookId in usfm_verses.verseCounts:
+    elif bookId.upper() in usfm_verses.verseCounts:
         # As a last resort, use the English book title
-        bookTitle = usfm_verses.verseCounts[bookId]['en_name']
+        bookTitle = usfm_verses.verseCounts[bookId.upper()]['en_name']
     else:
         reportError("   Can't open " + path + "!")
     return bookTitle
@@ -723,6 +698,7 @@ def getBookTitle(folder, bookId):
 # Ultimately adds to manifest.yaml.
 def appendToProjects(bookId, bookTitle):
     global projectInfo
+    bookId = bookId.upper()
     category = 'bible-nt'
     if usfm_verses.verseCounts[bookId]['sort'] < 40:
         category = 'bible-ot'
@@ -748,10 +724,21 @@ def shortname(longpath):
 def convertFolder(folder):
     language_code = config.get('Txt2USFM', 'language_code')
     if language_code + '_' in os.path.basename(folder):
-        bookId = getBookId(folder)
+        mj = ManifestJson()
+        if errors := mj.load(folder):
+            for error in errors:
+                reportError(error)
+            bookId = ""
+        else:
+            bookId = mj.getBookId()
+        if bookId:  # manifest.json was good
+            extractDataFromManifest(mj)
+        else:
+            bookId = getBookIdFromFolderName(folder)
         bookTitle = getBookTitle(folder, bookId)
+
         if bookId and bookTitle:
-            convertBook(folder, bookId, bookTitle)   # converts the pieces in the current folder
+            convertBook(folder, bookId.upper(), bookTitle)   # converts the pieces in the current folder
             # profile.print_stats()
             appendToProjects(bookId, bookTitle)
             global nConverted

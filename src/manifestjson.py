@@ -6,6 +6,7 @@
 import os
 import io
 import json
+import re
 
 class ManifestJson:
     def __init__(self):
@@ -16,19 +17,31 @@ class ManifestJson:
     def __repr__(self):
         return f'ManifestJson({self.path})'
 
+    # Loads mainfest.json, or the first file named like "manifestXXX.json".
+    # Returns list of error strings if not successful.
+    def load(self, folder):
+        jsonpath = os.path.join(folder, "manifest.json")
+        errors = self.loadfile(jsonpath)
+        if errors:
+            for filename in os.listdir(folder):
+                if re.match(r'manifest.+\.json$', filename):
+                    jsonpath = os.path.join(folder, filename)
+                    if os.path.isfile(jsonpath):
+                        errors = self.loadfile(jsonpath)
+        return errors
+
     # Loads specified file into self.contents, if not already loaded.
     # Returns list of error strings if not successful.
-    def load(self, project_dir, filename="manifest.json"):
-        path = os.path.join(project_dir, filename)
+    def loadfile(self, path):
         errors = []
         if path != self.path:
             if os.path.isfile(path):
-                self.path = path
-                with io.open(self.path, "tr", encoding='utf-8-sig') as file:
+                with io.open(path, "tr", encoding='utf-8-sig') as file:
                     try:
                         self.contents = json.load(file)
+                        self.path = path
                     except ValueError as e:
-                        errors.append(f"JSON file fails to load: {self.path}")
+                        errors.append(f"JSON file fails to load: {path}")
             else:
                 errors.append(f"File not found: {path}")
         return errors
