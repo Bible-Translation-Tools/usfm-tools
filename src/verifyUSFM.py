@@ -548,7 +548,7 @@ def dumpWords():
         percent = int(hapaxcount * 100 / len(wordlist))
         reportError(f"{len(wordlist)} unique words. {hapaxcount} ({percent}%) of them occur only once.", 0.2)
 
-punct_table = str.maketrans('', '', "'’\"-_()–&")
+punct_table = str.maketrans('', '', "'’`\"-_()–&")
 
 # Returns True if s is a mixed case word.
 def isMixed(word):

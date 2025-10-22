@@ -57,6 +57,7 @@ def test_nChapters(str, result):
         ('”After', False),
         ('Yahweh—that', True),  # isMixed() returns True but em-dash -> two words
         ('laws—I', True),     # isMixed() returns True but em-dash -> two words
+        ('Tu`u`tu`u', False),
     ])
 def test_isMixed(word, expected):
     assert verifyUSFM.isMixed(word) == expected
