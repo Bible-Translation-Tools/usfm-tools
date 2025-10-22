@@ -21,6 +21,7 @@ import sys
 import json
 import usfmWriter
 from manifestjson import ManifestJson
+from usfm_utils import unicodeBlock
 # from line_profiler import LineProfiler
 
 config = configmanager.ToolsConfigManager()
@@ -83,6 +84,8 @@ ptag_re = re.compile(r'\\p\s*')
 # Returns a string with the (possibly improved) contents of the .txt file.
 def cleanupText(text, chap, verserange, firstchunk):
     text = ptag_re.sub('', text)    # Remove \p markers (added artificially by versions of BTTW up thru 1.5.3).
+    if unicodeBlock(text) == 'ARABIC':
+        text = text.replace('.', '۔')   # Replace period with Arabic full stop
     text = fixVerseMarkers(text)
     if firstchunk:
         text = fixChapterMarkers(text, chap)

@@ -53,7 +53,7 @@ def unicodeBlock(text):
     else:
         primary_block = 'Unknown'
         for char in text:
-            if char.strip():
+            if char not in {' ','\n','\\','v','c','p','q','*','-'}:
                 block_name = unicodedata.name(char, "Unknown").split()[0]
                 blocks[block_name] = blocks.get(block_name, 0) + 1
         if blocks:
