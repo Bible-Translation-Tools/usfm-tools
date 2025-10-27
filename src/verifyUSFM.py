@@ -66,6 +66,7 @@ class State:
         self.IDs = []       # list of book IDs that have been processed
         self.ID = ""
         self.reference = ""
+        self.bridge_start = self.bridge_end = 0
         self.errorRefs = set()
         self.scanning = False    # True when scanning source text
         self.sourcetext = {}    # verse-reference: verse-text
@@ -106,6 +107,7 @@ class State:
         self.reference = ""
         self.lastRef = ""
         self.startChunkRef = ""
+        self.bridge_start = self.bridge_end = 0
         self.currItemCategory = OTHER
         self.prevItemCategory = OTHER
         self.toc3 = None
@@ -152,6 +154,7 @@ class State:
         self.inVerse = False
         self.lastVerse = 0
         self.verse = 0
+        self.bridge_start = self.bridge_end = 0
         self.versetext = ""
         self.needVerseText = False
         self.textOkayHere = False
@@ -231,6 +234,18 @@ class State:
         if self.scanning:
             chapref = self.ID + " " + str(self.chapter)
             self.source_nverses[chapref] = self.verse
+
+    def addVerseBridge(self, vnStart, vnEnd):
+        self.bridge_start = vnStart
+        self.bridge_end = vnEnd
+    def isVerseInBridge(self, vn):
+        return vn > 0 and (self.bridge_start <= vn <= self.bridge_end)
+
+    def getReference(self):
+        if self.isVerseInBridge(self.verse):
+            return f"{self.ID} {self.chapter}:{self.bridge_start}-{self.bridge_end}"
+        else:
+            return self.reference
 
     # Returns the number of verses in the current chapter in the source text.
     # Returns 0 if no data for the current chapter.
@@ -473,7 +488,7 @@ def write(msg, stream):
     try:
         stream.write(msg + "\n")
     except UnicodeEncodeError as e:
-        stream.write(state.reference + ": (Unicode...)\n")
+        stream.write(state.getReference() + ": (Unicode...)\n")
 
 def reportSuppressedIssues():
     any = False
@@ -699,11 +714,11 @@ psalmv1_re = re.compile(r'PSA \d+:1(-|$)')
 def relative_length(ref):
     rlen = 1.0
     if not psalmv1_re.match(ref):
-        sourcelength = len(state.sourcetext[state.reference]) if state.reference in state.sourcetext else 1
+        sourcelength = len(state.sourcetext[ref]) if ref in state.sourcetext else 1
         txln_len = state.getTextLength()
         if sourcelength > 1:
             rlen = txln_len / (sourcelength * (state.booklength / state.booklength_src))
-        elif txln_len < 12 and not usfm_verses.isShortVerse(state.reference):
+        elif txln_len < 12 and not usfm_verses.isShortVerse(ref):
             rlen = txln_len / 100.0
     return rlen
 
@@ -712,10 +727,11 @@ def relative_length(ref):
 def similarToSource():
     similarity = 0
     n = 0
-    if state.sourcetext and state.reference in state.sourcetext:
-        setA = set(state.sourcetext[state.reference].split())
-        if state.reference in state.sourcefootnote:
-            setA.update(state.sourcefootnote[state.reference].split())
+    ref = state.getReference()
+    if state.sourcetext and ref in state.sourcetext:
+        setA = set(state.sourcetext[ref].split())
+        if ref in state.sourcefootnote:
+            setA.update(state.sourcefootnote[ref].split())
         setB = set(state.versetext.split())
         wordsincommon = [w for w in setA&setB if len(w) > 2 and w.islower()]
         n = len(wordsincommon)
@@ -727,20 +743,20 @@ def previousVerseCheck():
     empty = False
     if not usfm_verses.isOptional(state.reference) and state.verse != 0:
         if state.getTextLength() == 0:
-            reportError("Empty verse: " + state.reference, 1)
+            reportError("Empty verse: " + state.getReference(), 1)
             empty = True
         else:
-            rel = relative_length(state.reference)
+            rel = relative_length(state.getReference())
             if rel < 0.4:
                 reportError(f"Translation is very short compared to {state.source_id} source: {state.reference}", 2)
             # elif rel > 3.2:     # not safe, at least until chunks and verse bridges are supported
             # would also need to account for translation conflicts
             #     reportError(f"Translation is long compared to {state.source_id} source: {state.reference}.", 2.5)
     if not suppress[9] and state.asciiVerse and not empty:
-        reportError("Verse is entirely ASCII: " + state.reference, 3)
+        reportError("Verse is entirely ASCII: " + state.getReference(), 3)
     (sim, n) = similarToSource()
     if sim > 0.4:
-        reportError(f"Verse may be untranslated (based on words in common with source text): {state.reference}", 3.5)
+        reportError(f"Verse may be untranslated (based on words in common with source text): {state.getReference()}", 3.5)
 
 # def longChunkCheck():
 #     max_chunk_length = 400  # set lower if this is ever needed again
@@ -869,12 +885,12 @@ def takeD():
 def takeFootnote(token: usfmReader.Token):
     if token.type in {'f','rq'}:
         if state.footnote_starts != state.footnote_ends:
-            reportError(f"Footnote starts before previous one is terminated at {state.reference}", 18)
+            reportError(f"Footnote starts before previous one is terminated at {state.getReference()}", 18)
         state.addFootnoteStart()
     elif token.type == 'fe':
         if state.endnote_starts != state.endnote_ends:
-            reportError(f"Endnote starts before previous one is terminated at {state.reference}", 19)
-        reportError(f"Warning: endnote \\fe ... \\fe* at {state.reference} may break USFM Converter and Scripture App Builder.", 20)
+            reportError(f"Endnote starts before previous one is terminated at {state.getReference()}", 19)
+        reportError(f"Warning: endnote \\fe ... \\fe* at {state.getReference()} may break USFM Converter and Scripture App Builder.", 20)
         state.addEndnoteStart()
     elif token.type in {'f*','rq*'}:
         state.addFootnoteEnd()
@@ -882,7 +898,7 @@ def takeFootnote(token: usfmReader.Token):
         state.addEndnoteEnd()
     else:
         if not state.inFootnote():
-            reportError(f"Footnote marker ({token.type}) not between \\f ... \\f* pair at {state.reference}", 21)
+            reportError(f"Footnote marker ({token.type}) not between \\f ... \\f* pair at {state.getReference()}", 21)
     if token.value: # Prevent a problem with trying to take text where there is none
         takeText(token.value, footnote=True)
 
@@ -904,7 +920,7 @@ def takeP(type):
     reportParagraphMarkerErrors(type)
     if not state.aligned_usfm and not suppress[3] and not state.sentenceEnded() and type != 'm':
         if state.verse > 0:
-            reportError(f"Check paragraph-ending punctuation at: {state.reference}", 26, suppress[11])
+            reportError(f"Check paragraph-ending punctuation at: {state.getReference()}", 26, suppress[11])
         elif state.reference != "ACT 22":
             reportError(f"Punctuation missing at end of chapter before {state.reference}", 26.1, suppress[11])
     if type in {'nb'}:
@@ -919,15 +935,15 @@ def takeQ(type, value):
 def takeS5():
     state.addS5()
     if state.currItemCategory == S:
-        reportError(f"Back to back section markers after {state.reference}", 29.5)
+        reportError(f"Back to back section markers after {state.getReference()}", 29.5)
 
 def reportSectionPrecedentErrors(tag):
     if state.currItemCategory == PP:
-        reportError(f"Warning: useless paragraph (p,m,nb) marker before \\{tag} marker at: {state.reference}", 27)
+        reportError(f"Warning: useless paragraph (p,m,nb) marker before \\{tag} marker after: {state.getReference()}", 27)
     elif state.currItemCategory == QQ:
-        reportError(f"Warning: useless \\q before \\{tag} marker at: {state.reference}", 28)
+        reportError(f"Warning: useless \\q before \\{tag} marker afte: {state.getReference()}", 28)
     elif state.currItemCategory == B:
-        reportError(f"\\b should not be used before or after section heading. {state.reference}", 29)
+        reportError(f"\\b should not be used before or after section heading. {state.getReference()}", 29)
 
 def takeSection(tag):
     if tag != 's5':
@@ -966,6 +982,7 @@ def takeV(vstr):
         if vv_range:
             vnStart = int(vv_range.group(1))
             vnEnd = int(vv_range.group(2))
+            state.addVerseBridge(vnStart, vnEnd)
             for vn in range(vnStart, vnEnd + 1):
                 vlist.append(vn)
         else:
@@ -979,7 +996,7 @@ def takeV(vstr):
         # v = str(vn)
         state.addVerse(str(vn))
         if state.chapter == 0:
-            reportError("Missing chapter tag: " + state.reference, 36)
+            reportError("Missing chapter tag: " + state.getReference(), 36)
         if state.verse == 1 and state.needPP:
             global nNoPAfterC
             nNoPAfterC += 1
@@ -1063,12 +1080,12 @@ def reportCaps(s):
         word = sentences.firstword(s)
         if word and word[0].islower():
             if state.currItemCategory == PP or state.prevItemCategory == PP:
-                reportError(f"First word of paragraph not capitalized near {state.reference}", 44, suppress[10])
+                reportError(f"First word of paragraph not capitalized near {state.getReference()}", 44, suppress[10])
             else:
-                reportError(f"First word in sentence is not capitalized: \"{word}\" at {state.reference}", 44.1, suppress[10])
+                reportError(f"First word in sentence is not capitalized: \"{word}\" at {state.getReference()}", 44.1, suppress[10])
     for word in sentences.nextfirstwords(s):
         if word[0].islower():
-            reportError(f"First word in sentence is not capitalized: \"{word}\" in {state.reference}", 44.1, suppress[10])
+            reportError(f"First word in sentence is not capitalized: \"{word}\" in {state.getReference()}", 44.1, suppress[10])
 
 # Returns a string containing text preceding specified start position and following end position
 def context(text, start, end):
@@ -1097,18 +1114,18 @@ def reportPunctuation(text):
             chars = bad.group(1)
             if not (chars[0] in ',.' and chars[1] in "0123456789"):   # it's a number
                 if not (chars[0] == ":" and chars[1] in "0123456789"):
-                    reportError("Check the punctuation at " + state.reference + ": " + chars, 45)
+                    reportError("Check the punctuation at " + state.getReference() + ": " + chars, 45)
                 # elif not state.lastToken or not (state.inFootnote() or state.lastToken.getType().startswith('io') \
                 #           or state.lastToken.getType().startswith('ip')):
                 #     s = context(text, bad.start()-2, bad.end()+1)
-                #     reportError(f"Untagged footnote (probable) at {state.reference}: {s}", 46)
+                #     reportError(f"Untagged footnote (probable) at {state.getReference()}: {s}", 46)
                 # 3/17/25: this warning is unnecessary. Was always followed by 'Probable chapter:verse' warning.
     if bad := spacey_re.search(text):
-        reportError("Space before phrase ending mark at " + state.reference + ": " + bad.group(1), 48)
+        reportError("Space before phrase ending mark at " + state.getReference() + ": " + bad.group(1), 48)
     if bad := outsidequote_re.search(text):
         i = bad.start()
         if text[i+1:i+4] != "...":
-            reportError(f"Punctuation after quote mark at {state.reference}: {bad.group(1)}", 50)
+            reportError(f"Punctuation after quote mark at {state.getReference()}: {bad.group(1)}", 50)
 
     if bad := spacey2_re.search(text):
         s = context(text, bad.start()-2, bad.end()+2)
@@ -1117,20 +1134,20 @@ def reportPunctuation(text):
     elif bad := spacey4_re.search(text):
         s = context(text, bad.start()-2, len(text))
     if bad:
-        reportError(f"Free floating mark at {state.reference}: {s}", 49)
+        reportError(f"Free floating mark at {state.getReference()}: {s}", 49)
 
     if "''" in text or '""' in text:
-        reportError("Repeated quotes at " + state.reference, 51)
+        reportError("Repeated quotes at " + state.getReference(), 51)
     bad = wordmedial_punct_re.search(text)
     if bad and text[bad.end()-1] not in "0123456789":
         s = context(text, bad.start(), bad.end())
-        reportError(f"Word medial punctuation in {state.reference}: {s}", 52)
+        reportError(f"Word medial punctuation in {state.getReference()}: {s}", 52)
     if '/' in text:
-        reportError(f"Forward slash in {state.reference}", 52.1)
+        reportError(f"Forward slash in {state.getReference()}", 52.1)
     if backs_re.search(text):
-        reportError(f"Backslash (\\) near {state.reference}", 52.2)
+        reportError(f"Backslash (\\) near {state.getReference()}", 52.2)
     if '=' in text:
-        reportError(f"Equals sign (=) in {state.reference}", 52.3)
+        reportError(f"Equals sign (=) in {state.getReference()}", 52.3)
 
 numberembed_re = re.compile(r'[^\s,:\."\d\(\[\-]+\d+[^\s,;\."\d\)\]]+')
 numberprefix_re = re.compile(r'[^\s,\."\d\(\[]\d+', re.UNICODE)
@@ -1146,37 +1163,38 @@ def reportNumbers(t, footnote):
     if state.chapter > 0 and not footnote:
         sverse = str(state.verse)
         if t.startswith(sverse) and (t == sverse or not t[len(sverse)].isdigit()):
-            reportError("Verse number in text: " + state.reference, 59)
+            reportError("Verse number in text: " + state.getReference(), 59)
             verseflag = True
         elif v := number_re.search(t):
             while v:
-                if v.group(1) == str(state.verse) or v.group(1) == str(state.verse+1):
-                    reportError(f"Possible verse number ({v.group(1)}) in text at {state.reference}", 59.1)
+                vn = int(v.group(1))
+                if vn == state.verse or vn == state.verse + 1 or state.isVerseInBridge(vn):
+                    reportError(f"Possible verse number ({v.group(1)}) in text at {state.getReference()}", 59.1)
                     verseflag = True
                 v = number_re.search(t, v.end()-1)
         if not verseflag:
             chapverse = chapverse_re.search(t)
             while chapverse:
                 if chapverse.group(2) == ":" or int(chapverse.group(3)) > int(chapverse.group(1)):
-                    reportError(f"Likely verse reference ({chapverse.group(0)}) in text at {state.reference}", 59.2)
+                    reportError(f"Likely verse reference ({chapverse.group(0)}) in text at {state.getReference()}", 59.2)
                     verseflag = True
                 chapverse = chapverse_re.search(t, chapverse.end())
     if embed := numberembed_re.search(t):
-        reportError(f"Embedded number in word: {embed.group(0)} at {state.reference}", 60)
+        reportError(f"Embedded number in word: {embed.group(0)} at {state.getReference()}", 60)
     elif not verseflag:
         if suffixed := numbersuffix_re.search(t):
             if state.chapter > 0 and not footnote:
-                reportError(f"Invalid number suffix: {suffixed.group(0)} at {state.reference}", 60.2)
+                reportError(f"Invalid number suffix: {suffixed.group(0)} at {state.getReference()}", 60.2)
         if prefixed := numberprefix_re.search(t):
             if (state.chapter > 0 and not footnote) or (prefixed.group(0)[0] not in {':','-'}):
-                reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.reference}", 60.1)
+                reportError(f"Invalid number prefix: {prefixed.group(0)} at {state.getReference()}", 60.1)
     if unsegmented := unsegmented_re.search(t):
         if len(unsegmented.group(0)) > 4:
-            reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.reference}", 61)
+            reportError(f"Unsegmented number: {unsegmented.group(0)} at {state.getReference()}", 61)
     if fmt := numberformat_re.search(t):
-        reportError(f"Space between digits {fmt.group(0)} at {state.reference}", 61.1)
+        reportError(f"Space between digits {fmt.group(0)} at {state.getReference()}", 61.1)
     elif leadzero := leadingzero_re.search(t):
-        reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.reference}", 61.2)
+        reportError(f"Invalid leading zero: {leadzero.group(0)} at {state.getReference()}", 61.2)
 
 period_re = re.compile(r'[\s]*[\.,;:!\?]')  # detects phrase-ending punctuation standing alone or starting a phrase
 badmarker_re = re.compile(r'\\\w+\*?')
@@ -1194,16 +1212,16 @@ def takeText(t, footnote=False):
     if state.textOkay() and state.verse == 0 and state.chapter > 0:
         reportError(f"Unmarked text before {state.reference + ':1'}", 54.1)
     if ("<" in t) ^ (">" in t) and not conflict_re.search(t) and not ">>>" in t:
-        reportError("Unmatched angle bracket at " + state.reference, 56)
+        reportError("Unmatched angle bracket at " + state.getReference(), 56)
     if "Conflict Parsing Error" in t:
-        reportError("BTT Writer artifact in " + state.reference, 57)
+        reportError("BTT Writer artifact in " + state.getReference(), 57)
     if not suppress[3] and not state.aligned_usfm:    # report punctuation issues
         reportPunctuation(t)
     if period := period_re.match(t):    # text starts with a period
         if len(t) <= period.end() + 1:
-            reportError(f"Orphaned punctuation at {state.reference}", 58)
+            reportError(f"Orphaned punctuation at {state.getReference()}", 58)
         else:
-            reportError("Text begins with phrase-ending punctuation in " + state.reference, 58.1)
+            reportError("Text begins with phrase-ending punctuation in " + state.getReference(), 58.1)
     if state.inVerse and not state.inFootnote() and not state.aligned_usfm:
         reportFootnotes(t)
     # if not suppress[1]:
@@ -1245,7 +1263,7 @@ def addWords(t):
     for word in listwords(t):
         if not state.inFootnote() or notnumberinfootnote_re.search(word):
             (count, ref) = wordlist.get(word, (0, None))
-            ref = state.reference if count == 0 else ""
+            ref = state.getReference() if count == 0 else ""
             wordlist[word] = (count+1, ref)
 
 # Returns True if the specified token is followed by a *separate text token

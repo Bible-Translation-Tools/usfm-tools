@@ -8,6 +8,7 @@ src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 import pytest
 import verifyUSFM
+from verifyUSFM import State
 
 @pytest.mark.parametrize('str, result',
     [
@@ -204,3 +205,18 @@ def test_peripheral(fname, expected):
 def test_said_word(line, expected):
     word = verifyUSFM.said_word(line)
     assert word == expected
+
+def test_State_versebridges():
+    state = State()
+    state.addID('MAT')
+    state.addChapter('1')
+    state.addVerseBridge(1, 3)
+    state.addVerse('1')
+    assert state.reference == 'MAT 1:1'
+    assert state.getReference() == 'MAT 1:1-3'
+    state.addChapter('2')
+    state.addVerse('20')
+    state.addVerseBridge(20, 25)
+    assert state.verse == 20
+    assert state.reference == 'MAT 2:20'
+    assert state.getReference() == 'MAT 2:20-25'
