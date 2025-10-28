@@ -342,6 +342,21 @@ class State:
         else:
             state.sourcefootnote[state.reference] = t
 
+    # Returns the length of the source text for the specified reference.
+    def sourcelength(self, ref):
+        length = 1
+        if ref in self.sourcetext:
+            length = len(self.sourcetext[ref])
+        elif self.bridge_start > 0 and ref == self.getReference():
+            for vn in range(self.bridge_start, self.bridge_end + 1):
+                subref = f"{self.ID} {self.chapter}:{vn}"
+                if subref in self.sourcetext:
+                    length += len(self.sourcetext[subref])
+                else:
+                    length = 1
+                    break
+        return length
+
     # Adds the specified reference to the set of error references
     # Returns True if reference can be added
     # Returns False if reference was previously added
@@ -714,7 +729,7 @@ psalmv1_re = re.compile(r'PSA \d+:1(-|$)')
 def relative_length(ref):
     rlen = 1.0
     if not psalmv1_re.match(ref):
-        sourcelength = len(state.sourcetext[ref]) if ref in state.sourcetext else 1
+        sourcelength = state.sourcelength(ref)
         txln_len = state.getTextLength()
         if sourcelength > 1:
             rlen = txln_len / (sourcelength * (state.booklength / state.booklength_src))
@@ -747,8 +762,8 @@ def previousVerseCheck():
             empty = True
         else:
             rel = relative_length(state.getReference())
-            if rel < 0.4:
-                reportError(f"Translation is very short compared to {state.source_id} source: {state.reference}", 2)
+            if rel < 0.4 or (state.bridge_start < state.bridge_end and rel < 0.5):
+                reportError(f"Translation is very short compared to {state.source_id} source: {state.getReference()}", 2)
             # elif rel > 3.2:     # not safe, at least until chunks and verse bridges are supported
             # would also need to account for translation conflicts
             #     reportError(f"Translation is long compared to {state.source_id} source: {state.reference}.", 2.5)
