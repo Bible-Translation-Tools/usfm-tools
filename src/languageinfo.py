@@ -4,7 +4,6 @@
 # Language info is saved to a json file in parent folder of project directory.
 # The config file is named according to the language code. Such as mgv.json.
 # If the json file already exists, it is loaded on LangaugeInfo initialization.
-# The SaidWords class, defined in this file, is a helper class.
 
 import json
 import os
@@ -34,17 +33,6 @@ class LanguageInfo:
 
     def __repr__(self):
         return f'LanguageInfo({self.jsonpath})'
-
-    # Returns True if the specified language resource exists.
-    # The version parameter may be left unspecified, in which case version is not checked.
-    def knownSource(self, language_id, resource_id, version=None):
-        known = False
-        for source in self.getSources():
-            if source['language_id'] == language_id and source['resource_id'] == resource_id and\
-               (not version or source['version'] == version):
-                known = True
-                break
-        return known
 
     # Saves the current information in the json file.
     def save(self):
@@ -88,7 +76,7 @@ class LanguageInfo:
     # used by self.addSource()
     def findSource(self, language_id, resource_id, version):
         found = None
-        for source in self.info['source_translations']:
+        for source in self.getSources():
             if source['language_id'] == language_id and source['resource_id'] == resource_id and\
                 source['version'] == version:
                 found = source
