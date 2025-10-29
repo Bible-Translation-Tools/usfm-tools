@@ -77,6 +77,7 @@ class ManifestYaml:
     'subject': 'Bible', 'title': 'Bible', 'type': 'bundle', 'version': ''},
     'checking': {'checking_entity': [], 'checking_level': '1'},
     'projects': []}
+            self.setDates()
             self.path = os.path.join(project_dir, "manifest.yaml")
             self.save()
 
