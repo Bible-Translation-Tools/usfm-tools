@@ -32,6 +32,9 @@ class ProjectInfo:
         if self.manifest:
             self.sync()
 
+    def disuseManifest(self):
+        self.manifest = None
+
     # Creates manifest file if it does not exist.
     # Overwrites manifest if it exists and is corrupted.
     # Does not overwrite a syntactically valid manifest.
@@ -69,8 +72,6 @@ class ProjectInfo:
                     self.languageInfo.addSource(mysource['language'], mysource['identifier'], mysource['version'])
 
     # Returns True if the specified language resource exists in project info.
-    # DEPRECATED
-    # Only used by unit test currently.
     def knownSource(self, language_id, resource_id, version):
         return self.languageInfo.findSource(language_id, resource_id, version) is not None
 
@@ -79,9 +80,10 @@ class ProjectInfo:
     def save(self):
         self.languageInfo.save()
         if self.manifest:
-            if mainsource := self.getMainSource():
-                self.manifest.setVersion(mainsource['version'] + ".1")
-            self.manifest.setDates()
+            # Utilize this opportunity to set version if missing
+            if self.manifest.getVersion() == "":
+                if mainsource := self.getMainSource():
+                    self.manifest.setVersion(mainsource['version'] + ".1")
             self.manifest.save()
 
     def setLanguage(self, name, direction=""):
