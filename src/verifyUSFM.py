@@ -36,6 +36,7 @@ nFiles = 0  # number of .usfm files verified
 nSectionHeadings = 0
 nNoPAfterC = 0
 
+# from numpy import source
 from configmanager import ToolsConfigManager
 import os
 from pathlib import Path
@@ -45,7 +46,8 @@ import io
 import footnotes
 import usfm_verses
 import re
-from projectinfo import SaidWords
+from projectinfo import SaidWords, ProjectInfo
+from manifestyaml import ManifestYaml
 import usfm_utils
 import sentences
 import section_titles
@@ -444,7 +446,8 @@ def openIssuesFile():
         issuesFile = io.open(path, "tw", encoding='utf-8', newline='\n')
         issuesFile.write(f"Issues detected by verifyUSFM version {config.get('UsfmWizard', 'version')}, {date.today()}, {workdir}\n")
         if compare_dir := config.get('VerifyUSFM', 'compare_dir'):
-            issuesFile.write(f"   with reference to {identifySource(compare_dir)} as the source text.\n")
+            if src := strSource(compare_dir):
+                issuesFile.write(f"   with reference to {src} as the source text.\n")
         issuesFile.write("-------------------\n")
     return issuesFile
 
@@ -688,12 +691,23 @@ def scanSourceFile(path):
         scan(token)
     state.booklength_src = len(contents) if len(contents) > 0 else 1
 
-# Returns the language code, resource identifier and version as a string.
+# Returns information about the resource in the specified folder.
 def identifySource(sourcedir):
-    from manifestyaml import ManifestYaml
-    my = ManifestYaml()
-    my.load(sourcedir)
-    id = my.getLanguageId() + "_" + my.getResourceId() + " " + my.getVersion()
+    srcmy = ManifestYaml()
+    errors = srcmy.load(sourcedir)
+    source = dict()
+    if not errors:
+        source['language_id'] = srcmy.getLanguageId()
+        source['resource_id'] = srcmy.getResourceId()
+        source['version'] = srcmy.getVersion()
+    return source
+
+# Returns information about the resource in the specified folder. as a string.
+def strSource(sourcedir):
+    if source := identifySource(sourcedir):
+        id = source['language_id'] + "_" + source['resource_id'] + " " + source['version']
+    else:
+        id = ""
     return id
 
 # Loads the source text for the current book if compare_dir is set.
@@ -702,7 +716,7 @@ def load_source(fname):
     global footnotedVerses
     sourcedir = config['compare_dir']
     if sourcedir:
-        state.source_id = identifySource(sourcedir)
+        state.source_id = strSource(sourcedir)
 
         # Load footnote references first, for the whole directory
         global footnotedVerses_en_ulb
@@ -778,20 +792,27 @@ def previousVerseCheck():
 #     if not state.aligned_usfm and state.verse - (max_chunk_length-1) > state.startChunkVerse:
 #         reportError("Long chunk: " + state.startChunkRef + "-" + str(state.verse) + "   (" + str(state.verse-state.startChunkVerse+1) + " verses)", 4)
 
+# Returns the first book title found that is not the same as the English title.
+# Returns the English title as a fallback.
+def bookTitle() -> str:
+    en_name = bookTitleEnglish(state.ID)
+    title = en_name
+    for t in state.booktitles:
+        if t and t != en_name:
+            title = t
+            break
+    return title
+
 # Verifies that at least one book title is specified, other than the English book title.
 # This method is called just before chapter 1 begins, so there has been every
 # opportunity for the book title to be specified.
 def verifyBookTitle():
-    title_ok = False
-    en_name = bookTitleEnglish(state.ID)
     if not state.booktitles:
-        reportError(f"No book title found for {en_name}", 5.1)
+        reportError(f"No book title found for {state.ID}", 5.1)
     else:
-        for title in state.booktitles:
-            if title and title != en_name:
-                title_ok = True
-        if not title_ok:
-            reportError("Book title matches English: " + en_name, 5)
+        title = bookTitle()
+        if title == bookTitleEnglish(state.ID):
+            reportError("Book title matches English: " + title, 5)
 
 # Reports inconsistent chapter titling
 def verifyChapterTitles():
@@ -1508,6 +1529,23 @@ def peripheral(fname):
         periph = (nChapters(usfmname.group(2).upper()) < 1)
     return periph
 
+# Saves project info after processing each usfm file.
+# Resets state for next file.
+def close_book(filename):
+    if state.ID:
+        category = 'bible-nt'
+        sort = usfm_verses.verseCounts[state.ID]['sort']
+        if sort < 40:
+            category = 'bible-ot'
+        elif sort > 66:
+            category = "periph"
+        project = { "title": bookTitle(), "identifier": state.ID.lower(), "sort": sort,
+                    "path": "./" + filename, "categories": [ category ],
+                    'versification': 'ufw' }
+        manifestyaml.addProject(project)
+    state.addID("")
+    sys.stderr.flush()
+
 wjwj_re = re.compile(r' \\wj +\\wj\*', flags=re.UNICODE)
 
 def verifyFile(path):
@@ -1562,8 +1600,6 @@ def verifyFile(path):
         verifyFootnotes()
         verifyChapterTitles()
         verifyParagraphCounts()
-        state.addID("")
-        sys.stderr.flush()
 
 # Verifies all .usfm files under the specified folder.
 def verifyDir(workdir):
@@ -1575,6 +1611,7 @@ def verifyDir(workdir):
                 verifyDir(path)
             elif path.is_file() and path.name[-3:].lower() == 'sfm':
                 verifyFile(path)
+                close_book(path.name)
 
 # Called once each time this script runs.
 def initializeGlobals():
@@ -1604,10 +1641,25 @@ def initializeGlobals():
         issues = dict()
         global footnotedVerses
         footnotedVerses.clear()
-        global saidwords
-        saidwords = SaidWords(config['source_dir'], config['language_code'])
 
-# Serializes issues list, word list, and saidwords.
+def syncProjectInfo():
+    project_info = ProjectInfo(config['source_dir'], config['language_code'])
+    project_info.useManifest(docreate=True)
+    project_info.sync()
+    if src := identifySource(config['compare_dir']):
+        project_info.addSource(src['language_id'], src['resource_id'], src['version'])
+    project_info.save()
+
+# Initializes the saidwords and manifestyaml globals, which are used throughout.
+# Do this after syncProjectInfo(), to avoid possible conflicts.
+def startAddedOutputs():
+    global saidwords
+    saidwords = SaidWords(config['source_dir'], config['language_code'])
+    global manifestyaml
+    manifestyaml = ManifestYaml()
+    manifestyaml.load(config['source_dir'])
+
+# Serializes word list, issues, manifestyaml, and saidwords.
 def saveResults():
     dumpWords()
 
@@ -1619,6 +1671,8 @@ def saveResults():
     else:
         reportStatus("No issues to report.")
 
+    if manifestyaml:
+        manifestyaml.save()
     if saidwords:
         global nFiles
         saidwords.save(mincount = 4 if nFiles < 40 else 6)
@@ -1628,12 +1682,15 @@ def main(app=None):
     gui = app
     initializeGlobals()
     if config:
+        syncProjectInfo()
+        startAddedOutputs()
         workdir = config['source_dir']
         file = config['filename']
         if file:
             path = os.path.join(workdir, file)
             if os.path.isfile(path):
                 verifyFile(path)
+                close_book(file)
             else:
                 reportError(f"No such file: {path}")
         else:
