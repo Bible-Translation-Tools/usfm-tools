@@ -1644,11 +1644,13 @@ def initializeGlobals():
 
 def syncProjectInfo():
     project_info = ProjectInfo(config['source_dir'], config['language_code'])
-    project_info.useManifest(docreate=True)
-    project_info.sync()
-    if src := identifySource(config['compare_dir']):
-        project_info.addSource(src['language_id'], src['resource_id'], src['version'])
+    project_info.useManifest(docreate=True)     # syncs automatically
     project_info.save()
+    if src := identifySource(config['compare_dir']):    # from other manifest.yaml
+        project_info.disuseManifest()
+        if not project_info.knownSource(src['language_id'], src['resource_id'], src['version']):
+            project_info.addSource(src['language_id'], src['resource_id'], src['version'])
+            project_info.save()
 
 # Initializes the saidwords and manifestyaml globals, which are used throughout.
 # Do this after syncProjectInfo(), to avoid possible conflicts.
