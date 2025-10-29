@@ -65,13 +65,14 @@ class ProjectInfo:
             # any of them into LI. Copying sources from LI into individual
             # manifest.yaml files, however, would not be valid.
             for mysource in my.getSources():
-                if not self.languageInfo.knownSource(mysource['language'], mysource['identifier'], mysource['version']):
+                if not self.languageInfo.findSource(mysource['language'], mysource['identifier'], mysource['version']):
                     self.languageInfo.addSource(mysource['language'], mysource['identifier'], mysource['version'])
 
     # Returns True if the specified language resource exists in project info.
-    # The version parameter may be left unspecified, in which case version is not checked.
-    def knownSource(self, language_id, resource_id, version=None):
-        return self.languageInfo.knownSource(language_id, resource_id, version)
+    # DEPRECATED
+    # Only used by unit test currently.
+    def knownSource(self, language_id, resource_id, version):
+        return self.languageInfo.findSource(language_id, resource_id, version) is not None
 
     # Saves the current information in the project json file.
     # Also saves the manifest info in the manifest.yaml, if it is in use.
