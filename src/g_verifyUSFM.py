@@ -235,7 +235,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         if exists:
             if time.time() - os.path.getmtime(issuespath) < 10:     # issues.txt is recent
                 self.message_area.insert('end', "issues.txt contains the list of issues found.\n")
-                self.message_area.insert('end', "Make corrections using your text editor, or go to\n  Next Step to do automated cleanup.\n")
+                self.message_area.insert('end', "Make corrections using your text editor, or advance to\n  the next step to do automated cleanup.\n")
                 self.message_area.see('end')
         self.message_area['state'] = DISABLED   # prevents insertions to message area
 
@@ -257,7 +257,8 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             self.controller.mainapp.save_values(stepname, self.values)
 
             projectInfo = ProjectInfo(self.source_dir.get(), self.language_code.get())
-            projectInfo.setSourceDir(self.values['compare_dir'])
+            if self.values['compare_dir']:
+                projectInfo.setSourceDir(self.values['compare_dir'])
             projectInfo.save()
 
     # Returns a list of incomplete or incorrect inputs.
