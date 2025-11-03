@@ -12,7 +12,7 @@ import usfm_utils
 @pytest.mark.parametrize('text, expectedblock',
     [
         ('5', 'LATIN'), # we treat all ASCII characters as LATIN
-        ('   ', 'LATIN'), # we treat spaces as LATIN
+        ('   ', 'LATIN'),
         ('π', 'GREEK'),
         ('あいう', 'HIRAGANA'),
         ('漢字', 'CJK'),
@@ -21,9 +21,11 @@ import usfm_utils
         ('MATTHEW-', 'LATIN'),
         ("ኧያእቆቢ ኧችን፤", 'ETHIOPIC'),
         ("دەرناکات،", 'ARABIC'),   # Arabic comma
-        (" دەبن؟", 'ARABIC'),      # Arabic question mark
-        ("\\v 27 ਕਿਉਂ ਜੋ ਲਿਖਿਆ ਹੋਇਆ ਹੈ*-!", 'GURMUKHI'),
-        ("ਯਿਸੂ ਦੀ ਵੰਸ਼ਾਵਲੀ", 'GURMUKHI'),  # Punjabi
+        ("  ؟  ", 'ARABIC'),      # Arabic question mark
+        ("میرے یسوع دے نال پکے ", 'ARABIC'),  # Western Punjabi
+        ("\\v 27 ਕਿਉਂ*-!", 'GURMUKHI'),   # Malwai
+        ("ਪਵਿੱਤਰ ਆਤਮਾ ਦਾ ਕਰਾਰ", 'GURMUKHI'), # Malwai
+        ("सब के बारे में हम ", 'DEVANAGARI'),  # Urdu-devanagari
     ])
 def test_unicodeBlock(text, expectedblock):
     block = usfm_utils.unicodeBlock(text)

@@ -322,6 +322,7 @@ def test_addSpaceAfterVerseNo(text, expected):
         ('\\V10 Kimal akara. \nHeading\n\\v11 Kiti nani.',  '\\v 10 Kimal akara. \nHeading\n\\v 11 Kiti nani.'),
         (r'\v5 Bara nene acine. \v7 Andi aleli ba.', r'\v 5 Bara nene acine. \v 7 Andi aleli ba.'),
         (r'\v 8Afo eni. \v 9 Newarafi', r'\v 8 Afo eni. \v 9 Newarafi'),
+        (r'\v 8 \v 10 ۔ادٕہ کران۔_ \v 9 ۔یتھ  ساتؠٕ۔_ ۔بلکہ سجایِن', r'')
     ])
 def test_fixVerseMarkers(text, expected):
     if not expected:

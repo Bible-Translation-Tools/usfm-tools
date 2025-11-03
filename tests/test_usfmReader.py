@@ -4,7 +4,6 @@
 import os
 import sys
 import io
-import json
 import pytest
 from datetime import datetime
 
@@ -219,6 +218,8 @@ def test_usfmReader_parseString(text, expectedtypes):
      ("\\f + \\fqa asdf\\+em qwer\\em*\\fqa*", ['f','fqa','+em','em*'], []),
      ("\\fqa* asdf", ['text'], ['\\fqa* asdf']),
      (" \\fqa* asdf", ['text'], [' \\fqa* asdf']),
+     ("\\rem filename.docx", ["rem"], [' filename.docx']),
+     ("\\s Heading.10", ["s"], [' Heading.10']),
     ])
 def test_nextpair(text, expectedtypes, expectedvalues):
     types = []
