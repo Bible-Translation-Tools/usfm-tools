@@ -63,16 +63,19 @@ def test_usfm_move_pq(s, expected):
         ('asdf.\n\\q1 asdf\n\\q2\n\\s2xyz\n', 'asdf.\n\\q1 asdf\n\\s2xyz\n'),
         ('\n\\s Heading\n\\s Heading2', '\n\\s Heading\n\\s Heading2'),
         ('\n\\p\n\\s Heading\n\\p \n\\s Heading2', '\n\\s Heading\n\\s Heading2'),
-        ('\\p\n\\v 1 Verse', '\\p\n\\v 1 Verse'),
+        ('\\p\n\\v 1 Verse', ''),
         ('\\p\n\\c 1', '\\c 1'),
         ('\\p\n\\p', '\\p'),
         ('\\p\n\\p words after p', '\\p words after p'),
         ('\\p\n\\p\n', '\\p\n'),
         ('\\p\n\\p words after p\n', '\\p words after p\n'),
         ('\\p words before\n\\s Heading', '\\p words before\n\\s Heading'),
+        ('asdf\n\\p\n\\rem asdf', ''),
     ])
-# Remove standalone paragraph markers not followed by verse marker.
+# Remove standalone paragraph markers not followed by verse marker or \rem
 def test_usfm_remove_pq(s, expected):
+    if not expected:
+        expected = s
     assert usfm_cleanup.usfm_remove_pq(s) == expected
 
 @pytest.mark.parametrize('s, expected',
