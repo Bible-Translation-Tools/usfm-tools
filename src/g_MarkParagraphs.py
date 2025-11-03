@@ -155,9 +155,9 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         #      text="Add missing end-of-paragraph punctuation (match model text).")
 
         self.clear_show("This process can copy chunk markers, and paragraph and poetry markers from \
-a model text to the file(s) that you specify. \
-If the paragraphs are sufficiently marked in your text already, and you don't need the '\\s5 only' functionality, \
-then don't run this process.")
+a model text to the file(s) that you specify. If paragraphs are sufficiently marked in your text already, \
+and you don't need the \\s5 markers copied over, \
+then you don't need to run this process.")
 
     def show_values(self, values):
         self.values = values
