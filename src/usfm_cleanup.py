@@ -304,8 +304,6 @@ def convert_wholefile(path):
     if not aligned_usfm:
         if enable[2]:
             alltext = fix_punctuation(alltext)
-        if enable[1]:
-            alltext = add_spaces(alltext)
     if alltext != origtext:
         with io.open(path, "tw", buffering=1, encoding='utf-8', newline='\n') as output:
             output.write(alltext)
@@ -598,6 +596,7 @@ def takeText(s, usfm):
         if vlen < len(s) and s[vlen] in '.)':   # period or paren is stuck to verse number
             vlen += 1
         s = s[vlen:].lstrip()
+    s = add_spaces(s)
     if enable[5] and not in_footnote:
         s = capitalizeAsNeeded(s)
     s = change_quote_medial(s, enable[4])
@@ -608,6 +607,7 @@ def takeText(s, usfm):
         s = quotes.promoteDoubleQuotes(s)
     if state.prevMarker == 'text':
         usfm.newline()
+    s = s.rstrip(' ')
     usfm.writeStr(s)
     return (s != origstr)
 
