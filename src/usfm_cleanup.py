@@ -169,17 +169,19 @@ def usfm_move_pq(str):
     newstr += str
     return newstr
 
-#losepq_re = re.compile(r'\n(\\[pqm][i1-9]?)\n+(\\[pqm][i1-9 ]?.*?)\n', flags=re.UNICODE+re.DOTALL)
-#losepq_re = re.compile(r'\n\\[pqm][i1-9]? *\n+(\\[^v].*?\n)', flags=re.UNICODE)
-losepq_re = re.compile(r'\\[pqm][i1-9]? *\n*(\\[^v])')
+# losepq_re = re.compile(r'\\[pqm][i1-9]? *\n*(\\[^v])')
+losepq_re = re.compile(r'\\[pqm][i1-9]? *\n*(\\[a-z][a-z1-5]*\*?)')
 
-# Remove paragraph markers not followed by verse marker.
+# Remove paragraph markers not followed by verse marker or \rem.
 # Other markers that follow a paragraph marker invalidate the paragraph marker.
 def usfm_remove_pq(str):
     newstr = ""
     found = losepq_re.search(str)
     while found:
-        newstr += str[:found.start()] + found.group(1)
+        if found.group(1) not in {'\\v', '\\rem'}:
+            newstr += str[:found.start()] + found.group(1)
+        else:
+            newstr += str[:found.end()]
         str = str[found.end():]
         found = losepq_re.search(str)
     newstr += str
