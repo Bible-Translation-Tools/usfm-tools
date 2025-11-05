@@ -35,7 +35,7 @@ from usx2usfm import main
 from verifyManifest import main
 from word2text import main
 
-app_version = "1.4.3"
+app_version = "1.4.4"
 
 class UsfmWizard(tkinter.Tk):
     def __init__(self):

@@ -1,6 +1,30 @@
 # Usfm Wizard Version history
 
-## 1.4.3 - 8/6/25
+## 1.4.4 - 11/5/25
+* Updated the online user manual.
+* txt2Usfm - supply correct \c when missing from text files.
+* txt2Usfm - consider \p markers in the text files as erroneous and don't copy.
+* txt2Usfm, verifyUsfm - exclude certain verses from section title consideration.
+* txt2Usfm - forestall creation of bad project info on language code error.
+* txt2Usfm - convert periods to Arabic full stops in Arabic texts.
+* verifyUsfm - generate manifest.yaml file.
+* verifyUsfm - don't display voluminous list of issues in the GUI.
+* verifyUsfm - remove 'low paragraph count' warning.
+* verifyUsfm - remove ability to suppress 'no \p after \c' warnings.
+* verifyUsfm - remove ability to suppress warnings about useless markers.
+* verifyUsfm - eliminate redundant "back to back marker" warnings.
+* verifyusfm - refine wordlist and mixed case words identification.
+* verifyUsfm - use source text to compare verse counts per chapter.
+* verifyUsfm - don't require capitalization for Gurmukhi script (affects section title recognition only, at this point)
+* verifyUsfm - support verse bridges when checking for very short translations.
+* usfm_cleanup - eliminate space before \f.
+* mark_paragraphs - new option: translate chunk markers to \p.
+* mark_paragraphs - generate separate issues file, including missing end-of-paragraph punctuation.
+* plaintext2usfm - handle more types of invalid inputs.
+* all tools - observe Arabic full stop character.
+* other minor enhancements and bug fixes.
+
+## 1.4.3 - 8/11/25
 * replace USFM parser - eliminates bugs and performance bottlenecks.
 * txt2Usfm - improve verse number resolution.
 * txt2Usfm - added help message for section headings.
