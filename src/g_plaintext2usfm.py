@@ -30,8 +30,8 @@ class Plaintext2Usfm(g_step.Step):
         self.mainapp.execute_script("plaintext2usfm", count)
         self.frame.clear_messages()
     def onNext(self):
-        copyparms = {'source_dir': self.values['target_dir']}
-        self.mainapp.step_next(copyparms)
+        self.frame._save_values()   # only needed until 'target_dir' is retired
+        super().onNext('work_dir')
 
     # Called by the main app.
     def onScriptEnd(self, status: str):
@@ -47,8 +47,8 @@ class Plaintext2Usfm_Frame(g_step.Step_Frame):
 
         self.filename = StringVar()
         self.source_dir = StringVar()
-        self.target_dir = StringVar()
-        for var in (self.source_dir, self.target_dir):
+        self.work_dir = StringVar()
+        for var in (self.source_dir, self.work_dir):
             var.trace_add("write", self._onChangeEntry)
         for col in [3,4]:
             self.columnconfigure(col, weight=1)   # keep column 1 from expanding
@@ -57,7 +57,7 @@ class Plaintext2Usfm_Frame(g_step.Step_Frame):
         source_dir_label.grid(row=3, column=1, sticky=W, pady=2)
         source_dir_entry = ttk.Entry(self, width=42, textvariable=self.source_dir)
         source_dir_entry.grid(row=3, column=2, columnspan=3, sticky=W)
-        target_dir_Tip = Hovertip(source_dir_entry, hover_delay=1000,
+        src_dir_Tip = Hovertip(source_dir_entry, hover_delay=1000,
                 text="Folder containing the files to be converted")
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
         src_dir_find.grid(row=3, column=4, sticky=W, padx=5)
@@ -71,30 +71,37 @@ class Plaintext2Usfm_Frame(g_step.Step_Frame):
         file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
         file_find.grid(row=4, column=3, sticky=W, padx=8)
 
-        target_dir_label = ttk.Label(self, text="Location for .usfm files:", width=21)
-        target_dir_label.grid(row=5, column=1, sticky=W, pady=2)
-        target_dir_entry = ttk.Entry(self, width=42, textvariable=self.target_dir)
-        target_dir_entry.grid(row=5, column=2, columnspan=3, sticky=W)
-        target_dir_Tip = Hovertip(target_dir_entry, hover_delay=1000,
+        work_dir_label = ttk.Label(self, text="Location for .usfm files:", width=21)
+        work_dir_label.grid(row=5, column=1, sticky=W, pady=2)
+        work_dir_entry = ttk.Entry(self, width=42, textvariable=self.work_dir)
+        work_dir_entry.grid(row=5, column=2, columnspan=3, sticky=W)
+        work_dir_Tip = Hovertip(work_dir_entry, hover_delay=1000,
                 text="Folder for the new usfm files. The folder will be created if it doesn't exist.")
-        target_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindTargetDir)
-        target_dir_find.grid(row=5, column=4, sticky=W, padx=5)
+        work_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindWorkDir)
+        work_dir_find.grid(row=5, column=4, sticky=W, padx=5)
 
         source_dir_entry.focus()
+
+    # Temporary function, until "target_dir" is fully retired.
+    def getWorkDirConfigValue(self):
+        workdir = self.values.get('work_dir', fallback="")
+        if not workdir:
+            self.values.get('target_dir', fallback="")  # the old name
+        return workdir
 
     # Called when the frame is first activated. Populate the initial values.
     def show_values(self, values):
         self.values = values
         self.filename.set(values['filename'])
         self.source_dir.set(values['source_dir'])
-        self.target_dir.set(values['target_dir'])
+        self.work_dir.set( self.getWorkDirConfigValue())
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack)
         self.controller.showbutton(2, "CONVERT", self._onExecute, tip="Run the conversion script now.")
         self.controller.showbutton(3, "Source folder", self._onOpenTextDir,
                                    tip="Open the folder containing the files to be converted.")
-        self.controller.showbutton(4, "Usfm folder", self._onOpenTargetDir)
+        self.controller.showbutton(4, "Usfm folder", self._onOpenWorkDir)
         self.controller.showbutton(5, ">>>", self._onSkip, tip="Verify USFM")
         self._set_button_status()
 
@@ -116,14 +123,14 @@ The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
     def _save_values(self):
         self.values['filename'] = self.filename.get()
         self.values['source_dir'] = self.source_dir.get()
-        self.values['target_dir'] = self.target_dir.get()
+        self.values['work_dir'] = self.work_dir.get()
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
 
     def _onFindSrcDir(self, *args):
         self.controller.askdir(self.source_dir)
-    def _onFindTargetDir(self, *args):
-        self.controller.askdir(self.target_dir)
+    def _onFindWorkDir(self, *args):
+        self.controller.askdir(self.work_dir)
     def _onFindFile(self, *args):
         path = filedialog.askopenfilename(initialdir=self.source_dir.get(), title = "Select text file with Scripture text",
                                            filetypes=[('Text file', '*.txt')])
@@ -133,16 +140,16 @@ The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
         self._set_button_status()
     def _onOpenTextDir(self, *args):
         os.startfile(self.source_dir.get())
-    def _onOpenTargetDir(self, *args):
-        self._save_values()
-        os.startfile(self.values['target_dir'])
+    def _onOpenWorkDir(self, *args):
+        # self._save_values()
+        os.startfile(self.work_dir.get())
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
         self.controller.showbutton(5, ">>>", self._onNext, tip="Verify USFM")
 
     def _set_button_status(self):
         good_sourcedir = os.path.isdir(self.source_dir.get())
-        okay = (good_sourcedir and self.target_dir.get())
+        okay = (good_sourcedir and self.work_dir.get())
         self.controller.enablebutton(2, okay)
         self.controller.enablebutton(3, good_sourcedir)
-        self.controller.enablebutton(4, os.path.isdir(self.target_dir.get()))
+        self.controller.enablebutton(4, os.path.isdir(self.work_dir.get()))

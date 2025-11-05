@@ -3,7 +3,7 @@
 # at least provided backups of the original files.
 # Use with caution as this overwrites files with correctExt extension.
 
-import configmanager
+from configmanager import ToolsConfigManager
 import re       # regular expression module
 import io
 import os
@@ -11,7 +11,6 @@ import string
 import sys
 
 gui = None
-config = None
 maxChanged = 11111
 nChanged = 0
 
@@ -40,28 +39,34 @@ def undoFolder(folder, backupExt, correctExt):
         if nChanged >= maxChanged:
             break
 
+# Temporary function, until all references to "source_dir" are removed.
+def getWorkDir():
+    config = ToolsConfigManager()
+    workdir = config.get('RevertChanges', 'work_dir')
+    if not workdir:
+        workdir = config.get('RevertChanges', 'source_dir')    # the old name
+    return workdir
+
 def main(app = None):
     global gui
-    global config
     global nChanged
 
     gui = app
     nChanged = 0
-    config = configmanager.ToolsConfigManager().get_section('RevertChanges')   # configmanager version
-    if config:
-        source_dir = config['source_dir']
-        backupExt = config['backupExt']
-        correctExt = config['correctExt']
-        undoFolder(source_dir, backupExt, correctExt)
-        msg = "Done. Renamed " + str(nChanged) + " files."
-        if nChanged == 1:
-            msg = "Done. Renamed 1 file."
-        if gui:
-            with gui.progress_lock:
-                gui.progress = msg
-            gui.event_generate('<<ScriptEnd>>', when="tail")
-        sys.stdout.write(msg + "\n")
-    
+    config = ToolsConfigManager()
+    work_dir = getWorkDir()
+    backupExt = config.get('RevertChanges', 'backupExt')
+    correctExt = config.get('RevertChanges', 'correctExt')
+    undoFolder(work_dir, backupExt, correctExt)
+    msg = "Done. Renamed " + str(nChanged) + " files."
+    if nChanged == 1:
+        msg = "Done. Renamed 1 file."
+    if gui:
+        with gui.progress_lock:
+            gui.progress = msg
+        gui.event_generate('<<ScriptEnd>>', when="tail")
+    sys.stdout.write(msg + "\n")
+
 # Processes all .txt files in specified directory, one at a time
 if __name__ == "__main__":
     main()

@@ -28,7 +28,7 @@ class VerifyUSFM(g_step.Step):
 
     def onNext(self):
         if self.executed:
-            super().onNext('source_dir', 'filename', 'language_code', 'standard_chapter_title')
+            super().onNext('work_dir', 'filename', 'language_code', 'standard_chapter_title')
         else:
             super().onNext()
         self.executed = False
@@ -40,7 +40,7 @@ class VerifyUSFM(g_step.Step):
         # self.values = values    # redundant, they were the same dict to begin with
         count = 1
         if not values['filename']:
-            count = g_util.count_files(values['source_dir'], ".*sfm$")
+            count = g_util.count_files(values['work_dir'], ".*sfm$")
         self.mainapp.execute_script("verifyUSFM", count)
         self.frame.clear_messages()
         self.executed = True
@@ -55,7 +55,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.changingVars = False
 
         self.language_code = StringVar()
-        self.source_dir = StringVar()
+        self.work_dir = StringVar()
         self.filename = StringVar()
         self.std_titles = StringVar()
         self.compare_dir = StringVar()
@@ -77,10 +77,10 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         helper_Tip = Hovertip(std_titles_helper, hover_delay=500,
             text="Inventory existing chapter labels")
 
-        source_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
-        source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        source_dir_entry = ttk.Entry(self, width=41, textvariable=self.source_dir)
-        source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
+        work_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
+        work_dir_label.grid(row=4, column=1, sticky=W, pady=2)
+        work_dir_entry = ttk.Entry(self, width=41, textvariable=self.work_dir)
+        work_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
         src_dir_find.grid(row=4, column=4, sticky=W)
         file_label = ttk.Label(self, text="File name:", width=20)
@@ -168,12 +168,19 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         xs.grid(row=89, column = 1, columnspan=4, sticky = 'ew')
         self.message_area['xscrollcommand'] = xs.set
 
+    # Temporary function, until "source_dir" is fully retired.
+    def getWorkDirConfigValue(self):
+        workdir = self.values.get('work_dir', fallback="")
+        if not workdir:
+            self.values.get('source_dir', fallback="")  # the old name
+        return workdir
+
     def show_values(self, values):
         # self.changingVars = True
         self.values = values
         code = values.get('language_code', fallback="")
-        dir = values.get('source_dir', fallback="")
-        self.source_dir.set(dir)
+        dir = self.getWorkDirConfigValue()
+        self.work_dir.set(dir)
         self.language_code.set(code)
         self.set_compare_dir(code, dir)
         self.filename.set(values.get('filename', fallback=""))
@@ -198,7 +205,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         # self.changingVars = False
         self._set_button_status()
         self.language_code.trace_add("write", self._onChangeLanguage)
-        self.source_dir.trace_add("write", self._onChangeSourceDir)
+        self.work_dir.trace_add("write", self._onChangeSourceDir)
         self.filename.trace_add("write", self._set_button_status)
         self.compare_dir.trace_add("write", self._set_button_status)
         self._onChangeQuotes()
@@ -227,7 +234,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.clear_show("")     # clears the previous source text hints, if any
 
     def onScriptEnd(self):
-        issuespath = os.path.join(self.values['source_dir'], "issues.txt")
+        issuespath = os.path.join(self.getWorkDirConfigValue(), "issues.txt")
         exists = os.path.isfile(issuespath)
         self.controller.enablebutton(3, exists)
         self.controller.enablebutton(2, self.verify_ready)
@@ -246,7 +253,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
     def _save_values(self):
         if not self.invalidInputs():
             self.values['language_code'] = self.language_code.get()
-            self.values['source_dir'] = self.source_dir.get()
+            self.values['work_dir'] = self.work_dir.get()
             self.values['filename'] = self.filename.get()
             value = self.compare_dir.get()
             self.values['compare_dir'] = "" if value.startswith("(locate") else value
@@ -256,7 +263,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
                 self.values[configvalue] = str(self.suppress[si].get())
             self.controller.mainapp.save_values(stepname, self.values)
 
-            projectInfo = ProjectInfo(self.source_dir.get(), self.language_code.get())
+            projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
             if self.values['compare_dir']:
                 projectInfo.setSourceDir(self.values['compare_dir'])
             projectInfo.save()
@@ -268,7 +275,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
     def invalidInputs(self, *args):
         objections = []
         code = self.language_code.get()
-        dir = self.source_dir.get()
+        dir = self.work_dir.get()
         cmp = self.compare_dir.get()
         namedfile = self.filename.get()
 
@@ -299,14 +306,14 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
     # Executes a script that inventories the existing chapter labels
     def _onInventoryLabels(self, *args):
         values = {}
-        values['source_dir'] = self.source_dir.get()
+        values['work_dir'] = self.work_dir.get()
         self.controller.mainapp.save_values(stepname, values)
         self.controller.executeInventoryLabels()
 
     def _onFindSrcDir(self, *args):
-        self.controller.askdir(self.source_dir)
+        self.controller.askdir(self.work_dir)
     def _onFindFile(self, *args):
-        path = filedialog.askopenfilename(initialdir=self.source_dir.get(), title = "Select usfm file",
+        path = filedialog.askopenfilename(initialdir=self.work_dir.get(), title = "Select usfm file",
                                            filetypes=[('Usfm file', '*.usfm')])
         if path:
             self.filename.set(os.path.basename(path))
@@ -321,7 +328,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
     # Returns a string properly formatted for showing the known sources texts
     # for this translation, and how frequently each was used.
     def _list_sources(self):
-        workdir = self.source_dir.get()
+        workdir = self.work_dir.get()
         code = self.language_code.get()
         sourcehints = []
         if os.path.isdir(workdir) and code:
@@ -335,13 +342,13 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.std_titles.set("")
         code = self.language_code.get()
         if code:
-            self.set_compare_dir(code, self.source_dir.get())
+            self.set_compare_dir(code, self.work_dir.get())
         else:
             self._set_button_status()
 
     def _onChangeSourceDir(self, *args):
         self.changingVars = True
-        dir = self.source_dir.get()
+        dir = self.work_dir.get()
         code = self.language_code.get()
         if os.path.isdir(dir):
             my = ManifestYaml()
@@ -363,20 +370,20 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
 
     def _onOpenIssues(self, *args):
         # self._save_values()
-        path = os.path.join(self.values['source_dir'], "issues.txt")
+        path = os.path.join(self.getWorkDirConfigValue(), "issues.txt")
         os.startfile(path)
     # Opens usfm folder, or specific usfm file
     def _onOpenUsfm(self, *args):
-        path = os.path.join(self.source_dir.get(), self.filename.get())
+        path = os.path.join(self.work_dir.get(), self.filename.get())
         os.startfile(path)
 
     def _set_button_status(self, *args):
         if not self.changingVars:
-            good_dir = os.path.isdir(self.source_dir.get())
+            good_dir = os.path.isdir(self.work_dir.get())
             namedfile = self.filename.get()
             good_subject = good_dir and not namedfile
             if good_dir and namedfile:
-                filepath = os.path.join(self.source_dir.get(), namedfile)
+                filepath = os.path.join(self.work_dir.get(), namedfile)
                 good_subject = os.path.isfile(filepath)
             self.verify_ready = not self.invalidInputs()
             self.controller.enablebutton(2, self.verify_ready)
@@ -386,5 +393,5 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             else:
                 self.controller.hidebutton(4)
 
-            issuespath = os.path.join(self.source_dir.get(), "issues.txt")
+            issuespath = os.path.join(self.work_dir.get(), "issues.txt")
             self.controller.enablebutton(3, os.path.isfile(issuespath))

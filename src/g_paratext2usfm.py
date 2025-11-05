@@ -36,9 +36,9 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         super().__init__(parent, controller)
 
         self.ptx_dir = StringVar()
-        self.target_dir = StringVar()
+        self.work_dir = StringVar()
         self.filename = StringVar()
-        for var in (self.ptx_dir, self.target_dir, self.filename):
+        for var in (self.ptx_dir, self.work_dir, self.filename):
             var.trace_add("write", self._onChangeEntry)
 
         self.grid_columnconfigure(4, weight=1)
@@ -51,14 +51,14 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         ptx_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindPtxDir)
         ptx_dir_find.grid(row=3, column=5, sticky=W)
 
-        target_dir_label = ttk.Label(self, text="Location for .usfm files:", width=25)
-        target_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        target_dir_entry = ttk.Entry(self, width=55, textvariable=self.target_dir)
-        target_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
-        target_dir_Tip = Hovertip(target_dir_entry, hover_delay=1000,
+        work_dir_label = ttk.Label(self, text="Location for .usfm files:", width=25)
+        work_dir_label.grid(row=4, column=1, sticky=W, pady=2)
+        work_dir_entry = ttk.Entry(self, width=55, textvariable=self.work_dir)
+        work_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
+        work_dir_Tip = Hovertip(work_dir_entry, hover_delay=1000,
                 text="Folder for .usfm files. It will be created if it doesn't exist.")
-        target_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindTargetDir)
-        target_dir_find.grid(row=4, column=5, sticky=W)
+        work_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindWorkDir)
+        work_dir_find.grid(row=4, column=5, sticky=W)
 
         file_label = ttk.Label(self, text="File name:", width=25)
         file_label.grid(row=5, column=1, sticky=W, pady=2)
@@ -69,17 +69,24 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         file_find = ttk.Button(self, text="...", width=2, command=self._onFindFile)
         file_find.grid(row=5, column=3, sticky=W)
 
+    # Temporary function, until "target_dir" is fully retired.
+    def getWorkDirConfigValue(self):
+        workdir = self.values.get('work_dir', fallback="")
+        if not workdir:
+            self.values.get('target_dir', fallback="")  # the old name
+        return workdir
+
     def show_values(self, values):
         self.values = values
         self.ptx_dir.set(values.get('paratext_dir', fallback=""))
-        self.target_dir.set(values.get('target_dir', fallback=""))
+        self.work_dir.set(self.getWorkDirConfigValue())
         self.filename.set(values.get('filename', fallback=""))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack)
         self.controller.showbutton(2, "CONVERT", self._onExecute, tip="Copy SFM files, rename, and correct line endings.")
         self.controller.showbutton(3, "Ptx folder", self._onOpenPtxDir, tip="Open the paratext project folder.")
-        self.controller.showbutton(4, "Usfm folder", self._onOpenTargetDir)
+        self.controller.showbutton(4, "Usfm folder", self._onOpenWorkDir)
         self.controller.hidebutton(5)
         self._set_button_status()
 
@@ -91,7 +98,7 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
     # them to the configuration file.
     def _save_values(self):
         self.values['paratext_dir'] = self.ptx_dir.get()
-        self.values['target_dir'] = self.target_dir.get()
+        self.values['work_dir'] = self.work_dir.get()
         self.values['filename'] = self.filename.get()
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
@@ -106,10 +113,10 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
     def _onOpenPtxDir(self, *args):
         os.startfile(self.ptx_dir.get())
 
-    def _onFindTargetDir(self, *args):
-        self.controller.askdir(self.target_dir)
-    def _onOpenTargetDir(self, *args):
-        os.startfile(self.target_dir.get())
+    def _onFindWorkDir(self, *args):
+        self.controller.askdir(self.work_dir)
+    def _onOpenWorkDir(self, *args):
+        os.startfile(self.work_dir.get())
 
     def _onFindFile(self, *args):
         path = filedialog.askopenfilename(initialdir=self.ptx_dir.get(), title = "Select file",
@@ -124,10 +131,10 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         ptx_ok = os.path.isdir(self.ptx_dir.get())
         self.controller.enablebutton(3, ptx_ok)
 
-        target_dir = self.target_dir.get()
-        self.controller.enablebutton(4, os.path.isdir(target_dir))
+        work_dir = self.work_dir.get()
+        self.controller.enablebutton(4, os.path.isdir(work_dir))
 
-        if ptx_ok and target_dir and self.filename.get():
+        if ptx_ok and work_dir and self.filename.get():
             path = os.path.join(self.ptx_dir.get(), self.filename.get())
             ptx_ok = os.path.isfile(path)
-        self.controller.enablebutton(2, ptx_ok and target_dir)
+        self.controller.enablebutton(2, ptx_ok and work_dir)

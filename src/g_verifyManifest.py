@@ -2,15 +2,11 @@
 # GUI interface for verifying manifest.yaml file and readiness of resource container.
 #
 
-from tkinter import *
 from tkinter import ttk
-from tkinter import font
+from tkinter import StringVar, BooleanVar, W, DISABLED
 from idlelib.tooltip import Hovertip
-import g_util
 import g_step
 import os
-import subprocess
-import time
 
 stepname = 'VerifyManifest'   # equals the main class name in this module
 
@@ -34,18 +30,18 @@ class VerifyManifest_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent,controller)
 
-        self.source_dir = StringVar()
-        self.source_dir.trace_add("write", self._onChangeEntry)
+        self.work_dir = StringVar()
+        self.work_dir.trace_add("write", self._onChangeEntry)
         self.bibletype = BooleanVar(value = True)
         self.expectAscii = BooleanVar(value = False)
         for col in (3,5):
             self.columnconfigure(col, weight=1)   # keep columns 1,4 from expanding
 
-        source_dir_label = ttk.Label(self, text="Location of resource: ")
-        source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        self.source_dir_entry = ttk.Entry(self, width=45, textvariable=self.source_dir)
-        self.source_dir_entry.grid(row=4, column=2, sticky=W)
-        file_Tip = Hovertip(self.source_dir_entry, hover_delay=500,
+        work_dir_label = ttk.Label(self, text="Location of resource: ")
+        work_dir_label.grid(row=4, column=1, sticky=W, pady=2)
+        self.work_dir_entry = ttk.Entry(self, width=45, textvariable=self.work_dir)
+        self.work_dir_entry.grid(row=4, column=2, sticky=W)
+        file_Tip = Hovertip(self.work_dir_entry, hover_delay=500,
              text="Folder where manifest.yaml and other files to be submitted reside")
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
         src_dir_find.grid(row=4, column=3, sticky=W, padx=5)
@@ -67,9 +63,16 @@ class VerifyManifest_Frame(g_step.Step_Frame):
         xs.grid(row=89, column = 1, columnspan=4, sticky = 'ew')
         self.message_area['xscrollcommand'] = xs.set
 
+    # Temporary function, until "source_dir" is fully retired.
+    def getWorkDirConfigValue(self):
+        workdir = self.values.get('work_dir', fallback="")
+        if not workdir:
+            self.values.get('source_dir', fallback="")  # the old name
+        return workdir
+
     def show_values(self, values):
         self.values = values
-        self.source_dir.set(values.get('source_dir', fallback = ""))
+        self.work_dir.set( self.getWorkDirConfigValue())
         self.bibletype.set(values.get('bibletype', fallback = True))
         self.expectAscii.set(values.get('expectascii', fallback = False))
 
@@ -77,7 +80,7 @@ class VerifyManifest_Frame(g_step.Step_Frame):
         self.controller.showbutton(1, "<<<", self._onBack, tip="Previous step")
         self.controller.showbutton(2, "VERIFY", self._onExecute, tip="Verify readiness of manifest.yaml and the whole resource.")
         self.controller.showbutton(3, "Open manifest", self._onOpenManifest, tip="Opens manifest.yaml in your default editor")
-        self.controller.showbutton(4, "Open folder", self._onOpenSourceDir, tip="Opens the resource folder")
+        self.controller.showbutton(4, "Open folder", self._onOpenWorkDir, tip="Opens the resource folder")
         self.controller.hidebutton(5)
         self._set_button_status()
 
@@ -87,24 +90,27 @@ class VerifyManifest_Frame(g_step.Step_Frame):
         self.controller.enablebutton(5, True)
 
     def _save_values(self):
-        self.values['source_dir'] = self.source_dir.get()
+        self.values['work_dir'] = self.work_dir.get()
         self.values['bibletype'] = str(self.bibletype.get())
         self.values['expectascii'] = str(self.expectAscii.get())
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
 
     def _onFindSrcDir(self, *args):
-        self.controller.askdir(self.source_dir)
+        self.controller.askdir(self.work_dir)
     def _onChangeEntry(self, *args):
         self._set_button_status()
 
     def _onOpenManifest(self, *args):
         self._save_values()
-        path = os.path.join(self.values['source_dir'], "manifest.yaml")
+        path = os.path.join(self.work_dir.get(), "manifest.yaml")
         os.startfile(path)
-    def _onOpenSourceDir(self, *args):
+    def _onOpenWorkDir(self, *args):
         self._save_values()
-        os.startfile(self.values['source_dir'])
+        os.startfile(self.work_dir.get())
 
     def _set_button_status(self):
-        self.controller.enablebutton(2, os.path.isdir(self.source_dir.get()))
+        self.controller.enablebutton(2, os.path.isdir(self.work_dir.get()))
+        workdir = self.work_dir.get()
+        self.controller.enablebutton(3, os.path.isfile(os.path.join(workdir, "manifest.yaml")))
+        self.controller.enablebutton(4, os.path.isdir(workdir))

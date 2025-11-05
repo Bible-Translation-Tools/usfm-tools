@@ -27,17 +27,24 @@ class MarkParagraphs(g_step.Step):
     def onExecute(self, values):
         self.enablebutton(2, False)
         self.enablebutton(3, False)
-        self.values = values
+        # self.values = values    # redundant, they were the same dict to begin with
         count = 1
         if not values['filename']:
-            count = g_util.count_files(values['source_dir'], ".*sfm$")
+            count = g_util.count_files(values['work_dir'], ".*sfm$")
         self.script = "mark_paragraphs"
         self.mainapp.execute_script(self.script, count*2)
         self.frame.clear_messages()
 
+    # Temporary function, until "source_dir" is fully retired.
+    def getWorkDir(self):
+        workdir = self.values['work_dir']
+        if not workdir:
+            workdir = self.values['source_dir']
+        return workdir
+
     # Runs the revertChanges script to revert mark_paragraphs changes.
     def revertChanges(self):
-        sec = {'source_dir': self.values['source_dir'],
+        sec = {'work_dir': self.getWorkDir(),
                'backupExt': ".usfmorig",
                'correctExt': ".usfm"}
         self.mainapp.save_values('RevertChanges', sec)
@@ -46,7 +53,8 @@ class MarkParagraphs(g_step.Step):
         self.frame.clear_messages()
 
     def onNext(self):
-        super().onNext('source_dir')
+        self.frame._save_values()  # only needed until 'source_dir' is retired
+        super().onNext('work_dir')
 
     # Called by the mainapp.
     def onScriptEnd(self, status):
@@ -54,7 +62,7 @@ class MarkParagraphs(g_step.Step):
             self.frame.show_progress(status)
         nIssues = 0
         if self.script == "mark_paragraphs":
-            issuespath = os.path.join(self.values['source_dir'], "issues.txt")
+            issuespath = os.path.join(self.values['work_dir'], "issues.txt")
             if os.path.exists(issuespath) and time.time() - os.path.getmtime(issuespath) < 10:     # issues.txt is recent
                 nIssues = 1
             else:
@@ -72,7 +80,7 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         self.changingVars = False
 
         self.language_code = StringVar()  # Unused by mark_paragephs.py, but used here for proving other inputs
-        self.source_dir = StringVar()
+        self.work_dir = StringVar()
         self.model_dir = StringVar()
         self.filename = StringVar()
         self.copy_nb = BooleanVar(value = False)
@@ -88,12 +96,12 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         language_code_label.grid(row=3, column=1, sticky="wen", pady=2)
         language_code_entry = ttk.Entry(self, width=18, textvariable=self.language_code)
         language_code_entry.grid(row=3, column=2, sticky=W)
-        source_dir_label = ttk.Label(self, text="Location of files\n to be marked:", width=15)
-        source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        self.source_dir_entry = ttk.Entry(self, width=43, textvariable=self.source_dir)
-        self.source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
-        src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
-        src_dir_find.grid(row=4, column=4, sticky=W)
+        work_dir_label = ttk.Label(self, text="Location of files\n to be marked:", width=15)
+        work_dir_label.grid(row=4, column=1, sticky=W, pady=2)
+        work_dir_entry = ttk.Entry(self, width=43, textvariable=self.work_dir)
+        work_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
+        work_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindWorkDir)
+        work_dir_find.grid(row=4, column=4, sticky=W)
 
         model_dir_label = ttk.Label(self, text="Location of model files:", width=21)
         model_dir_label.grid(row=5, column=1, sticky="ew", pady=2)
@@ -159,11 +167,18 @@ a model text to the file(s) that you specify. If paragraphs are sufficiently mar
 and you don't need the \\s5 markers copied over, \
 then you don't need to run this process.")
 
+    # Temporary function, until "source_dir" is fully retired.
+    def getWorkDirConfigValue(self):
+        workdir = self.values.get('work_dir', fallback="")
+        if not workdir:
+            self.values.get('source_dir', fallback="")  # the old name
+        return workdir
+
     def show_values(self, values):
         self.values = values
         code = values.get('language_code', fallback="")
-        dir = values.get('source_dir', fallback="")
-        self.source_dir.set(dir)
+        dir = self.getWorkDirConfigValue()
+        self.work_dir.set(dir)
         # model_dir = values.get('model_dir', fallback="")
         self.language_code.set(code)
         if not code:
@@ -189,11 +204,11 @@ then you don't need to run this process.")
         self.controller.showbutton(5, ">>>", self._onNext, tip="Verify manifest")
         self._set_button_status()
         self.language_code.trace_add("write", self._onChangeLanguage)
-        self.source_dir.trace_add("write", self._onChangeSourceDir)
+        self.work_dir.trace_add("write", self._onChangeWorkDir)
         self.model_dir.trace_add("write", self._set_button_status)
         self.filename.trace_add("write", self._set_button_status)
 
-    # May be called when Step is activated, and when the source dir changes.
+    # May be called when Step is activated, and when the work dir changes.
     def set_language_code(self, dir):
         if os.path.isdir(dir):
             my = ManifestYaml()
@@ -220,7 +235,7 @@ then you don't need to run this process.")
         self.model_dir.set(model_dir)
 
     def onScriptEnd(self, nIssues):
-        # issuespath = os.path.join(self.values['source_dir'], "issues.txt")
+        # issuespath = os.path.join(self.getWorkDirConfigValue(), "issues.txt")
         if nIssues > 0:
             self.message_area.insert('end', "Now issues.txt contains the list of issues encountered in marking paragraphs.\n")
             self.message_area.insert('end', "Resolve as appropriate.\n")
@@ -231,15 +246,15 @@ then you don't need to run this process.")
     def _onChangeLanguage(self, *args):
         code = self.language_code.get()
         if code:
-            dir = self.source_dir.get()
+            dir = self.work_dir.get()
             self.set_model_dir(code, dir)
             # invokes _set_button_status() implicitly
         else:
             self._set_button_status()
 
-    def _onChangeSourceDir(self, *args):
+    def _onChangeWorkDir(self, *args):
         self.changingVars = True
-        dir = self.source_dir.get()
+        dir = self.work_dir.get()
         if os.path.isdir(dir):
             self.set_language_code(dir)
         self.changingVars = False
@@ -249,7 +264,7 @@ then you don't need to run this process.")
     def _save_values(self):
         if not self.invalidInputs():
             self.values['language_code'] = self.language_code.get()
-            self.values['source_dir'] = self.source_dir.get()
+            self.values['work_dir'] = self.work_dir.get()
             self.values['model_dir'] = self.model_dir.get()
             self.values['filename'] = self.filename.get()
             self.values['copy_nb'] = str(self.copy_nb.get())
@@ -260,7 +275,7 @@ then you don't need to run this process.")
             # self.values['punctuate'] = str(self.punctuate.get())
             self.controller.mainapp.save_values(stepname, self.values)
 
-            projectInfo = ProjectInfo(self.source_dir.get(), self.language_code.get())
+            projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
             projectInfo.setSourceDir(self.model_dir.get())
             projectInfo.save()
 
@@ -270,7 +285,7 @@ then you don't need to run this process.")
     def invalidInputs(self):
         objections = []
         code = self.language_code.get()
-        dir = self.source_dir.get()
+        dir = self.work_dir.get()
         model_dir = self.model_dir.get()
         namedfile = self.filename.get()
 
@@ -296,10 +311,10 @@ then you don't need to run this process.")
             hints = "Locate the folder, for one of these source texts:\n" + hints
             self.clear_show(hints)
         self.controller.askdir(self.model_dir)
-    # Returns a string properly formatted for showing the known sources texts
+    # Returns a string properly formatted for showing the known source texts
     # for this translation, and how frequently each was used.
     def _list_sources(self):
-        workdir = self.source_dir.get()
+        workdir = self.work_dir.get()
         code = self.language_code.get()
         sourcehints = []
         if os.path.isdir(workdir) and code:
@@ -308,15 +323,18 @@ then you don't need to run this process.")
                 sourcehints.append(f"  {src['language_id']}_{src['resource_id']}, vrsn ~{src['version']} was used for {src['count']} book(s).")
         return "\n".join(sourcehints)
 
-    def _onFindSrcDir(self, *args):
-        self.controller.askdir(self.source_dir)
+    def _onFindWorkDir(self, *args):
+        self.controller.askdir(self.work_dir)
     def _onFindFile(self, *args):
-        self.controller.askusfmfile(self.source_dir, self.filename)
+        self.controller.askusfmfile(self.work_dir, self.filename)
 
     def _onOpenIssues(self, *args):
         self._save_values()
-        path = os.path.join(self.values['source_dir'], "issues.txt")
-        os.startfile(path)
+        path = os.path.join(self.getWorkDirConfigValue(), "issues.mark_paragraphs.txt")
+        if os.path.isfile(path):
+            os.startfile(path)
+        else:
+            self.clear_show("There is no issues file for this step.")
 
     def _onUndo(self, *args):
         self._save_values()
@@ -325,6 +343,5 @@ then you don't need to run this process.")
 
     def _set_button_status(self, *args):
         if not self.changingVars:
-            good_source = os.path.isdir(self.source_dir.get())
-            self.controller.enablebutton(4, good_source)
+            self.controller.enablebutton(4, os.path.isdir(self.work_dir.get()))
             self.controller.enablebutton(2, len(self.invalidInputs()) == 0)

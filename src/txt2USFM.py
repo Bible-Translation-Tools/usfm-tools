@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 # This script converts text files from tStudio to USFM Resource Container format.
-#    Parses manifest.json to get the book ID, contributors, sources, etc.
+#    Gets the book ID, contributors, sources, etc from manifest.json files.
+#    Generates a manifest.yaml file in the new project folder.
 #    Outputs a project information file in the parent folder.
-#    Outputs list of contributors and sources gleaned from all manifest.json files.
 #    Finds and parses title.txt to get the book title.
 #    Populates the USFM headers.
 #    Standardizes the names of .usfm files. For example 41-MAT.usfm and 42-MRK.usfm.
 #    Converts multiple books at once if there are multiple books.
 
-import configmanager
+from configmanager import ToolsConfigManager
 from projectinfo import ProjectInfo
 from pathlib import Path
 import sentences
@@ -18,13 +18,11 @@ import re
 import io
 import os
 import sys
-import json
 import usfmWriter
 from manifestjson import ManifestJson
 from usfm_utils import unicodeBlock
 # from line_profiler import LineProfiler
 
-config = configmanager.ToolsConfigManager()
 projectInfo = None
 gui = None
 nConverted = 0
@@ -59,12 +57,12 @@ def open_diagnostic_files():
     global postcleanup_file
 
     if not precleanup_file:
-        target_dir = config.get('Txt2USFM', 'target_dir')
-        path = os.path.join(target_dir, "precleanup.txt")
+        work_dir = getWorkDir()
+        path = os.path.join(work_dir, "precleanup.txt")
         precleanup_file = io.open(path, "tw", encoding='utf-8-sig')
     if not postcleanup_file:
-        target_dir = config.get('Txt2USFM', 'target_dir')
-        path = os.path.join(target_dir, "postcleanup.txt")
+        work_dir = getWorkDir()
+        path = os.path.join(work_dir, "postcleanup.txt")
         postcleanup_file = io.open(path, "tw", encoding='utf-8-sig')
 
 def close_diagnostic_files():
@@ -626,6 +624,7 @@ def convertSection(schap, section, firstinchapter, lastref, chapterTitle, lastch
     section = newline_markers(section)
     section = section.replace(" \n", "\n")
 
+    config = ToolsConfigManager()
     if config.getboolean('Txt2USFM', 'section_headings'):
         section = mark_section_headings(section, lastref, lastchunk)
 
@@ -653,7 +652,7 @@ def extractDataFromManifest(manifest):
     global projectInfo
     assert projectInfo
     language_id = manifest.getLanguageId()
-    language_code = config.get('Txt2USFM', 'language_code')
+    language_code = ToolsConfigManager().get('Txt2USFM', 'language_code')
     if language_code != language_id:
         reportError(f"Language code ({language_code}) does not match target_language Id ({language_id}) in {shortname(manifest.getPath())}.")
     projectInfo.setLanguage(manifest.getLanguageName(), manifest.getLanguageDirection())
@@ -666,7 +665,7 @@ def extractDataFromManifest(manifest):
 # Assumes folder name contains language code and book ID in the format.
 def getBookIdFromFolderName(folder):
     bookId = ""
-    language_code = config.get('Txt2USFM', 'language_code')
+    language_code = ToolsConfigManager().get('Txt2USFM', 'language_code')
     matchstr = language_code + "_([a-zA-Z1-3][a-zA-Z][a-zA-Z])_"
     if okname := re.search(matchstr, os.path.basename(folder)):
         bookId = okname.group(1)
@@ -715,7 +714,7 @@ def appendToProjects(bookId, bookTitle):
     projectInfo.addProject(project)
 
 def shortname(longpath):
-    source_dir = config.get('Txt2USFM', 'source_dir')
+    source_dir = ToolsConfigManager().get('Txt2USFM', 'source_dir')
     shortname = longpath
     if shortname == source_dir:
         shortname = os.path.basename(longpath)
@@ -725,7 +724,7 @@ def shortname(longpath):
 
 # Converts one book folder if it can determine the book ID and title.
 def convertFolder(folder):
-    language_code = config.get('Txt2USFM', 'language_code')
+    language_code = ToolsConfigManager().get('Txt2USFM', 'language_code')
     if language_code + '_' in os.path.basename(folder):
         mj = ManifestJson()
         if errors := mj.load(folder):
@@ -831,14 +830,12 @@ def convertBook(folder, bookId, bookTitle):
     reportProgress(f"CONVERTING {shortname(folder)}")
     sys.stdout.flush()
 
-    target_dir = config.get('Txt2USFM', 'target_dir')
-    chapters = listChapters(folder)
     # Open output USFM file for writing.
-    usfmPath = os.path.join(target_dir, makeUsfmFilename(bookId))
+    usfmPath = os.path.join(getWorkDir(), makeUsfmFilename(bookId))
     usfm = usfmWriter.usfmWriter(usfmPath)
     writeHeader(usfm, bookId, bookTitle)
 
-    for chap in chapters:
+    for chap in listChapters(folder):
         chapterpath = os.path.join(folder, chap)
         chapterTitle = getChapterTitle(chapterpath)
         schap = str(int(chap))
@@ -856,7 +853,7 @@ def convertBook(folder, bookId, bookTitle):
     usfm.close()
 
 # Converts the book or books contained in the specified folder
-def convert(dir, target_dir):
+def convert(dir):
     if isBookFolder(dir):
         convertFolder(dir)
     else:       # presumed to be a folder containing multiple books
@@ -865,23 +862,31 @@ def convert(dir, target_dir):
             if isBookFolder(folder):
                 convertFolder(folder)
 
+# Temporary function, until all references to "target_dir" are removed.
+def getWorkDir():
+    config = ToolsConfigManager()
+    workdir = config.get('Txt2USFM', 'work_dir')
+    if not workdir:
+        workdir = config.get('Txt2USFM', 'target_dir')    # the old name
+    return workdir
+
 # Processes each directory and its files one at a time
 def main(app = None):
     global gui
     gui = app
-    global config
-    target_dir = config.get('Txt2USFM', 'target_dir')
+    work_dir = getWorkDir()
 
-    Path(target_dir).mkdir(exist_ok=True)
+    Path(work_dir).mkdir(exist_ok=True)
+    config = ToolsConfigManager()
     global projectInfo
-    projectInfo = ProjectInfo(target_dir, config.get('Txt2USFM', 'language_code'))
+    projectInfo = ProjectInfo(work_dir, config.get('Txt2USFM', 'language_code'))
     projectInfo.useManifest(docreate=False)
     projectInfo.resetSources()
 
     if config.getboolean('Txt2USFM', 'diagnostics'):
         open_diagnostic_files()
 
-    convert(config.get('Txt2USFM', 'source_dir'), target_dir)
+    convert(config.get('Txt2USFM', 'source_dir'))
     if nConverted > 0:
         projectInfo.save()
         reportStatus("\nDone.")

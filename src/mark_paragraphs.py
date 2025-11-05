@@ -70,8 +70,8 @@ class State:
     def addFile(self, fname):
         self.reset_data(fname)
         ## Open output USFM file for writing.
-        source_dir = ToolsConfigManager().get('MarkParagraphs', 'source_dir')
-        tmpPath = os.path.join(source_dir, fname + ".tmp")
+        work_dir = getWorkDir()
+        tmpPath = os.path.join(work_dir, fname + ".tmp")
         self.usfm = usfmWriter.usfmWriter(tmpPath)
 
     def addID(self, id):
@@ -535,7 +535,7 @@ def get_timestamp(path):
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        workdir = ToolsConfigManager().get('MarkParagraphs', 'source_dir')
+        workdir = getWorkDir()
         path = os.path.join(workdir, "issues.mark_paragraphs.txt")
         if os.path.exists(path):
             timestamp = get_timestamp(path)
@@ -546,22 +546,13 @@ def openIssuesFile():
         issuesFile.write("Issues detected by MarkParagraphs:\n------------------------------------\n")
     return issuesFile
 
-#def openReportFile():
-    #global reportFile
-    #if not reportFile:
-        #global source_dir
-        #path = os.path.join(source_dir, "uncopied pp marks.txt")
-        #reportFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
-    #return reportFile
-
 def closeIssuesFiles():
     global issuesFile
     if issuesFile:
         issuesFile.close()
         issuesFile = None
 
-# Writes message to stderr and to issues.txt.
-# If it is not a real issue, writes message to report file.
+# Writes message to stderr and to issues.mark_paragraphs.txt.
 def reportError(msg, realIssue=True):
     if realIssue:
         reportStatus(msg)     # message to gui
@@ -717,6 +708,14 @@ def processFile(path):
     else:
         reportError("Model file not found; file cannot be processed: " + fname)
 
+# Temporary function, until all references to "source_dir" are removed.
+def getWorkDir():
+    config = ToolsConfigManager()
+    workdir = config.get('MarkParagraphs', 'work_dir')
+    if not workdir:
+        workdir = config.get('MarkParagraphs', 'source_dir')    # the old name
+    return workdir
+
 state = State()
 
 # Processes each directory and its files one at a time
@@ -740,16 +739,16 @@ def main(app = None):
     copy_nb = config.getboolean('MarkParagraphs', 'copy_nb')
     punctuate = config.getboolean('MarkParagraphs', 'punctuate')
     identifyModel(config.get('MarkParagraphs', 'model_dir'))
-    source_dir = config.get('MarkParagraphs', 'source_dir')
+    work_dir = getWorkDir()
     file = config.get('MarkParagraphs', 'filename')
     if file:
-        path = os.path.join(source_dir, file)
+        path = os.path.join(work_dir, file)
         if os.path.isfile(path):
             processFile(path)
         else:
             reportError(f"File does not exist: {path}")
     else:
-        convertFolder(source_dir)
+        convertFolder(work_dir)
 
     closeIssuesFiles()
     reportStatus(f"\nDone.")

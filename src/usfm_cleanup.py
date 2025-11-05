@@ -87,10 +87,10 @@ class State:
 state = State()
 
 def shortname(longpath):
-    source_dir = ToolsConfigManager().get('UsfmCleanup', 'source_dir')
+    work_dir = getWorkDir()
     shortname = str(longpath)
-    if shortname.startswith(source_dir):
-        shortname = os.path.relpath(shortname, source_dir)
+    if shortname.startswith(work_dir):
+        shortname = os.path.relpath(shortname, work_dir)
     return shortname
 
 # Writes message to gui, stderr, and issues.txt.
@@ -122,18 +122,18 @@ def reportToGui(event, msg):
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        source_dir = ToolsConfigManager().get('UsfmCleanup', 'source_dir')
-        if os.path.isdir(source_dir):
-            path = os.path.join(source_dir, "issues.txt")
+        work_dir = getWorkDir()
+        if os.path.isdir(work_dir):
+            path = os.path.join(work_dir, "issues.txt")
             issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
-            issuesFile.write(f"Issues detected by usfmCleanup, {date.today()}, {source_dir}\n-------------------\n")
+            issuesFile.write(f"Issues detected by usfmCleanup, {date.today()}, {work_dir}\n-------------------\n")
     return issuesFile
 
 # Sets the global saidwords list, assuming language_code is available.
-def getSaidWords(source_dir):
+def getSaidWords(work_dir):
     from projectinfo import ProjectInfo
     global saidwords
-    pi = ProjectInfo(source_dir, ToolsConfigManager().get('UsfmCleanup', 'language_code'))
+    pi = ProjectInfo(work_dir, ToolsConfigManager().get('UsfmCleanup', 'language_code'))
     saidwords = pi.getWords(mincount=4)
 
 # This function is to be used only by unit tests.
@@ -700,6 +700,14 @@ def set_std_title(title):
     global std_title
     std_title = title
 
+# Temporary function, until all references to "source_dir" are removed.
+def getWorkDir():
+    config = ToolsConfigManager()
+    workdir = config.get('UsfmCleanup', 'work_dir')
+    if not workdir:
+        workdir = config.get('UsfmCleanup', 'source_dir')    # the old name
+    return workdir
+
 def main(app = None):
     global gui
     global std_title
@@ -709,20 +717,20 @@ def main(app = None):
     config = ToolsConfigManager()
 
     std_title = config.get('UsfmCleanup', 'standard_chapter_title')
-    source_dir = config.get('UsfmCleanup', 'source_dir')
-    if source_dir:
-        getSaidWords(source_dir)
+    work_dir = getWorkDir()
+    if work_dir:
+        getSaidWords(work_dir)
         for i in range(1, len(enable)):
             enable[i] = config.getboolean('UsfmCleanup', 'enable'+str(i))
         file = config.get('UsfmCleanup', 'filename')
         if file:
-            path = os.path.join(source_dir, file)
+            path = os.path.join(work_dir, file)
             if os.path.isfile(path):
                 convertFile(path)
             else:
                 reportError(f"No such file: {path}")
         else:
-            convertFolder(source_dir)
+            convertFolder(work_dir)
         reportStatus("\nDone. Changed " + str(nChanged) + " files.")
 
     if aligned_usfm:

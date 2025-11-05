@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-# This script produces a set of .usx files in tStudio-compatible resource container format from
-# USFM source text.
-# The resulting containers are importable to BTT-Writer or tStudio to use as source text.
+# This script produces a set of .usx files in tStudio-compatible resource container format from USFM.
+# The resulting containers are importable to BTT-Writer to use as source text.
 # Chunk division and paragraph locations are based on \s5 markers in the usfm files.
 # This script was originally written for converting the Spanish Reina-Valera 1909 Bible
 # so that Bible could be used as a source text in BTT-Writer.
@@ -10,8 +9,6 @@
 # Before running the script, set the global variables below.
 
 # Global variables
-# source_dir = r'C:\DCS\Persian\pes_opcb'
-config = None
 gui = None
 nConverted = 0
 # rc_dir = r'C:\Users\lvers\AppData\Local\BTT-Writer\library\resource_containers'
@@ -26,7 +23,7 @@ nConverted = 0
 # license = "Public Domain (NT)"
 # version = "1"
 
-import configmanager
+from configmanager import ToolsConfigManager
 from pathlib import Path
 import sys
 import os
@@ -71,9 +68,10 @@ class State:
         self.needingVerseText = False
         self.lastRef = self.reference
         self.reference = id
-        rc_dir = config['rc_dir']
+        config = ToolsConfigManager()
+        rc_dir = config.get('Usfm2Usx', 'rc_dir')
         self.en_content_dir = os.path.join( os.path.join(rc_dir, "en_" + id.lower() + "_ulb"), "content")
-        self.target_content_dir = os.path.join( os.path.join(rc_dir, config['language_code'] + "_" + id.lower() + "_" + config['bible_id']), "content")
+        self.target_content_dir = os.path.join( os.path.join(rc_dir, config.get('Usfm2Usx', 'language_code') + "_" + id.lower() + "_" + config.get('Usfm2Usx', 'bible_id')), "content")
 
     def addTitle(self, bookTitle, mt):
         if not self.title:
@@ -107,8 +105,9 @@ class State:
         if vv.find('-') > 0:
             reportError("Range of verses encountered at " + self.reference)
             vv_range = vv_re.search(vv)
-            self.addVerse(vv_range.group(1))
-            self.addVerse(vv_range.group(2))
+            if vv_range:
+                self.addVerse(vv_range.group(1))
+                self.addVerse(vv_range.group(2))
         else:
             self.addVerse(vv)
 
@@ -168,14 +167,17 @@ def takeC(c):
 def takeCL(value):
     createChapterTitleFile(value)
 
-def takeF(value):
-    state.usxOutput.write('<note style="f" caller="+"> ')
+def takeF():
+    if state.usxOutput:
+        state.usxOutput.write('<note style="f" caller="+"> ')
 
 def takeFTFQA(type, value):
-    state.usxOutput.write(f'<char style="{type}">\n{value} </char>\n')
+    if state.usxOutput:
+        state.usxOutput.write(f'<char style="{type}">\n{value} </char>\n')
 
 def takeFE():
-    state.usxOutput.write('</note>\n')
+    if state.usxOutput:
+        state.usxOutput.write('</note>\n')
 
 # Currently this function does nothing, as paragraphs are not relevant to tStudio/BTTW (confirmed 3/29/22).
 def takeP(type):
@@ -186,7 +188,8 @@ def takeP(type):
 # Saves the section heading if it occurs after the first verse in a chapter.
 def takeS(s):
     if state.verse == 0:    # section heading is at the start of the chapter
-        state.usxOutput.write(s)
+        if state.usxOutput:
+            state.usxOutput.write(s)
     else:
         state.saveSection(s)
 
@@ -197,7 +200,8 @@ def takeV(v):
     if not state.usxOutput:
         path = os.path.join(state.target_chapter_dir, state.versePad + ".usx")
         state.setUsxOutput( io.open(path, "tw", encoding="utf-8", newline='\n') )
-    state.usxOutput.write('<verse number="' + v + '" style="v" />')
+    if state.usxOutput:
+        state.usxOutput.write('<verse number="' + v + '" style="v" />')
 
 # Writes the specified text to the current usx file.
 def takeText(t):
@@ -232,7 +236,7 @@ def take(token: usfmReader.Token):
     elif token.type in {'p','pi','pc','nb','q','q1','q2','qa','qr','qc','sp'}:
         takeP(token.type)
     elif token.type == 'f':
-        takeF(token.value)
+        takeF()
     elif token.type in {'ft','fqa'}:
         takeFTFQA(token.type, token.value)
     elif token.type == 'f*':
@@ -308,9 +312,10 @@ def createManifest(en_book_dir, target_book_dir):
     today = date.today()
     s = '%(year)d%(month)02d%(day)02d' % {'year':today.year, 'month':today.month, 'day':today.day}
     package['modified_at'] = int(s)
-    package['language']['slug'] = config['language_code']
-    package['language']['name'] = config['language_name']
-    package['language']['direction'] = config['direction']
+    config = ToolsConfigManager()
+    package['language']['slug'] = config.get('Usfm2Usx', 'language_code')
+    package['language']['name'] = config.get('Usfm2Usx', 'language_name')
+    package['language']['direction'] = config.get('Usfm2Usx', 'direction')
     package['project']['slug'] = state.ID.lower()
     package['project']['name'] = state.title
     package['project']['sort'] = usfm_verses.verseCounts[state.ID.upper()]['sort']
@@ -320,12 +325,11 @@ def createManifest(en_book_dir, target_book_dir):
         category = "bible-ot"
     package['project']['category_slug'] = category
     package['project']['categories'] = [category]
-    package['resource']['slug'] = config['bible_id']
-    package['resource']['name'] = config['bible_name']
-    package['resource']['status']['pub_date'] = config['pub_date']
-    package['resource']['status']['license'] = config['license']
-    package['resource']['status']['version'] = config['version']
-
+    package['resource']['slug'] = config.get('Usfm2Usx', 'bible_id')
+    package['resource']['name'] = config.get('Usfm2Usx', 'bible_name')
+    package['resource']['status']['pub_date'] = config.get('Usfm2Usx', 'pub_date')
+    package['resource']['status']['license'] = config.get('Usfm2Usx', 'license')
+    package['resource']['status']['version'] = config.get('Usfm2Usx', 'version')
     path = os.path.join(target_book_dir, "package.json")
     jsonFile = io.open(path, "tw", encoding='utf-8', newline='\n')
     json.dump(package, jsonFile, ensure_ascii=False, indent=2)
@@ -357,9 +361,11 @@ def createToc(en_content_dir, content_dir):
 
 # Converts a single usfm file to a usx resource container.
 def convertFile(usfmpath, bookId):
-    rc_dir = config['rc_dir']
+    config = ToolsConfigManager()
+    rc_dir = config.get('Usfm2Usx', 'rc_dir')
     en_book_dir = os.path.join(rc_dir, "en_" + bookId.lower() + "_ulb")
-    target_book_dir = os.path.join(rc_dir, config['language_code'] + "_" + bookId.lower() + "_" + config['bible_id'])
+    dirname = config.get('Usfm2Usx', 'language_code') + "_" + bookId.lower() + "_" + config.get('Usfm2Usx', 'bible_id')
+    target_book_dir = os.path.join(rc_dir, dirname)
     if not os.path.isdir(en_book_dir):
         reportError("English book folder not found: " + en_book_dir)
     else:
@@ -409,6 +415,14 @@ def make_dir(folder):
             os.mkdir(folder)
     return os.path.isdir(folder)
 
+# Temporary function, until all references to "source_dir" are removed.
+def getWorkDir():
+    config = ToolsConfigManager()
+    workdir = config.get('Usfm2Usx', 'work_dir')
+    if not workdir:
+        workdir = config.get('Usfm2Usx', 'source_dir')    # the old name
+    return workdir
+
 def main(app = None):
     global nConverted
     global gui
@@ -417,24 +431,24 @@ def main(app = None):
     nConverted = 0
     gui = app
     state = State()
-    config = configmanager.ToolsConfigManager().get_section('Usfm2Usx')   # configmanager version
-    if config:
-        source_dir = config['source_dir']
-        rc_dir = config['rc_dir']
+    # config = configmanager.ToolsConfigManager().get_section('Usfm2Usx')   # configmanager version
+    config = ToolsConfigManager()
+    work_dir = getWorkDir()
+    rc_dir = config.get('Usfm2Usx', 'rc_dir')
     if not make_dir(rc_dir):
         reportError("Invalid resource_containers folder: " + rc_dir)
-    elif not os.path.isdir(source_dir):
-        reportError("Invalid source folder: " + source_dir)
+    elif not os.path.isdir(work_dir):
+        reportError("Invalid source folder: " + work_dir)
     else:
-        file = config['filename']
+        file = config.get('Usfm2Usx', 'filename')
         if file:
-            path = os.path.join(source_dir, file)
+            path = os.path.join(work_dir, file)
             if os.path.isfile(path):
                 processFile(path)
             else:
                 reportError(f"No such file: {path}")
         else:
-            convertDir(source_dir)
+            convertDir(work_dir)
         if nConverted > 0:
             reportStatus(f"\nDone. Converted {nConverted} book(s).")
         else:

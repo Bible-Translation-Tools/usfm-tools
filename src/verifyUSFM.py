@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 # Script for verifying proper USFM.
 # Reports errors to the GUI, stderr, and issues.txt.
-# Uses these config values, set via ConfigManager:
-#   source_dir - location of files to be checked.
-#       This is an unfortunate name, because source_dir contains the translated text, not the source text.
+# Uses these config values:
+#   work_dir - location of files to be checked.
 #   compare_dir - location of files containing the source text,
 #       against which the translated text may be compared.
 #   filename  (optional, checks all files if omitted)
@@ -22,7 +21,6 @@
 #   suppress[12] - Suppress warnings about Mixed-case words.
 # Detects whether files are aligned USFM.
 
-config = {}
 suppress = [False]*13
 std_titles = []
 gui = None
@@ -421,7 +419,7 @@ def bookTitleEnglish(id):
     return usfm_verses.verseCounts[id]['en_name']
 
 def shortname(longpath):
-    workdir = Path(config['source_dir'])
+    workdir = Path(getWorkDir())
     shortname = Path(longpath)
     if shortname.is_relative_to(workdir):
         shortname = shortname.relative_to(workdir)
@@ -441,7 +439,7 @@ def openIssuesFile():
     global issuesFile
     if not issuesFile:
         config = ToolsConfigManager()
-        workdir = config.get('VerifyUSFM', 'source_dir')
+        workdir = getWorkDir()
         path = os.path.join(workdir, "issues.txt")
         if os.path.exists(path):
             timestamp = get_timestamp(path)
@@ -451,8 +449,8 @@ def openIssuesFile():
         issuesFile = io.open(path, "tw", encoding='utf-8', newline='\n')
         issuesFile.write(f"Issues detected by verifyUSFM version {config.get('UsfmWizard', 'version')}, {date.today()}, {workdir}\n")
         if compare_dir := config.get('VerifyUSFM', 'compare_dir'):
-            if src := strSource(compare_dir):
-                issuesFile.write(f"   with reference to {src} as the source text.\n")
+            if resource := strResource(compare_dir):
+                issuesFile.write(f"   with reference to {resource} as the source text.\n")
         issuesFile.write("-------------------\n")
     return issuesFile
 
@@ -578,10 +576,10 @@ def reportIssues():
 def dumpWords():
     books = state.IDs
     hapaxcount = 0
-    oldpath = path = None
+    path = None
+    config = ToolsConfigManager()
     if len(books) > 1:
-        path = os.path.join(config['source_dir'], "wordlist.tsv")
-        oldpath = os.path.join(config['source_dir'], "wordlist.txt")
+        path = os.path.join(getWorkDir(), "wordlist.tsv")
     if path:
         with io.open(path, "tw", encoding='utf-8', newline = '\n') as file:
             file.write(f"Word\tOccurrences\tReference\n")
@@ -591,9 +589,7 @@ def dumpWords():
                     line = line + "\t" + entry[1][1]
                     hapaxcount += 1
                 file.write(line + '\n')
-        if oldpath and os.path.isfile(oldpath):
-            os.remove(oldpath)
-    if hapaxcount > 0 and not config['filename']:
+    if hapaxcount > 0 and not config.get('VerifyUSFM', 'filename'):
         percent = int(hapaxcount * 100 / len(wordlist))
         reportIssue(f"{len(wordlist)} unique words. {hapaxcount} ({percent}%) of them occur only once.", 0.2)
 
@@ -708,20 +704,20 @@ def scanSourceFile(path):
     state.booklength_src = len(contents) if len(contents) > 0 else 1
 
 # Returns information about the resource in the specified folder.
-def identifySource(sourcedir):
+def identifyResource(dir):
     srcmy = ManifestYaml()
-    errors = srcmy.load(sourcedir)
-    source = dict()
+    errors = srcmy.load(dir)
+    resource = dict()
     if not errors:
-        source['language_id'] = srcmy.getLanguageId()
-        source['resource_id'] = srcmy.getResourceId()
-        source['version'] = srcmy.getVersion()
-    return source
+        resource['language_id'] = srcmy.getLanguageId()
+        resource['resource_id'] = srcmy.getResourceId()
+        resource['version'] = srcmy.getVersion()
+    return resource
 
-# Returns information about the resource in the specified folder. as a string.
-def strSource(sourcedir):
-    if source := identifySource(sourcedir):
-        id = source['language_id'] + "_" + source['resource_id'] + " " + source['version']
+# Returns information about the resource in the specified folder, as a string.
+def strResource(dir):
+    if resource := identifyResource(dir):
+        id = resource['language_id'] + "_" + resource['resource_id'] + " " + resource['version']
     else:
         id = ""
     return id
@@ -730,9 +726,9 @@ def strSource(sourcedir):
 # It parses a usfm file and stores verse text in a dict.
 def load_source(fname):
     global footnotedVerses
-    sourcedir = config['compare_dir']
+    sourcedir = ToolsConfigManager().get('VerifyUSFM', 'compare_dir')
     if sourcedir:
-        state.source_id = strSource(sourcedir)
+        state.source_id = strResource(sourcedir)
 
         # Load footnote references first, for the whole directory
         global footnotedVerses_en_ulb
@@ -1384,13 +1380,10 @@ def take(token: usfmReader.Token):
         state.setUsfmVersion( int(token.value[0]) )
     state.advance(token)
 
-    # if config['language_code'] in {"ur"} and isNumericCandidate(token) and re.search(r'[0-9]', token.value):
+    # if ToolsConfigManager().get('VerifyUSFM', 'language_code') in {"ur"} and isNumericCandidate(token) and re.search(r'[0-9]', token.value):
         # reportIssue("Arabic numerals in footnote at " + state.reference, 68)
 
-# bad_chapter_re1 = re.compile(r'[^\n](\\c\s*\d+)', re.UNICODE)
 bad_chapter_re2 = re.compile(r'(\\c[0-9]+)', re.UNICODE)
-# bad_chapter_re3 = re.compile(r'(\\c\s*\d+)[^\d\s]+[\n\r]', re.UNICODE)
-# bad_verse_re1 = re.compile(r'([^\n\r\s]\\v\s*\d+)', re.UNICODE)
 bad_verse_re2 = re.compile(r'(\\v[0-9]+)', re.UNICODE)
 bad_verse_re3 = re.compile(r'(\\v\s*[-0-9]+[^-\d\s])', re.UNICODE)
 
@@ -1629,7 +1622,6 @@ def verifyDir(workdir):
 
 # Called once each time this script runs.
 def initializeGlobals():
-    global config
     global suppress
     global wordlist
     global nFiles
@@ -1640,27 +1632,27 @@ def initializeGlobals():
     nSectionHeadings = 0
     nNoPAfterC = 0
     wordlist = dict()
-    config = ToolsConfigManager().get_section('VerifyUSFM')
-    if config:
-        for i in range(1, len(suppress)):
-            suppress[i] = config.getboolean('suppress'+str(i), fallback = False)
-        global std_titles
-        std_titles = [ config.get('standard_chapter_title', fallback = '') ]
-        if std_titles == ['']:
-            std_titles = []
+    config = ToolsConfigManager()
+    for i in range(1, len(suppress)):
+        suppress[i] = config.getboolean('VerifyUSFM', 'suppress'+str(i))
+    global std_titles
+    std_titles = [ config.get('VerifyUSFM', 'standard_chapter_title') ]
+    if std_titles == ['']:
+        std_titles = []
 
-        global state
-        state = State()
-        global issues
-        issues = dict()
-        global footnotedVerses
-        footnotedVerses.clear()
+    global state
+    state = State()
+    global issues
+    issues = dict()
+    global footnotedVerses
+    footnotedVerses.clear()
 
 def syncProjectInfo():
-    project_info = ProjectInfo(config['source_dir'], config['language_code'])
+    config = ToolsConfigManager()
+    project_info = ProjectInfo(getWorkDir(), config.get('VerifyUSFM', 'language_code'))
     project_info.useManifest(docreate=True)     # syncs automatically
     project_info.save()
-    if src := identifySource(config['compare_dir']):    # from other manifest.yaml
+    if src := identifyResource(config.get('VerifyUSFM', 'compare_dir')):    # from other manifest.yaml
         project_info.disuseManifest()
         if not project_info.knownSource(src['language_id'], src['resource_id'], src['version']):
             project_info.addSource(src['language_id'], src['resource_id'], src['version'])
@@ -1670,10 +1662,12 @@ def syncProjectInfo():
 # Do this after syncProjectInfo(), to avoid possible conflicts.
 def startAddedOutputs():
     global saidwords
-    saidwords = SaidWords(config['source_dir'], config['language_code'])
+    config = ToolsConfigManager()
+    workdir = getWorkDir()
+    saidwords = SaidWords(workdir, config.get('VerifyUSFM', 'language_code'))
     global manifestyaml
     manifestyaml = ManifestYaml()
-    manifestyaml.load(config['source_dir'])
+    manifestyaml.load(workdir)
 
 # Serializes word list, issues, manifestyaml, and saidwords.
 def saveResults():
@@ -1693,29 +1687,35 @@ def saveResults():
         global nFiles
         saidwords.save(mincount = 4 if nFiles < 40 else 6)
 
+def getWorkDir():
+    config = ToolsConfigManager()
+    workdir = config.get('VerifyUSFM', 'work_dir')
+    if not workdir:
+        workdir = config.get('VerifyUSFM', 'source_dir')    # the old name
+    return workdir
+
 def main(app=None):
     global gui
     gui = app
     initializeGlobals()
-    if config:
-        syncProjectInfo()
-        startAddedOutputs()
-        workdir = config['source_dir']
-        file = config['filename']
-        if file:
-            path = os.path.join(workdir, file)
-            if os.path.isfile(path):
-                verifyFile(path)
-                close_book(file)
-            else:
-                reportError(f"No such file: {path}", 0.1)
+    syncProjectInfo()
+    startAddedOutputs()
+    workdir = getWorkDir()
+    file = ToolsConfigManager().get('VerifyUSFM', 'filename')
+    if file:
+        path = os.path.join(workdir, file)
+        if os.path.isfile(path):
+            verifyFile(path)
+            close_book(file)
         else:
-            verifyDir(workdir)
-        if not suppress[12] and not ID_CONFLICTS in issues:
-            reportMixedCase()
-        reportSections()
-        saveResults()
-        reportStatus("\nDone.")
+            reportError(f"No such file: {path}", 0.1)
+    else:
+        verifyDir(workdir)
+    if not suppress[12] and not ID_CONFLICTS in issues:
+        reportMixedCase()
+    reportSections()
+    saveResults()
+    reportStatus("\nDone.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 

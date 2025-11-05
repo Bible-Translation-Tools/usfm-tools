@@ -5,13 +5,12 @@
 
 # Global variables
 gui = None
-config = None
 projects = []
 bookId = ""
 issuesFile = None
 
 import xml.sax
-import configmanager
+from configmanager import ToolsConfigManager
 import operator
 import io
 import os
@@ -21,7 +20,7 @@ import usfm_verses
 import usfmWriter
 
 def shortname(longpath):
-    dir = config['usx_dir']
+    dir = ToolsConfigManager().get('Usx2Usfm', 'usx_dir')
     shortname = str(longpath)
     if shortname.startswith(dir):
         shortname = os.path.relpath(shortname, dir)
@@ -59,7 +58,7 @@ def reportStatus(msg):
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        workdir = config['usx_dir']
+        workdir = ToolsConfigManager().get('Usx2Usfm', 'usx_dir')
         path = os.path.join(workdir, "issues.txt")
         if os.path.exists(path):
             bakpath = os.path.join(workdir, "issues-oldest.txt")
@@ -100,12 +99,12 @@ def dumpProjects(target_dir):
     manifest.close()
 
 class UsxErrorHandler(xml.sax.ErrorHandler):
-    def error(e):
-        print(e)
+    def error(self, exception):
+        print(exception)
         reportError("Error reported by usx parser")
 
-    def warning(e):
-        print(e)
+    def warning(self, exception):
+        print(exception)
         reportStatus("Warning reported by usx parser")
 
 class UsxHandler(xml.sax.ContentHandler):
@@ -129,7 +128,8 @@ class UsxHandler(xml.sax.ContentHandler):
             handled = True
         elif name == "para":
             if not self.ignorable_style(style):
-                self.writer.writeUsfm(style)
+                if self.writer:
+                    self.writer.writeUsfm(style)
                 handled = True
         elif name == "char" and style in {"add", "k", "nd", "pn", "qac", "qs", "qt", "sig", "sls", "tl", "wj"}:
             handled = True
@@ -138,7 +138,8 @@ class UsxHandler(xml.sax.ContentHandler):
                 self.location = attrs['sid']
             else:
                 self.location = f"{self.bookId} {self.chapter}:{attrs['number']}"
-            self.writer.writeUsfm(style, attrs['number'])
+            if self.writer:
+                self.writer.writeUsfm(style, attrs['number'])
             handled = True
         elif name == "chapter":
             self.chapter = attrs['number']
@@ -146,7 +147,8 @@ class UsxHandler(xml.sax.ContentHandler):
                 self.location = attrs['sid']
             else:
                 self.location = f"{self.bookId} {self.chapter}"
-            self.writer.writeUsfm(style, attrs['number'])
+            if self.writer:
+                self.writer.writeUsfm(style, attrs['number'])
             handled = True
         elif name == 'usx':
             handled = True
@@ -166,9 +168,11 @@ class UsxHandler(xml.sax.ContentHandler):
         self.elements = self.elements[0:-1]
         self.styles = self.styles[0:-1]
         if name == "book":
-            self.writer.writeUsfm("ide", "UTF-8")
+            if self.writer:
+                self.writer.writeUsfm("ide", "UTF-8")
         elif name == "usx":
-            self.writer.close()
+            if self.writer:
+                self.writer.close()
             if self.bookId in usfm_verses.verseCounts and usfm_verses.verseCounts[self.bookId]['sort'] <= 66:
                 # otherwise, bookTitle doesn't exist -> crash
                 appendToProjects(self.bookId, self.bookTitle)
@@ -181,7 +185,8 @@ class UsxHandler(xml.sax.ContentHandler):
     def characters(self, content):
         content = content.strip()
         if content and self.pop == 0:
-            self.writer.writeStr(content)
+            if self.writer:
+                self.writer.writeStr(content)
         if self.elements[-1] == 'para' and self.styles[-1] in {'mt','mt1'}:
             self.bookTitle = content
 
@@ -196,7 +201,8 @@ class UsxHandler(xml.sax.ContentHandler):
 
     # For possible future use
     def writeNote(self, attrs):
-        self.writer.writeUsfm(attrs['style'], attrs['caller'])
+        if self.writer:
+            self.writer.writeUsfm(attrs['style'], attrs['caller'])
 
 reported_note_x = False
 reported_note_f = False
@@ -250,7 +256,7 @@ def makeUsfmName(bookId):
 
 # Returns file name for usfm file in target folder
 def makeUsfmPath(bookId):
-    return os.path.join(config['usfm_dir'], makeUsfmName(bookId))
+    return os.path.join(getWorkDir(), makeUsfmName(bookId))
 
 def convertFile(usxpath):
     global reported_note_x
@@ -276,26 +282,33 @@ def convertFolder(folder):
                 convertFolder(path)
             elif entry.lower().endswith(".usx"):
                 convertFile(path)
-    dumpProjects(config['usfm_dir'])
+    dumpProjects(getWorkDir())
+
+# Temporary function, until all references to "usfm_dir" are removed.
+def getWorkDir():
+    config = ToolsConfigManager()
+    workdir = config.get('Usx2Usfm', 'work_dir')
+    if not workdir:
+        workdir = config.get('Usx2Usfm', 'usfm_dir')    # the old name
+    return workdir
 
 def main(app=None):
     global gui
     global config
 
     gui = app
-    config = configmanager.ToolsConfigManager().get_section('Usx2Usfm')
-    if config:
-        Path(config['usfm_dir']).mkdir(exist_ok=True)
-        usx_dir = config['usx_dir']
-        file = config['filename']
-        if file:
-            path = os.path.join(usx_dir, file)
-            if os.path.isfile(path):
-                convertFile(path)
-            else:
-                reportError(f"No such file: {path}")
+    config = ToolsConfigManager()
+    Path(getWorkDir()).mkdir(exist_ok=True)
+    usx_dir = config.get('Usx2Usfm', 'usx_dir')
+    file = config.get('Usx2Usfm', 'filename')
+    if file:
+        path = os.path.join(usx_dir, file)
+        if os.path.isfile(path):
+            convertFile(path)
         else:
-            convertFolder(usx_dir)
+            reportError(f"No such file: {path}")
+    else:
+        convertFolder(usx_dir)
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
     else:

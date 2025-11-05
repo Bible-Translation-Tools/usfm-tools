@@ -81,10 +81,10 @@ class Step(ABC):
         if path:
             dirpath.set(path)
 
-    # Prompts the user to locate a usfm file in the specified source_dir.
+    # Prompts the user to locate a usfm file in the specified folder.
     # Sets filename to the selected file, or leaves it unchanged if the user cancels.
-    def askusfmfile(self, source_dir: StringVar, filename: StringVar):
-        path = filedialog.askopenfilename(initialdir=source_dir.get(), title = "Select usfm file",
+    def askusfmfile(self, dir: StringVar, filename: StringVar):
+        path = filedialog.askopenfilename(initialdir=dir.get(), title = "Select usfm file",
                                            filetypes=[('Usfm file', '*.usfm')])
         if path:
             filename.set(os.path.basename(path))

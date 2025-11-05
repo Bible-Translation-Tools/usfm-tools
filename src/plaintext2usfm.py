@@ -550,7 +550,7 @@ def shortname(longpath):
 
 # Generates name for usfm file
 def makeUsfmPath(bookId):
-    return os.path.join(ToolsConfigManager().get('Plaintext2Usfm', 'target_dir'), makeUsfmFilename(bookId))
+    return os.path.join(getWorkDir(), makeUsfmFilename(bookId))
 
     # Generates name for usfm file
 def makeUsfmFilename(bookId):
@@ -615,16 +615,23 @@ def convertFolder(folder):
                 elif not state.title:
                     reportError("Book title not found in: " + shortname(path))
 
+# Temporary function, until all references to "target_dir" are removed.
+def getWorkDir():
+    config = ToolsConfigManager()
+    workdir = config.get('Plaintext2Usfm', 'work_dir')
+    if not workdir:
+        workdir = config.get('Plaintext2Usfm', 'target_dir')    # the old name
+    return workdir
+
 def main(app = None):
     global gui
     gui = app
     projects.clear()
-    global config
     config = ToolsConfigManager()
     source_dir = config.get('Plaintext2Usfm', 'source_dir')
     file = config.get('Plaintext2Usfm', 'filename')
-    target_dir = config.get('Plaintext2Usfm', 'target_dir')
-    Path(target_dir).mkdir(exist_ok=True)
+    work_dir = getWorkDir()
+    Path(work_dir).mkdir(exist_ok=True)
 
     if file:
         path = os.path.join(source_dir, file)
@@ -640,7 +647,7 @@ def main(app = None):
     else:
         convertFolder(source_dir)
         if projects:
-            dumpProjects( os.path.join(target_dir, "projects.yaml") )
+            dumpProjects( os.path.join(work_dir, "projects.yaml") )
 
     closeIssuesFile()
     reportStatus("\nDone.")

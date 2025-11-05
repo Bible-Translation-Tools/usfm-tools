@@ -703,7 +703,7 @@ def verifySource(source):
             reportError("Use a language code in source:language, not \'" + dict['language'] + '\'')
         elif dict['language'] == language_code:
             reportWarning("source:language matches target language")
-        elif dict['language'] not in {'ar','en','fa','fr','id','my','ne','sw','pa','tpi'}:
+        elif dict['language'] not in {'ar','en','fa','fr','id','my','ne','sw','pa','tpi','ur-deva'}:
             reportWarning("source:language: " + dict['language'])
         verifyStringField(dict, 'version', 1)
 
@@ -848,13 +848,21 @@ def verifyVersion(version, sourceversion):
 
 def verifyManifest():
     global manifestDir
-    manifestDir = ToolsConfigManager().get('VerifyManifest', 'source_dir')
+    manifestDir = getWorkDir()
     verifyDir(manifestDir)
 
     if nIssues == 0:
         reportStatus("Done, no issues found.")
     else:
         reportStatus("\nFinished checking, found " + str(nIssues) + " issue(s).")
+
+# Temporary function, until all references to "source_dir" are removed.
+def getWorkDir():
+    config = ToolsConfigManager()
+    workdir = config.get('VerifyManifest', 'work_dir')
+    if not workdir:
+        workdir = config.get('VerifyManifest', 'source_dir')    # the old name
+    return workdir
 
 def main(app = None):
     global gui

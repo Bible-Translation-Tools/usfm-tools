@@ -66,6 +66,7 @@ class ToolsConfigManager:
         value = self.cfgParser.get(sectionname, option, fallback="")
         return value
 
+    # Defaults to False if the option is not found.
     def getboolean(self, sectionname, option):
         value = self.get(sectionname, option)
         return (value in {'True', 'true', '1'})
@@ -100,7 +101,7 @@ class ToolsConfigManager:
         match sectionname:
             case 'MarkParagraphs':
                 sec = {'language_code': "",
-                    'source_dir': "",
+                    'work_dir': "",
                     'model_dir': "",
                     'filename': "",
                     'copy_nb': False,
@@ -108,29 +109,40 @@ class ToolsConfigManager:
                     's5_to_p': False,
                     'mark_every_verse': False,
                     'punctuate': True }
+            case 'Paratext2Usfm':
+                sec = {'paratext_dir': "",
+                       'work_dir': "",
+                       'filename': ""}
             case 'Plaintext2Usfm':
                 sec = {'source_dir': "",
                        'filename': "",
-                       'target_dir': ""}
-            case 'Paratext2Usfm':
-                sec = {'paratext_dir': "",
-                       'target_dir': "",
-                       'filename': ""}
+                       'work_dir': ""}
             case 'RevertChanges':
-                sec = {'source_dir': "",
+                sec = {'work_dir': "",
                        'backupExt': "",
                        'correctExt': ".usfm" }
             case 'SelectProcess':
                 sec = {'selection': 'Txt2USFM'}
             case 'Txt2USFM':
                 sec = {'source_dir': "",
-                       'target_dir': "",
+                       'work_dir': "",
                        'mark_chunks': False,
                        'language_code': "",
                        'section_headings': False }
+            case 'Usfm2Usx':
+                sec = {'work_dir': "",
+                       'rc_dir': "",
+                       'language_name': "",
+                       'language_code': "",
+                       'bible_name': "",
+                       'bible_id': "",
+                       'direction': "ltr",
+                       'pub_date': "",
+                       'license': "",
+                       'version': "" }
             case 'UsfmCleanup':
                 sec = {'language_code': "",
-                    'source_dir': "",
+                    'work_dir': "",
                     'filename': "",
                     'standard_chapter_title': "",
                     'enable1': True,
@@ -142,33 +154,21 @@ class ToolsConfigManager:
                     'enable7': False,
                     'enable8': False,
                     'sourcetext_dir': "" }
-            case 'Usfm2Usx':
-                sec = {'source_dir': "",
-                       'rc_dir': "",
-                       'language_name': "",
-                       'language_code': "",
-                       'bible_name': "",
-                       'bible_id': "",
-                       'direction': "ltr",
-                       'pub_date': "",
-                       'license': "",
-                       'version': "" }
             case 'Usx2Usfm':
                 sec = {'usx_dir': "",
                        'filename': "",
-                       'usfm_dir': "",
+                       'work_dir': "",
                        'notes': False }
             case 'VerifyManifest':
-                sec = {'source_dir': "",
+                sec = {'work_dir': "",
                        'expectascii': False,
                        'bibletype': True }
             case 'VerifyUSFM':
-                sec = {'source_dir': "",    # location of usfm files to be checked
+                sec = {'work_dir': "",    # location of usfm files to be checked
                        'filename': "",
                        'compare_dir': "",   # the source language folder, for comparisons
                        'language_code': "",
                        'standard_chapter_title': "",
-                    #    'usfm_version': "2.0",
                        'suppress1': False,
                        'suppress2': False,
                        'suppress3': False,

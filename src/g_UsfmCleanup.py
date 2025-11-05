@@ -25,19 +25,26 @@ class UsfmCleanup(g_step.Step):
         return stepname
 
     def onNext(self):
-        super().onNext('language_code', 'source_dir', 'filename')
+        super().onNext('language_code', 'work_dir', 'filename')
 
     def onExecute(self, values):
         self.enablebutton(2, False)
         count = 1
         if not values['filename']:
-            count = g_util.count_files(values['source_dir'], ".*sfm$")
+            count = g_util.count_files(values['work_dir'], ".*sfm$")
         self.mainapp.execute_script("usfm_cleanup", count)
         self.frame.clear_messages()
 
+    # Temporary function, until "source_dir" is fully retired.
+    def getWorkDir(self):
+        workdir = self.values['work_dir']
+        if not workdir:
+            workdir = self.values['source_dir']
+        return workdir
+
     # Runs the revertChanges script to revert usfm_cleanup changes.
     def revertChanges(self):
-        sec = {'source_dir': self.values['source_dir'],
+        sec = {'work_dir': self.getWorkDir(),
                'backupExt': ".usfm.orig",
                'correctExt': ".usfm"}
         self.mainapp.save_values('RevertChanges', sec)
@@ -53,12 +60,12 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         super().__init__(parent, controller)
 
         self.language_code = StringVar()
-        self.source_dir = StringVar()
+        self.work_dir = StringVar()
         self.filename = StringVar()
         self.std_titles = StringVar()
         for var in (self.language_code, self.filename):
             var.trace_add("write", self._set_button_status)
-        self.source_dir.trace_add("write", self._onChangeSourceDir)
+        self.work_dir.trace_add("write", self._onChangeWorkDir)
         self.std_titles.trace_add("write", self._onChangeTitles)
         self.enable = [BooleanVar(value = False) for i in range(9)]
         self.enable[3].trace_add("write", self._onChangeQuotes)
@@ -69,11 +76,11 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         language_code_entry = ttk.Entry(self, width=18, textvariable=self.language_code)
         language_code_entry.grid(row=3, column=2, sticky=W)
 
-        source_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
-        source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
-        self.source_dir_entry = ttk.Entry(self, width=44, textvariable=self.source_dir)
-        self.source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
-        src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
+        work_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
+        work_dir_label.grid(row=4, column=1, sticky=W, pady=2)
+        self.work_dir_entry = ttk.Entry(self, width=44, textvariable=self.work_dir)
+        self.work_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
+        src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindWorkDir)
         src_dir_find.grid(row=4, column=4, sticky=W)
 
         file_label = ttk.Label(self, text="File name:", width=20)
@@ -155,10 +162,17 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         #      text="Standardize chapter labels.")
         # self.enable8_checkbox.state(['disabled'])
 
+    # Temporary function, until "source_dir" is fully retired.
+    def getWorkDirConfigValue(self):
+        workdir = self.values.get('work_dir', fallback="")
+        if not workdir:
+            self.values.get('source_dir', fallback="")  # the old name
+        return workdir
+
     def show_values(self, values):
         self.values = values
         self.language_code.set(values.get('language_code', fallback=""))
-        self.source_dir.set(values.get('source_dir', fallback=""))
+        self.work_dir.set( self.getWorkDirConfigValue() )
         self.filename.set(values.get('filename', fallback=""))
         self.std_titles.set(values.get('standard_chapter_title', fallback=""))
         for i in range(len(self.enable)):
@@ -168,7 +182,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Verify USFM")
         self.controller.showbutton(2, "CLEAN", self._onExecute, tip="Run the USFM cleanup script now.")
-        self.controller.showbutton(3, "Work folder", self._onOpenSourceDir)
+        self.controller.showbutton(3, "Work folder", self._onOpenWorkDir)
         self.controller.showbutton(4, "Undo", self._onUndo, tip="Restore any and all .usfm.orig backup files.")
         self.controller.showbutton(5, ">>>", self._onNext, tip="Mark paragraphs")
         self._set_button_status()
@@ -177,7 +191,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
         self.controller.enablebutton(2, self.cleanup_ready)
-        nChanged = g_util.count_files(self.source_dir.get(), r".*\.usfm\.orig$")
+        nChanged = g_util.count_files(self.work_dir.get(), r".*\.usfm\.orig$")
         self.controller.enablebutton(4, nChanged > 0)
         self.controller.enablebutton(5, True)
 
@@ -190,7 +204,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
 
     def _save_values(self):
         self.values['language_code'] = self.language_code.get()
-        self.values['source_dir'] = self.source_dir.get()
+        self.values['work_dir'] = self.work_dir.get()
         self.values['filename'] = self.filename.get()
         self.values['standard_chapter_title'] = self.std_titles.get()
         for si in [2,3,4,5,7]:
@@ -203,10 +217,10 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
 
-    def _onFindSrcDir(self, *args):
-        self.controller.askdir(self.source_dir)
+    def _onFindWorkDir(self, *args):
+        self.controller.askdir(self.work_dir)
     def _onFindFile(self, *args):
-        path = filedialog.askopenfilename(initialdir=self.source_dir.get(), title = "Select usfm file",
+        path = filedialog.askopenfilename(initialdir=self.work_dir.get(), title = "Select usfm file",
                                            filetypes=[('Usfm file', '*.usfm')])
         if path:
             self.filename.set(os.path.basename(path))
@@ -216,8 +230,8 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self._save_values()
         self.controller.executeInventoryLabels()
 
-    def _onChangeSourceDir(self, *args):
-        dir = self.source_dir.get()
+    def _onChangeWorkDir(self, *args):
+        dir = self.work_dir.get()
         if os.path.isdir(dir):
             from manifestyaml import ManifestYaml
             my = ManifestYaml()
@@ -228,9 +242,9 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
                 self.std_titles.set("")
         self._set_button_status()
 
-    def _onOpenSourceDir(self, *args):
+    def _onOpenWorkDir(self, *args):
         self._save_values()
-        os.startfile(self.values['source_dir'])
+        os.startfile(self.getWorkDirConfigValue())
     def _onUndo(self, *args):
         self._save_values()
         self.controller.revertChanges()
@@ -244,18 +258,18 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
 
     def _onOpenIssues(self, *args):
         self._save_values()
-        path = os.path.join(self.values['source_dir'], "issues.txt")
+        path = os.path.join(self.getWorkDirConfigValue(), "issues.txt")
         os.startfile(path)
 
     def _set_button_status(self, *args):
-        source_dir = self.source_dir.get()
-        good_source = os.path.isdir(source_dir)
-        backup_count = g_util.count_files(source_dir, r".*\.usfm\.orig$")
-        self.controller.enablebutton(3, good_source)
+        work_dir = self.work_dir.get()
+        good_workdir = os.path.isdir(work_dir)
+        backup_count = g_util.count_files(work_dir, r".*\.usfm\.orig$")
+        self.controller.enablebutton(3, good_workdir)
         self.controller.enablebutton(4, backup_count > 0)
 
-        if good_source and self.filename.get():
-            path = os.path.join(source_dir, self.filename.get())
-            good_source = os.path.isfile(path)
-        self.cleanup_ready = good_source and len(self.language_code.get()) > 0
+        if good_workdir and self.filename.get():
+            path = os.path.join(work_dir, self.filename.get())
+            good_workdir = os.path.isfile(path)
+        self.cleanup_ready = good_workdir and len(self.language_code.get()) > 0
         self.controller.enablebutton(2, self.cleanup_ready)

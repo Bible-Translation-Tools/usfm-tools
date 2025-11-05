@@ -5,10 +5,10 @@
 # and changes the line endings to LF.
 # Set these config values in config.ini before running this script.
 #   paratext_dir
-#   target_dir
+#   work_dir
 #   filename - leave blank to rename all files
 
-import configmanager
+from configmanager import ToolsConfigManager
 import io
 import os
 from pathlib import Path
@@ -17,7 +17,6 @@ import sys
 import usfm_verses
 
 gui = None
-config = None
 
 # Writes message to stderr and to issues.txt.
 # If it is not a real issue, writes message to report file.
@@ -64,12 +63,12 @@ def copyfile(path, newpath):
         with io.open(newpath, "tw", encoding='utf-8', newline='\n') as output:
             output.write(content)
 
-def convertFile(path:Path, target_dir):
+def convertFile(path:Path, work_dir):
     count = 0
     bookid = bookidfromFilename(path.name)
     fname = makeUsfmFilename(bookid)
     if fname:
-        newpath = os.path.join(target_dir, fname)
+        newpath = os.path.join(work_dir, fname)
         if os.path.exists(newpath):
             bakpath = newpath.replace(".usfm", ".usfm-orig")
             os.replace(newpath, bakpath)
@@ -79,21 +78,21 @@ def convertFile(path:Path, target_dir):
         reportError(f"Could not get book id from file name: {path.name}")
     return count
 
-def convert(source_dir, target_dir):
+def convert(ptx_dir, work_dir):
     count = 0
-    sourcepath = Path(source_dir)
-    for path in sourcepath.glob('*.SFM'):
-        count += convertFile(path, target_dir)
+    ptxpath = Path(ptx_dir)
+    for path in ptxpath.glob('*.SFM'):
+        count += convertFile(path, work_dir)
     if count == 0:
-        reportError(f"There are no .SFM files in {source_dir}.\n")
+        reportError(f"There are no .SFM files in {ptx_dir}.\n")
     return count
 
 naming_re = re.compile(r'PostPart=".*" +BookNameForm=".*?"')
 
-# Brings the Settings.xml file over to the target folder,
+# Brings the Settings.xml file over to the working folder,
 # with corrections to the file Naming part.
-def convertSettingsFile(source_dir, target_dir):
-    path = os.path.join(source_dir, "Settings.xml")
+def convertSettingsFile(ptx_dir, work_dir):
+    path = os.path.join(ptx_dir, "Settings.xml")
     if os.path.exists(path):
         with io.open(path, "r", encoding="utf-8-sig") as input:
             s = input.read()
@@ -103,23 +102,29 @@ def convertSettingsFile(source_dir, target_dir):
                 s = s[0:naming.start()] + newparts + s[naming.end()]
             else:
                 reportError("Could not find PostPart & BookNameForm elements in Settings.xml. Beware if using AQuA.")
-        # Copy to target folder
-        path = os.path.join(target_dir, "Settings.xml")
+        # Copy to working folder
+        path = os.path.join(work_dir, "Settings.xml")
         with io.open(path, "tw", encoding='utf-8') as output:
             output.write(s)
     else:
         reportError(f"Settings.xml file not found")
 
+# Temporary function, until all references to "target_dir" are removed.
+def getWorkDir():
+    config = ToolsConfigManager()
+    workdir = config.get('Paratext2Usfm', 'work_dir')
+    if not workdir:
+        workdir = config.get('Paratext2Usfm', 'target_dir')    # the old name
+    return workdir
+
 def main(app = None):
     global gui
     gui = app
-    global config
-    config = configmanager.ToolsConfigManager().get_section('Paratext2Usfm')
+    config = ToolsConfigManager()
     if config:
-        ptx_dir = config['paratext_dir']
-        usfm_dir = config['target_dir']
-        filename = config['filename']
-
+        ptx_dir = config.get('Paratext2Usfm', 'paratext_dir')
+        usfm_dir = getWorkDir()
+        filename = config.get('Paratext2Usfm', 'filename')
         if not os.path.isdir(ptx_dir):
             reportError(f"Invalid paratext folder: {ptx_dir}")
         Path(usfm_dir).mkdir(exist_ok=True)

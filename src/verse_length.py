@@ -2,15 +2,13 @@
 # Experimentation with verse lengths, detecting very short and extra long verses.
 
 gui = None
-listener = None # Reuben sets this externally
+listener = None
 issuesFile = None
 issues: dict = {}   # Can't put in State because we want to accumulate issues across all files.
 lengths = dict()
 lengths_src = dict()
 footnotedVerses = {}
 footnotedVerses_en_ulb = {}
-nFiles = 0  # number of .usfm files verified
-primarily_ascii = False
 
 from configmanager import ToolsConfigManager
 import os

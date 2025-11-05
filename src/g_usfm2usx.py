@@ -2,10 +2,10 @@
 # GUI interface for USFM to USX file conversion.
 #
 
-from tkinter import *
+# from tkinter import *
 from tkinter import ttk
 from tkinter import font
-from tkinter import filedialog
+from tkinter import StringVar, filedialog, W, N, DISABLED
 from idlelib.tooltip import Hovertip
 import g_util
 import g_step
@@ -28,7 +28,7 @@ class Usfm2Usx(g_step.Step):
         # self.values = values    # redundant, they were the same dict to begin with
         count = 1
         if not values['filename']:
-            count = g_util.count_files(values['source_dir'], ".*sfm$")
+            count = g_util.count_files(values['work_dir'], ".*sfm$")
         self.mainapp.execute_script("usfm2usx", count)
         self.frame.clear_messages()
 
@@ -54,11 +54,11 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         self.pub_date = StringVar()
         self.license = StringVar()
         self.version = StringVar()
-        self.source_dir = StringVar()
+        self.work_dir = StringVar()
         self.filename = StringVar()
         self.rc_dir = StringVar()
         for var in (self.language_code, self.language_name, self.bible_id, self.pub_date,
-                    self.license, self.version, self.source_dir, self.filename, self.rc_dir):
+                    self.license, self.version, self.work_dir, self.filename, self.rc_dir):
             var.trace_add("write", self._onChangeEntry)
         self.bible_name.trace_add("write", self._onChangeBible)
 
@@ -66,49 +66,49 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         self.grid_columnconfigure(5, weight=0)
 
         language_code_label = ttk.Label(self, text="Language code:", width=20)
-        language_code_label.grid(row=3, column=1, sticky=(W,E,N), pady=2)
+        language_code_label.grid(row=3, column=1, sticky="wen", pady=2)
         language_code_entry = ttk.Entry(self, width=20, textvariable=self.language_code)
         language_code_entry.grid(row=3, column=2, sticky=W)
         language_label = ttk.Label(self, text="Language name:", width=20)
-        language_label.grid(row=4, column=1, sticky=(W,E,N), pady=2)
+        language_label.grid(row=4, column=1, sticky="wen", pady=2)
         language_entry = ttk.Entry(self, width=20, textvariable=self.language_name)
         language_entry.grid(row=4, column=2, sticky=W)
 
         subheadingFont = font.Font(size=10, slant='italic')     # normal size is 9
         direction_label = ttk.Label(self, text="Text direction:", font=subheadingFont)
-        direction_label.grid(row=5, column=1, sticky=(W,E,N), pady=2)
+        direction_label.grid(row=5, column=1, sticky="wen", pady=2)
         ltr_rb = ttk.Radiobutton(self, text='Left to right', variable=self.direction, value='ltr')
         ltr_rb.grid(row=6, column=1, sticky=N)
         rtl_rb = ttk.Radiobutton(self, text='Right to left', variable=self.direction, value='rtl')
         rtl_rb.grid(row=6, column=2, sticky=N)
 
         bible_name_label = ttk.Label(self, text="Bible name:", width=15)
-        bible_name_label.grid(row=3, column=3, sticky=(W,E,N), pady=2)
+        bible_name_label.grid(row=3, column=3, sticky="wen", pady=2)
         bible_name_entry = ttk.Entry(self, width=20, textvariable=self.bible_name)
         bible_name_entry.grid(row=3, column=4, sticky=W)
         bible_id_label = ttk.Label(self, text="Bible ID:", width=15)
-        bible_id_label.grid(row=4, column=3, sticky=(W,E,N), pady=2)
+        bible_id_label.grid(row=4, column=3, sticky="wen", pady=2)
         bible_id_entry = ttk.Entry(self, width=20, textvariable=self.bible_id)
         bible_id_entry.grid(row=4, column=4, sticky=W)
 
         date_label = ttk.Label(self, text="Publication date:", width=15)
-        date_label.grid(row=5, column=3, sticky=(W,E,N), pady=2)
+        date_label.grid(row=5, column=3, sticky="wen", pady=2)
         date_entry = ttk.Entry(self, width=20, textvariable=self.pub_date)
         date_entry.grid(row=5, column=4, sticky=W)
         version_label = ttk.Label(self, text="Version:", width=15)
-        version_label.grid(row=6, column=3, sticky=(W,E,N), pady=2)
+        version_label.grid(row=6, column=3, sticky="wen", pady=2)
         version_entry = ttk.Entry(self, width=20, textvariable=self.version)
         version_entry.grid(row=6, column=4, sticky=W)
 
         license_label = ttk.Label(self, text="License:", width=15)
-        license_label.grid(row=7, column=3, sticky=(W,E,N), pady=2)
+        license_label.grid(row=7, column=3, sticky="wen", pady=2)
         license_entry = ttk.Entry(self, width=20, textvariable=self.license)
         license_entry.grid(row=7, column=4, sticky=W)
 
-        source_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
-        source_dir_label.grid(row=8, column=1, sticky=W, pady=2)
-        source_dir_entry = ttk.Entry(self, width=61, textvariable=self.source_dir)
-        source_dir_entry.grid(row=8, column=2, columnspan=3, sticky=W)
+        work_dir_label = ttk.Label(self, text="Location of .usfm files:", width=20)
+        work_dir_label.grid(row=8, column=1, sticky=W, pady=2)
+        work_dir_entry = ttk.Entry(self, width=61, textvariable=self.work_dir)
+        work_dir_entry.grid(row=8, column=2, columnspan=3, sticky=W)
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
         src_dir_find.grid(row=8, column=5, sticky=W)
 
@@ -130,6 +130,13 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         rc_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindRcDir)
         rc_dir_find.grid(row=10, column=5, sticky=W)
 
+    # Temporary function, until "source_dir" is fully retired.
+    def getWorkDirConfigValue(self):
+        workdir = self.values.get('work_dir', fallback="")
+        if not workdir:
+            self.values.get('source_dir', fallback="")  # the old name
+        return workdir
+
     def show_values(self, values):
         self.values = values
         self.language_code.set(values.get('language_code', fallback=""))
@@ -140,7 +147,7 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         self.pub_date.set(values.get('pub_date', fallback=""))
         self.license.set(values.get('license', fallback=""))
         self.version.set(values.get('version', fallback=""))
-        self.source_dir.set(values.get('source_dir', fallback=""))
+        self.work_dir.set( self.getWorkDirConfigValue() )
         self.filename.set(values.get('filename', fallback=""))
         self.rc_dir.set(values.get('rc_dir', fallback=""))
 
@@ -166,16 +173,16 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         self.values['pub_date'] = self.pub_date.get()
         self.values['license'] = self.license.get()
         self.values['version'] = self.version.get()
-        self.values['source_dir'] = self.source_dir.get()
+        self.values['work_dir'] = self.work_dir.get()
         self.values['filename'] = self.filename.get()
         self.values['rc_dir'] = self.rc_dir.get()
         self.controller.mainapp.save_values(stepname, self.values)
         self._set_button_status()
 
     def _onFindSrcDir(self, *args):
-        self.controller.askdir(self.source_dir)
+        self.controller.askdir(self.work_dir)
     def _onFindFile(self, *args):
-        path = filedialog.askopenfilename(initialdir=self.source_dir.get(), title = "Select usfm file",
+        path = filedialog.askopenfilename(initialdir=self.work_dir.get(), title = "Select usfm file",
                                            filetypes=[('Usfm file', '*.usfm')])
         if path:
             self.filename.set(os.path.basename(path))
@@ -194,9 +201,9 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         self._set_button_status()
 
     def _set_button_status(self):
-        dirs_ok = os.path.isdir(self.source_dir.get()) and os.path.isdir(self.rc_dir.get())
+        dirs_ok = os.path.isdir(self.work_dir.get()) and os.path.isdir(self.rc_dir.get())
         if dirs_ok and self.filename.get():
-            path = os.path.join(self.source_dir.get(), self.filename.get())
+            path = os.path.join(self.work_dir.get(), self.filename.get())
             dirs_ok = os.path.isfile(path)
         language_ok = self.language_code.get() and self.language_name.get()
         pubdetails_ok = self.bible_id.get() and self.bible_name.get() and\
