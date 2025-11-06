@@ -122,24 +122,6 @@ def test_listwords(s, expected):
 def test_parseChapterLabel(s, nchapter, expname):
     assert verifyUSFM.parseChapterLabel(s, nchapter) == expname
 
-@pytest.mark.parametrize('line, exp_marker, exp_payload',
-    [
-        ('', '', ''),
-        ('15 XYZ', '', '15 XYZ'),
-        ('\\id mat asdf', 'id', 'mat asdf'),
-        ('\\p', 'p', ''),
-        ('\\p asdf', 'p', 'asdf'),
-        ('\\c 1 asdf', 'c', '1'),
-        ('\\v  2', 'v', '2'),
-        ('\\v  2-3  asdf', 'v', '2-3'),
-        ('\\v 4 asdljasdf asdf\\v 5 asdf', 'v', '4'),
-        ('asdfasdf. \\v 5', '', 'asdfasdf. \\v 5'),
-    ])
-def test_parseLine(line, exp_marker, exp_payload):
-    marker, payload = verifyUSFM.parseLine(line)
-    assert marker == exp_marker
-    assert payload == exp_payload
-
 @pytest.mark.parametrize('s, expected',
     [
         ('', 0),

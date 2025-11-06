@@ -1439,28 +1439,6 @@ def verifyWholeFile(contents, path):
         est = state.booklength * (1.0 - conflicted_portion * 0.55)
         state.booklength = int(est)
 
-
-usfm_re = re.compile(r'\\([a-z][a-z1-5]*\*?)(\s+.*)?')
-cvnumber_re = re.compile(r'[1-9][-0-9]*')
-# Simplistically parses a single line as usfm.
-# Assumes markers occur only at beginning of line, and syntax is always good.
-# Returns a single tuple of (marker, payload)
-# Either marker or payload may be an empty string.
-# This function is duplicated in usfm_cleanup.
-def parseLine(line):
-    marker = ""
-    if usfm := usfm_re.match(line):
-        marker = usfm.group(1)
-        payload = usfm.group(2).strip() if usfm.group(2) else ""
-        if marker in {'c', 'v'}:
-            if cvnumber := cvnumber_re.match(payload):
-                payload = cvnumber.group(0)
-            else:
-                marker = ""
-    if not marker:
-        payload = line
-    return (marker, payload)
-
 said_re = re.compile(r'(\w+)[,:] ["«“‘]\w')
 
 # Returns a word in the line that introduces a quotation, or None.
@@ -1482,7 +1460,8 @@ def reportSectionTitles(line, reference):
     if line[0] != '\\' and section_titles.is_possible_heading(line):
         reportIssue(f"Possible section title on a line by itself at {reference}", 76)
     elif reference not in section_titles.exclude_eol_checks:
-        if section_titles.find_eol_heading(line):
+        marker, value, remainder = usfm_utils.parseLine(line)
+        if remainder and section_titles.find_eol_heading(remainder):
             reportIssue(f"Possible section title at end of {reference}", 76.1)
 
 conflict_head_re = re.compile(r'<+ HEAD')   # conflict resolution tag
@@ -1500,14 +1479,14 @@ def verifyLineByLine(lines):
     for line in lines:
         if not line.strip():
             continue
-        marker, payload = parseLine(line)
+        marker, value, remainder = usfm_utils.parseLine(line)
         match marker:
             case 'id':
-                localstate.addID(payload[0:3].upper())
+                localstate.addID(remainder[0:3].upper())
             case 'c':
-                localstate.addChapter(payload)
+                localstate.addChapter(value)
             case 'v':
-                vs = payload.split('-')
+                vs = value.split('-')
                 localstate.addVerse(vs[-1])
         if conflict_head_re.search(line):
             reportIssue(f"Unresolved translation conflict near {localstate.reference}", ID_CONFLICTS)
@@ -1515,13 +1494,14 @@ def verifyLineByLine(lines):
             nconflicts += 1
         elif conflict_tail_re.match(line):
             localstate.trackConflict(line)
-        elif marker not in {'id','c'}:
+        elif marker not in {'id','c','cl'}:
             if line.isascii():
                 nAscii += 1
-            if word := said_word(line):
+            if word := said_word(remainder):
                 saidwords.addWord(word)
-            reportSectionTitles(line, localstate.reference)
-            reportFootnoteSpacing(line, localstate.reference)
+            if remainder and localstate.chapter > 0:
+                reportSectionTitles(line, localstate.reference)
+                reportFootnoteSpacing(line, localstate.reference)
 
     suppress[9] = (nAscii / len(lines) > 0.05)
     global nFiles
