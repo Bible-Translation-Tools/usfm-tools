@@ -9,6 +9,26 @@ src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 import usfm_utils
 
+@pytest.mark.parametrize('line, exp_marker, exp_value, exp_remainder',
+    [
+        ('', '', '', ''),
+        ('15 XYZ', '', '', '15 XYZ'),
+        ('\\id mat asdf', 'id', '', 'mat asdf'),
+        ('\\p', 'p', '', ''),
+        ('\\p asdf', 'p', '', 'asdf'),
+        ('\\c 1 asdf', 'c', '1', 'asdf'),
+        ('\\v  2', 'v', '2', ''),
+        ('\\v  2-3  asdf', 'v', '2-3', 'asdf'),
+        ('\\v 4 asdljasdf asdf\\v 5 asdf', 'v', '4', 'asdljasdf asdf\\v 5 asdf'),
+        ('asdfasdf. \\v 5', '', '', 'asdfasdf. \\v 5'),
+        ('\\h Heading 1', 'h', '', 'Heading 1')
+    ])
+def test_parseLine(line, exp_marker, exp_value, exp_remainder):
+    marker, value, remainder = usfm_utils.parseLine(line)
+    assert marker == exp_marker
+    assert value == exp_value
+    assert remainder == exp_remainder
+
 @pytest.mark.parametrize('text, expectedblock',
     [
         ('5', 'LATIN'), # we treat all ASCII characters as LATIN

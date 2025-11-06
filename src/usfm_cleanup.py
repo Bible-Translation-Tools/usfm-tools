@@ -19,6 +19,7 @@ import quotes
 import usfmReader
 import sentences
 import section_titles
+import usfm_utils
 import usfmWriter
 from datetime import date
 
@@ -72,17 +73,17 @@ class State:
         self.currMarker = token.type
 
     def addLine(self, line):
-        marker, payload = parseLine(line)
+        marker, value, remainder = usfm_utils.parseLine(line)
         match marker:
             case 'id':
-                self.bookId = payload[0:3].upper()
+                self.bookId = remainder[0:3].upper()
                 self.reference = self.bookId + " header/intro"
             case 'c':
-                self.schapter = payload
-                self.reference = self.bookId + " " + payload
+                self.schapter = value
+                self.reference = self.bookId + " " + value
             case 'v':
-                self.sverse = payload
-                self.reference = self.bookId + " " + self.schapter + ":" + payload
+                self.sverse = value
+                self.reference = self.bookId + " " + self.schapter + ":" + value
 
 state = State()
 
@@ -505,27 +506,6 @@ def remove_periods(line):
         changed = True
         vperiod = vperiod_re.search(line, vperiod.end()-1)
     return (changed, line)
-
-usfm_re = re.compile(r'\\([a-z][a-z1-5]*\*?)(\s+.*)?')
-cvnumber_re = re.compile(r'[1-9][-0-9]*')
-# Simplistically parses a single line as usfm.
-# Assumes markers occur only at beginning of line, and syntax is always good.
-# Returns a single tuple of (marker, payload)
-# Either marker or payload may be an empty string.
-# This function is duplicated in verifyUSFM.
-def parseLine(line):
-    marker = ""
-    if usfm := usfm_re.match(line):
-        marker = usfm.group(1)
-        payload = usfm.group(2).strip() if usfm.group(2) else ""
-        if marker in {'c', 'v'}:
-            if cvnumber := cvnumber_re.match(payload):
-                payload = cvnumber.group(0)
-            else:
-                marker = ""
-    if not marker:
-        payload = line
-    return (marker, payload)
 
 # Rewrites the file line by line, making changes to individual lines
 # Returns True if any changes are made

@@ -1,5 +1,6 @@
 # coding=utf-8
 # Miscellaneous utility functions needed by various usfm tools
+#    parseLine()
 #    unalign_usfm()
 #    unicodeBlock()
 
@@ -7,6 +8,27 @@ from __future__ import unicode_literals
 import re
 import unicodedata
 
+usfm_re = re.compile(r'\\([a-z][a-z1-5]*\*?)(\s+.*)?')
+cvnumber_re = re.compile(r'[1-9][-0-9]*')
+
+# Simplistically parses a single line as usfm.
+# Assumes markers, if any, occur only at beginning of line.
+# Sets value to chapter or verse number if applicable, otherwise "".
+# Returns a tuple of (marker, value, remainder)
+def parseLine(line):
+    marker = value = remainder = ""
+    if usfm := usfm_re.match(line):
+        marker = usfm.group(1)
+        remainder = usfm.group(2).strip() if usfm.group(2) else ""
+        if marker in {'c', 'v'}:
+            if cvnumber := cvnumber_re.match(remainder):
+                value = cvnumber.group(0)
+                remainder = remainder[len(value):].strip()
+            else:
+                marker = ""
+    if not marker:
+        remainder = line
+    return (marker, value, remainder)
 
 def unalign_usfm(aligned_usfm):
     """

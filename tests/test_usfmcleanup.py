@@ -289,24 +289,6 @@ def test_remove_periods(line, expected):
     assert s == expected
     assert c == expectchange
 
-@pytest.mark.parametrize('line, exp_marker, exp_payload',
-    [
-        ('', '', ''),
-        ('15 XYZ', '', '15 XYZ'),
-        ('\\id mat asdf', 'id', 'mat asdf'),
-        ('\\p', 'p', ''),
-        ('\\p asdf', 'p', 'asdf'),
-        ('\\c 1 asdf', 'c', '1'),
-        ('\\v  2', 'v', '2'),
-        ('\\v  2-3  asdf', 'v', '2-3'),
-        ('\\v 4 asdljasdf asdf\\v 5 asdf', 'v', '4'),
-        ('asdfasdf. \\v 5', '', 'asdfasdf. \\v 5'),
-    ])
-def test_parseLine(line, exp_marker, exp_payload):
-    marker, payload = usfm_cleanup.parseLine(line)
-    assert marker == exp_marker
-    assert payload == exp_payload
-
 @pytest.mark.parametrize('line, pos, exp_matepos',
     [
         ('"Quoted."', 0, 8),
