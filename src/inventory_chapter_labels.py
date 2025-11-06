@@ -73,12 +73,12 @@ def inventory(app, caller):
     from configmanager import ToolsConfigManager
     config = ToolsConfigManager()
     labels.clear()
-    source_dir = config.get(caller, 'source_dir')
-    if os.path.isdir(source_dir):
-        inventoryFolder(source_dir)
+    work_dir = config.get(caller, 'work_dir')
+    if os.path.isdir(work_dir):
+        inventoryFolder(work_dir)
     else:
-        reportError(f"Invalid folder: {caller} source_dir = {source_dir}")
-    dumpInventory(source_dir)
+        reportError(f"Invalid folder: {work_dir}")
+    dumpInventory(work_dir)
     sys.stdout.flush()
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
