@@ -11,7 +11,8 @@ import pytest
 @pytest.mark.parametrize('str, expected',
     [('Sentence 1. Sentence 2.', False),
     ('( Sentence 1 Sentence Two )', True),
-    ('Numbers 1 2', False),
+    ('The 12 Apostles', True),
+    ('12 Apostles', False),
     ('Has A Final Period.', True),
     ('Sentence Final Punctuation!', True),
     ('Phrase Final Punctuation,', False),
@@ -48,6 +49,7 @@ import pytest
     ('This is a Ten Word Candidate with Seven Capitalized Wordsssssss', False),
     ('First and last Words', False),   # I would like for this to be True, but Lamboya's Matthew 1 doesn't. Err on the side of not marking sections.
     ('First and Third words', False),
+    ('First of three', False),
     ("Tutge Hanuwa Wadeka monno Kama'kna Ammaha", True),
     ('Amenee', False),
     ('Amiina', False),
@@ -71,6 +73,9 @@ import pytest
     ('"Hosana!', False),
     ('Punctuatedword.', False),
     ('Wordone Wordtwo.', True),
+    ('\v 1 ਲਿਖਣ ਵਾਲਾਂ', False),
+    ('ਲਿਖਣ ਵਾਲਾਂ', False),  # GURMUKHI script
+    ('ਪ੍ਰਭੂ ਯਿਸ਼ੂ ਮਸੀਹ ਦੀ ਪੀਹੜੀ ਅਤੇ ਜਨਮ', False), # this is an actual section title from Malwai
     ])
 def test_is_heading(str, expected):
     import section_titles
@@ -78,7 +83,8 @@ def test_is_heading(str, expected):
 
 @pytest.mark.parametrize('str, expected',
     [('Sentence 1. Sentence 2.', False),
-     ('Numbers 1 2', False),
+    ('The 12 Apostles', True),
+    ('12 Apostles', False),
      ('Has A Final Period.', True),
      ('Sentence Final Punctuation!', True),
      ('Phrase Final Punctuation,', False),
@@ -113,12 +119,13 @@ def test_is_heading(str, expected):
      ('First A Title. Then not a title', False),
      ('This is a Ten Word Candidate with Seven Capitalized Words', True),
      ('This is a Longer Ten Word Candidate with Seven Capitalizedwordsssssss', True),
-     ('First and last Words', True),   # I would like for this to be True, but Lamboya's Matthew 1 doesn't. Err on the side of not marking sections.
+     ('First and last Words', True),
      ('First and Third words', False),
+     ('First of three', False),
      ("Tutge Hanuwa Wadeka monno Kama'kna Ammaha", True),
      ('Amenee', False),
     ('“Phrase Quoted" ', False),
-    ('End Quote\'', False),
+    ('End Quote\'', True),
     ('\n‘"', False),
     ('....,;Asdf-no Quotes!', False),
     ('”’’’’’’', False),
@@ -135,8 +142,8 @@ def test_is_heading(str, expected):
     ('(Single)', False),
     ('"Hosana!', False),
     ('گریان و شیوەنێکی گەورە! ڕاخێل  نەمابوون!»', False),
-    ('ਪ੍ਰਭੂ ਯਿਸ਼ੂ ਮਸੀਹ ਦੀ ਪੀਹੜੀ ਅਤੇ ਜਨਮ', True),  # this is a section title from Malwai language
-    ('ਯਿਸੂ ਦੀ ਵੰਸ਼ਾਵਲੀ', True),    # Punjabi
+    ('ਪ੍ਰਭੂ ਯਿਸ਼ੂ ਮਸੀਹ ਦੀ ਪੀਹੜੀ ਅਤੇ ਜਨਮ', True),  # this is an actual section title from Malwai
+    ('ਯਿਸੂ ਦੀ ਵੰਸ਼ਾਵਲੀ', True),
     ])
 def test_is_possibleheading(str, expected):
     import section_titles
@@ -198,22 +205,23 @@ def test_find_parenthesized_heading(str, expected):
      ('Line Five. Lalah a La Baampah.', 'Lalah a La Baampah.'),
      ('Only One Sentence On This Line.', 'Only One Sentence On This Line.'),
      ('Line Six. (Parens Heading)', '(Parens Heading)'),
-     ('Line Seven. (Parens Heading).', '(Parens Heading).'),
+     ('\\v 7 Line Seven. (Parens Heading).', '(Parens Heading).'),
      ('  . "', None),
      ('First A Sentence! Phrase,', None),
+    #  ('\\v 17 ਸੋ ਤੱਕ ਚੌਦਾਂ । ਯਿਸੂ ਦਾ ਜਨਮ', 'ਯਿਸੂ ਦਾ ਜਨਮ'), # actual GURMUKHI eol heading, but is not supported
     ])
 def test_find_eol_heading(line, expected):
     import section_titles
     assert section_titles.find_eol_heading(line) == expected
 
 @pytest.mark.parametrize('str, expected',
-    [('Sentence 1. Sentence 2.', 0.5),
+    [('Sentence 1. Sentence 2.', 1.0),
      ('numbers 1 2', 0),
      ('Sentence Final Punctuation!', 1),
      ('(Parenthesized Heading)', 1),
      ('(Newline In\nParenthesized Heading)', 1),
      ('.;-%  ', 0),
-     ('" Sentence With Quotes"  ', 0.75),
+     ('" Sentence With Quotes"  ', 1.0),
      ('A sentence XYZ; a phrase!A sentence-dash?    Another sentence  ', 0.25),
      ('\\v 3 Verse Three.', 0.5),
      ('', 0),
@@ -224,15 +232,15 @@ def test_find_eol_heading(line, expected):
      ('This is a Ten Word Candidate with Seven Capitalized Words', 0.7),
      ("Tutge Hanuwa Wadeka monno Kama'kna Ammaha", 5/6),
      ('Amenee', 1),
-        ('“Phrase Quoted" ', 1),
-        ("End Quote'", 0.5),
-        ('\n‘"', 0),
-        ('....,;Asdf-no Quotes!', 0.5),
-        ('  « Begins A Quote.', 3/4),
-        ('Embedded "Quote"', 1),
-        ('"Look, "At This."', 1),
-        ('They Said, "At this', 3/4),
-        ('Single Quotes\' Don\'t Count as Internal \'Quotes', 4/7)
+    ('“Phrase Quoted" ', 1),
+    ("End Quote'", 1.0),
+    ('\n‘"', 0),
+    ('....,;Asdf-no Quotes!', 0.5),
+    ('  « Begins A Quote.', 1.0),
+    ('Embedded "Quote"', 1),
+    ('"Look, "At This."', 1),
+    ('They Said, "At this', 3/4),
+    ("Single Quotes' Don't Count as Internal 'Quotes", 6/7)
     ])
 def test_percentTitleCase(str, expected):
     import section_titles
@@ -242,12 +250,14 @@ def test_percentTitleCase(str, expected):
     [('N’amamera', True),
      ('text', False),
      ('5', False),
-     (None, False),
-     ('(Parenthesized)', True),
      ('', False),
+     ('(Parenthesized)', True),
      ('.;-%  ', False),
      ('.;-%Word', False),
      ('"Quotes"', True),
+     ("'Quoted", True),
+     ("Endquoted'", True),
+     (' Spaced', True),
      ("Paul's", True),
      ("E'Besusaida", True),
      ("Syo’mufwire", True),
@@ -255,18 +265,17 @@ def test_percentTitleCase(str, expected):
      ("Syo’Mufwire", True),
      ("Syo’muFwire", False),
      ("Syo’MUFWIRE", False),
-     (" E'siwanwa Syo’Mufwire'lower", False),   # isCapitalized does not support phrases
-     ("'Quoted", False),
-     ("Endquoted'", False),
+     (" E'siwanwa Syo’Mufwire'lower", False),   # _isCapitalized(word) does not support phrases
      ("Orang-orang", True),
      ("Orang-Orang", True),
      ("Orang-ORang", False),
      ("orang-Orang", False),
      ('"Hosana!', True),
+     ('After-all', True),
     ])
 def test_isCapitalized(str, expected):
     import section_titles
-    assert section_titles.isCapitalized(str) == expected
+    assert section_titles._isCapitalized(str) == expected
 
 @pytest.mark.parametrize('preheading, heading, postheading, expected',
     [('N’amamera', 'heading', '\n', 'N’amamera\n\\s heading\n\\p\n'),

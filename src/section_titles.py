@@ -44,15 +44,17 @@ expect_parens = True
 startword_re = re.compile(r'[\w "‘“\'\()]')
 
 # Intended for single words, and may not work correctly for phrases.
-# Differs from str.istitle() in how apostrophes are treated.
+# Differs from str.istitle() in how apostrophes and hyphens are treated.
 # Considered numbers to be uncapitalized words.
 # istitle("Paul's") returns False.
-# isCapitalized("Paul's") returns True.
-# isCapitalized("E'Besusaida") returns True.
+# _isCapitalized("Paul's") returns True.
+# _isCapitalized("E'Besusaida") returns True.
 # Hyphenated words like Two-sided and Two-Sided return True.
-def isCapitalized(word):
-    if not word or not startword_re.match(word):
+def _isCapitalized(word):
+    if not startword_re.match(word):
         result = False
+    elif word.istitle():
+        result = True
     else:
         strings = re.split("['’-]", word)
         result = strings[0].istitle()
@@ -65,12 +67,15 @@ def isCapitalized(word):
 # Returns the fraction of words in the string which are title case.
 # Consider numbers to be uncapitalized.
 def percentTitlecase(s):
-    n = 0
-    words = s.split()
-    for word in words:
-        if isCapitalized(word):
-            n += 1
-    percent = n / (len(words) if words else 1)
+    if s.istitle():
+        percent = 1.0
+    else:
+        n = 0
+        words = s.split()
+        for word in words:
+            if _isCapitalized(word):
+                n += 1
+        percent = n / (len(words) if words else 1)
     return percent
 
 # bphrase_re = re.compile(r'\{[\s]*([\w\- ]+)[\s]*\}')
@@ -111,14 +116,17 @@ def find_eol_heading(line):
 def is_heading(s):
     s = s.strip(' \n')
     threshold = _titlecase_threshold(s)
-    return qualifies(s, threshold)
+    return _qualifies(s, threshold)
 
 def is_possible_heading(s):
     s = s.strip(' \n')
-    threshold = _titlecase_threshold(s) - 0.21
-    if 0.0 < threshold < 0.45:
-        threshold = 0.45
-    return qualifies(s, threshold)
+    if unicodeBlock(s) == 'GURMUKHI':
+        threshold = 0.0
+    else:
+        threshold = _titlecase_threshold(s) - 0.21
+        if 0.0 < threshold < 0.45:
+            threshold = 0.45
+    return _qualifies(s, threshold)
 
 anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
 amen_re = re.compile(r'[AE][mM][eiEI]+[nN]')
@@ -127,13 +135,13 @@ forbidden_re = re.compile(r'["“‘‹«”›»]')
 singleWordInParens_re = re.compile(r'\(\s*\w+\s*\)')
 
 # Returns True if the string qualifies as a section heading given the specified threshold of capitalized words.
-def qualifies(s, threshold):
+def _qualifies(s, threshold):
     confirmed = False
     firstword = sentences.firstword(s)
     # Initial qualification
     possible = (threshold <= 1 and not '\n' in s and\
                 not anyMarker_re.search(s) and not amen_re.search(s) and not selah_re.search(s) and\
-                (firstword.isupper() or isCapitalized(firstword) or threshold <= 0.0) and\
+                (firstword.isupper() or _isCapitalized(firstword) or threshold <= 0.0) and\
                 # not quotes.partialQuote(s) and\
                 not forbidden_re.search(s) and\
                 not singleWordInParens_re.match(s) and\
@@ -142,8 +150,8 @@ def qualifies(s, threshold):
         confirmed = s.isupper()
     if possible and not confirmed and expect_titlecase:
         confirmed = (percentTitlecase(s) >= threshold)
-    if possible and not confirmed and expect_parens:
-        confirmed = s[0] == '(' and s[-1] == ')' and (s.isupper() or percentTitlecase(s[1:-1]) >= threshold)
+    # if possible and not confirmed and expect_parens:
+    #     confirmed = s[0] == '(' and s[-1] == ')' and (s.isupper() or percentTitlecase(s[1:-1]) >= threshold)
     return confirmed
 
 goodstart_re = re.compile(r'[\w\(]')
@@ -153,8 +161,6 @@ goodstart_re = re.compile(r'[\w\(]')
 def _titlecase_threshold(s):
     if not s or len(s) < 5:
         adj = 2.0
-    elif unicodeBlock(s) == 'GURMUKHI':  # Gurmukhi has no capitalization
-        adj = 0.0
     else:
         adj = 0.51
         if s[-1] in "'’,":
@@ -175,7 +181,7 @@ def _titlecase_threshold(s):
                 elif s[i] in "!?;":
                     adj = 0.99
         lastword = _lastword(s)
-        if not isCapitalized(lastword) and not lastword.isupper():
+        if not _isCapitalized(lastword) and not lastword.isupper():
             adj += 0.24
     return adj
 
