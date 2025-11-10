@@ -180,14 +180,10 @@ def _titlecase_threshold(s):
                     adj = 1.01
                 elif s[i] in "!?;":
                     adj = 0.99
-        lastword = _lastword(s)
+        lastword = sentences.lastword(s)
         if not _isCapitalized(lastword) and not lastword.isupper():
             adj += 0.24
     return adj
-
-def _lastword(s):
-    words = s.split()
-    return words[-1] if words else ''
 
 def _wordcount(s):
     return len(s.split())

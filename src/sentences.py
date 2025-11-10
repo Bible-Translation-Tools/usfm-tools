@@ -32,13 +32,22 @@ def endsSentence(s, checkquotes=False):
             ends = ''
     return ends
 
-firstword_re = re.compile(r'(\w+-\w+|\w+)')
+word_re = re.compile(r'(\w+-\w+|\w+)')
 
 # Returns the first word in the string.
-def firstword(str):
+def firstword(s):
     word = ''
-    if first := firstword_re.search(str):
+    if first := word_re.search(s):
         word = first.group(1)
+    return word
+
+# Returns the last word in the string.
+def lastword(s):
+    word = ""
+    for item in reversed(s.split()):
+        if words := word_re.findall(item):
+            word = words[-1]
+            break
     return word
 
 endsent_re = re.compile(r'[.?!\u0964\u0965\u1361\u1362\u061F\u06D4].*?(\w+-\w+|\w+)', re.DOTALL)
@@ -56,20 +65,20 @@ def nextfirstwords(str):
 # or partial sentence in str.
 # @TODO Modify function to ignore periods in verse references.
 def nextstartpos(str):
-    nextword = firstword_re.search(str)
+    nextword = word_re.search(str)
     while nextword:
         yield nextword.start()
         endsent = endsent_re.search(str, nextword.end())
         while endsent and badquoted_re.match(endsent.group(0)):
             endsent = endsent_re.search(str, endsent.end())
-        nextword = firstword_re.search(str, endsent.start()+1) if endsent else None
+        nextword = word_re.search(str, endsent.start()+1) if endsent else None
 
 # Capitalizes the first word in each sentence in the string.
 # Capitalizes the first word in the string if startsSentence is True.
 # Returns the string with changes as needed.
 def capitalize(str, startsSentence=True):
     if startsSentence:
-        if first := firstword_re.search(str):
+        if first := word_re.search(str):
             i = first.start()
             if str[i].islower():
                 str = str[0:i] + str[i].upper() + str[i+1:]

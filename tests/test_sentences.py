@@ -7,6 +7,7 @@ tests_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 import pytest
+import sentences
 
 @pytest.mark.parametrize('str, startsSentence, expected',
     [('sentence 1. next sentence 2.', True, 'Sentence 1. Next sentence 2.'),
@@ -26,13 +27,12 @@ import pytest
      ('"go," they said.', False, '"go," they said.'),
     ])
 def test_capitalize(str, startsSentence, expected):
-    import sentences
     if not expected:
         expected = str
     cap = sentences.capitalize(str, startsSentence)
     assert cap == expected
 
-@pytest.mark.parametrize('str, expected',
+@pytest.mark.parametrize('s, expected',
     [('Sentence 1. Next sentence 2.', 'Sentence'),
      ('Sentence\nSecond sentence.', 'Sentence'),
      ('Hyphenated-word', 'Hyphenated-word'),
@@ -46,13 +46,30 @@ def test_capitalize(str, startsSentence, expected):
      ('F-.G', 'F'),
      ('دەزانن؟»', 'دەزانن'),
     ])
-def test_firstword(str, expected):
-    import sentences
-    firstword = sentences.firstword(str)
+def test_firstword(s, expected):
+    firstword = sentences.firstword(s)
+    assert firstword == expected
+
+@pytest.mark.parametrize('s, expected',
+    [('Sentence 1. Next sentence 2.', '2'),
+     ('Sentence\nSecond sentence.', 'sentence'),
+     ('Hyphenated-word', 'Hyphenated-word'),
+     ('-Another try', 'try'),
+     ('\n  A- Minus', 'Minus'),
+     ('B-', 'B'),
+     ('B-C', 'B-C'),
+     ('BB-CC', 'BB-CC'),
+     ('D--C', 'C'),
+     ('E-F-G', 'G'),
+     ('F-.G', 'G'),
+     ('دەزانن؟»', 'دەزانن'),
+    ])
+def test_lastword(s, expected):
+    firstword = sentences.lastword(s)
     assert firstword == expected
 
 # Note that nextfirstwords() disregards the first sentence or partial sentence in the string.
-@pytest.mark.parametrize('str, expected',
+@pytest.mark.parametrize('s, expected',
     [('Sentence 1. Next sentence 2.', ['Next']),
      ('Sentence 1\nSame sentence.', []),
      ('Sentence 1\n.Second sentence.', ['Second']),
@@ -64,9 +81,8 @@ def test_firstword(str, expected):
      ('F-.G-H', ['G-H']),
      ('ڕابوەستێت؟ ڕابوەستێت؟', ['ڕابوەستێت']),
     ])
-def test_nextfirstwords(str, expected):
-    import sentences
-    firstwordlist = [word for word in sentences.nextfirstwords(str)]
+def test_nextfirstwords(s, expected):
+    firstwordlist = [word for word in sentences.nextfirstwords(s)]
     if type(expected) is list:
         assert firstwordlist == expected
     else:
@@ -93,7 +109,6 @@ def test_nextfirstwords(str, expected):
      ('ڕابوەستێت؟ ڕابوەستێت؟', [0,11]),
     ])
 def test_nextstartpos(str, result):
-    import sentences
     startposlist = [pos for pos in sentences.nextstartpos(str)]
     if type(result) is list:
         assert startposlist == result
@@ -122,7 +137,6 @@ def test_nextstartpos(str, result):
      (' ڕابوەستێت؟  ڕابوەستێت؟  ڕابوەستێت', 3),
     ])
 def test_sentenceCount(str, expected):
-    import sentences
     returned = sentences.sentenceCount(str)
     assert returned == expected
 
@@ -158,6 +172,5 @@ def test_sentenceCount(str, expected):
      ('لەبەردەمیدا ڕابوەستێت؟', True, '؟')
     ])
 def test_endsSentence(str, checkquotes, expected):
-    import sentences
     returned = sentences.endsSentence(str, checkquotes)
     assert returned == expected
