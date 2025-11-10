@@ -38,6 +38,7 @@ nChanges = 0  # number of changes made
     # includes paragraphs, sections, and terminating punctuation copied from model,
     # and the number of \s5 markers removed.
 issuesFile = None
+sections_file = None
 
 class State:
     def __init__(self):
@@ -113,8 +114,6 @@ class State:
         self.midSentence = False    # fair assumption
         self.lastText = ''
         self.expectText = False
-        # self.sChapter = self.chapter
-        # self.sVerse = self.bridge
         self.sTag = tag
         self.needPmarker = self.bridge + 1
 
@@ -328,9 +327,33 @@ def takeS5():
         global nChanges
         nChanges += 1
 
-def takeS(tag, value):
+# Returns string in suitable format for viewing .csv file in Excel.
+def csv(s):
+    if s:
+        s = s.replace(',',';')
+        if s[0] == '"':
+            if s.count('"') == 1:
+                s = s[1:]   # CSV can't handle orphan leading quote
+            else:
+                pos = s.find('"', 1)
+                s = '""' + s[0:pos] + '""' + s[pos:]    # triple the first and second quote
+    return s
+
+def takeS(tag, value:str):
     state.addS(tag)
     state.usfm.writeUsfm(tag, value)
+    if sections_file:
+        hd = csv(value)
+        thresh = section_titles._titlecase_threshold(value)
+        if unicodeBlock(hd) == 'GURMUKHI':
+            thresh = 0.0
+        firstword = sentences.firstword(value)
+        caps1 = 1 if firstword.isupper() or section_titles._isCapitalized(firstword) else 0
+        lastword = sentences.lastword(value)
+        capsN = 1 if section_titles._isCapitalized(lastword) or lastword.isupper() else 0
+        pct = section_titles.percentTitlecase(hd)
+        qual = 1 if section_titles._qualifies(hd, thresh) else 0
+        sections_file.write(f"{state.ID},{state.chapter},{state.verse},{hd},{thresh},{caps1},{capsN},{pct},{qual}\n")
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
@@ -464,7 +487,7 @@ def convertFile(usfmpath, fname):
     sys.stdout.flush()
     success = isParseable(str, usfmpath, fname)
     if success:
-        reportProgress(f"Marking {fname}")
+        # reportProgress(f"Marking {fname}")
         sys.stdout.flush()
         tokens = usfmReader.parseString(str)
         token = tokens[0]   # safe because isParseable should reject empty files
@@ -473,10 +496,10 @@ def convertFile(usfmpath, fname):
             token = nexttoken
         take(token, token)
         state.usfmClose()
-        if nChanges > startn:
+        if nChanges > startn and not ToolsConfigManager().getboolean('MarkParagraphs', 'diagnostics'):
             renameUsfmFiles(usfmpath)
         else:
-            reportStatus(f"  No changes to {fname}\n")
+            reportStatus(f"  No changes to {fname}")
             removeTempFiles(usfmpath)
     else:
         state.usfmClose()
@@ -546,11 +569,28 @@ def openIssuesFile():
         issuesFile.write("Issues detected by MarkParagraphs:\n------------------------------------\n")
     return issuesFile
 
-def closeIssuesFiles():
+def closeFiles():
     global issuesFile
     if issuesFile:
         issuesFile.close()
         issuesFile = None
+    global sections_file
+    if sections_file:
+        sections_file.close()
+        sections_file = None
+
+def open_sections_file():
+    global sections_file
+
+    if not sections_file:
+        work_dir = getWorkDir()
+        path = os.path.join(work_dir, "sections.csv")
+        try:
+            sections_file = io.open(path, "tw", encoding='utf-8-sig')
+            sections_file.write("Book,Chapter,Verse,Heading,Thresh,1stWordCaps,LastWordCaps,PercentCaps,_qualifies()\n")
+        except PermissionError as e:
+            reportError("Permission error opening sections.csv")
+            sections_file = None
 
 # Writes message to stderr and to issues.mark_paragraphs.txt.
 def reportError(msg, realIssue=True):
@@ -676,7 +716,7 @@ def scanModelFile(modelpath, fname):
         sys.stdout.flush()
         success = isParseable(str, modelpath, os.path.basename(modelpath))
         if success:
-            reportProgress(f"Parsing model file: {fname}")
+            # reportProgress(f"Parsing model file: {fname}")
             sys.stdout.flush()
             state.addFile(fname)
             tokens = usfmReader.parseString(str)
@@ -699,6 +739,7 @@ def processFile(path):
     if os.path.isfile(model_path):
         # cmd = f"scanModelFile( r'{model_path}', '{fname}' )"
         # cProfile.run(cmd)
+        reportProgress(fname)
         if scanModelFile(model_path, fname):
             backupUsfmFile(path)
             if not convertFile(path, fname):
@@ -740,6 +781,9 @@ def main(app = None):
     punctuate = config.getboolean('MarkParagraphs', 'punctuate')
     identifyModel(config.get('MarkParagraphs', 'model_dir'))
     work_dir = getWorkDir()
+    if config.getboolean('MarkParagraphs', 'diagnostics'):
+        open_sections_file()
+
     file = config.get('MarkParagraphs', 'filename')
     if file:
         path = os.path.join(work_dir, file)
@@ -750,9 +794,9 @@ def main(app = None):
     else:
         convertFolder(work_dir)
 
-    closeIssuesFiles()
+    closeFiles()
     reportStatus(f"\nDone.")
-    if nChanges > 0:
+    if nChanges > 0 and not config.getboolean('MarkParagraphs', 'diagnostics'):
         reportStatus("Changes were made.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")

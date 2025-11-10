@@ -42,3 +42,24 @@ def test_punctuated(s, result):
 def test_isPoetryMark(mark, expected):
     isp = mark_paragraphs.isPoetryMark(mark)
     assert isp == expected
+
+@pytest.mark.parametrize('s, expected',
+    [('5', ''),
+     ('   ', ''),
+     ('p', ''),
+     ('"qss', 'qss'),
+     ('"q"', '"""q"""'),
+     (' "q', ''),
+     ('"qm2"', '"""qm2"""'),
+     ("q,3", 'q;3'),
+     ('"m"nnnn', '"""m"""nnnn'),
+     ('"d" ee "', '"""d""" ee "'),
+     ('sp " sp', ''),
+     ('rst" uvw"', ''),
+     ('xyz"', '')
+    ])
+def test_csv(s, expected):
+    if not expected:
+        expected = s
+    result = mark_paragraphs.csv(s)
+    assert result == expected
