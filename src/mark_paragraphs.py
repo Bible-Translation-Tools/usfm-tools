@@ -186,7 +186,7 @@ class State:
     # Returns the section mark that occurred in the model file at the current location,
     # and the punctuation ending the preceding sentence.
     def smarkInModel(self):
-        smark = punct = None
+        smark = punct = ""
         for s in self.sections_model:
             if s['chapter'] == self.chapter and s['verse'] == self.verse and s['located']:
                 smark = s['mark']
@@ -345,15 +345,23 @@ def takeS(tag, value:str):
     if sections_file:
         hd = csv(value)
         thresh = section_titles._titlecase_threshold(value)
-        if unicodeBlock(hd) == 'GURMUKHI':
-            thresh = 0.0
         firstword = sentences.firstword(value)
         caps1 = 1 if firstword.isupper() or section_titles._isCapitalized(firstword) else 0
         lastword = sentences.lastword(value)
         capsN = 1 if section_titles._isCapitalized(lastword) or lastword.isupper() else 0
-        pct = section_titles.percentTitlecase(hd)
-        qual = 1 if section_titles._qualifies(hd, thresh) else 0
-        sections_file.write(f"{state.ID},{state.chapter},{state.verse},{hd},{thresh},{caps1},{capsN},{pct},{qual}\n")
+        pctCap = section_titles.percentTitlecase(value)
+        qual = 1 if section_titles._qualifies(value, thresh) else 0
+        quotes = 1 if section_titles.forbidden_re.search(value) else 0
+        endss = 1 if sentences.endsSentence(value) else 0
+        nchars = len(value)
+        nwords = len(value.split())
+        nsents = sentences.sentenceCount(value)
+        (smark, punc) = state.smarkInModel()
+        inSource = 1 if smark in {'s','s1','s2','sr','r','d','sp'} else 0
+        pctAlpha = section_titles.percentAlpha(value)
+        row = f"{state.ID},{state.chapter},{state.verse},{hd},{thresh},{caps1},{capsN},{pctCap}"
+        row += f",{qual},{quotes},{endss},{nchars},{nwords},{nsents},{inSource},{pctAlpha}"
+        sections_file.write(f"{row}\n")
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
@@ -392,7 +400,7 @@ def takeText(t):
 so sentence termination functionality is disabled.")
 
     ####### This is the case where the model has a section heading, and t might be a section heading on a line by itself #######
-    if smark and smark != "s5" and section_titles.is_possible_heading(t):
+    if smark in {'s','s1','s2','sr','r','d','sp'} and section_titles.is_possible_heading(t):
         mayTerminateLastSentence(punct)
         state.usfm.writeUsfm(smark, t)
         nChanges += 1
@@ -587,7 +595,9 @@ def open_sections_file():
         path = os.path.join(work_dir, "sections.csv")
         try:
             sections_file = io.open(path, "tw", encoding='utf-8-sig')
-            sections_file.write("Book,Chapter,Verse,Heading,Thresh,1stWordCaps,LastWordCaps,PercentCaps,_qualifies()\n")
+            row = "Book,Chap,Verse,Heading,Thresh,1stWordCaps,LastWordCaps,% Title,_qualifies(),quotes,endsSentence"
+            row += ",Chars,Words,Sentences,inSource,% Alpha"
+            sections_file.write(f"{row}\n")
         except PermissionError as e:
             reportError("Permission error opening sections.csv")
             sections_file = None
