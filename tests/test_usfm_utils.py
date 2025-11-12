@@ -46,7 +46,33 @@ def test_parseLine(line, exp_marker, exp_value, exp_remainder):
         ("\\v 27 ਕਿਉਂ*-!", 'GURMUKHI'),   # Malwai
         ("ਪਵਿੱਤਰ ਆਤਮਾ ਦਾ ਕਰਾਰ", 'GURMUKHI'), # Malwai
         ("सब के बारे में हम ", 'DEVANAGARI'),  # Urdu-devanagari
+        ("देकमिओ छावनछा", 'DEVANAGARI'),  # Rai
+        ("দ্বিতীয় দিন ", 'BENGALI'),    # Assamese language
     ])
 def test_unicodeBlock(text, expectedblock):
     block = usfm_utils.unicodeBlock(text)
     assert block == expectedblock
+
+@pytest.mark.parametrize('text, expected',
+    [
+        ('5', False), # we treat all ASCII characters as LATIN
+        ('   ', False),
+        ('π', False),
+        ('あいう', True),
+        ('漢字', True),
+        ('שלום', True),
+        ('Здравствуйте', False),
+        ('MATTHEW-', False),
+        ("ኧያእቆቢ ኧችን፤", True),
+        ("دەرناکات،", True),   # Arabic comma
+        ("  ؟  ", True),      # Arabic question mark
+        ("میرے یسوع دے نال پکے ", True),  # Western Punjabi
+        ("\\v 27 ਕਿਉਂ*-!", True),   # Malwai
+        ("ਪਵਿੱਤਰ ਆਤਮਾ ਦਾ ਕਰਾਰ", True), # Malwai
+        ("सब के बारे में हम ", True),  # Urdu-devanagari
+        ("देकमिओ छावनछा", True),  # Rai
+        ("দ্বিতীয় দিন ", True),     # Assamese
+    ])
+def test_isCaseless(text, expected):
+    result = usfm_utils.isCaseless(text)
+    assert result == expected

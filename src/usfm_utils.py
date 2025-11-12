@@ -75,9 +75,14 @@ def unicodeBlock(text):
     else:
         primary_block = 'Unknown'
         for char in text:
-            if char not in {' ','\n','\\','v','c','p','q','*','-'}:
+            if char not in " \n\\vcpq*-0123456789":
                 block_name = unicodedata.name(char, "Unknown").split()[0]
                 blocks[block_name] = blocks.get(block_name, 0) + 1
         if blocks:
             primary_block = max(blocks, key=lambda key: blocks[key])
     return primary_block
+
+# Returns True if the script is caseless.
+def isCaseless(text):
+    block = unicodeBlock(text)
+    return (block in {'ARABIC','BENGALI','CJK','DEVANAGARI','ETHIOPIC','GURMUKHI','HEBREW','HIRAGANA'})
