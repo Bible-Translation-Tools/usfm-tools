@@ -75,7 +75,9 @@ import pytest
     ('Wordone Wordtwo.', True),
     ('\v 1 ਲਿਖਣ ਵਾਲਾਂ', False),
     ('ਲਿਖਣ ਵਾਲਾਂ', False),  # GURMUKHI script
-    ('ਪ੍ਰਭੂ ਯਿਸ਼ੂ ਮਸੀਹ ਦੀ ਪੀਹੜੀ ਅਤੇ ਜਨਮ', False), # this is an actual section title from Malwai
+    ('ਪ੍ਰਭੂ ਯਿਸ਼ੂ ਮਸੀਹ ਦੀ ਪੀਹੜੀ ਅਤੇ ਜਨਮ', False), # actual section title from Malwai
+    ('ਯਿਸੂ ਪੰਜ ਹਜ਼ਾਰ ਨੂੰ ਰਜਾਉਂਦਾ ਹੈ', False),  # actual Punjabi heading, another GURMUKHI script
+    ('(ਕੂਚ 35:30 - 36:1)', False),   # actual Punjabi heading
     ])
 def test_is_heading(str, expected):
     import section_titles
@@ -144,7 +146,9 @@ def test_is_heading(str, expected):
     ('گریان و شیوەنێکی گەورە! ڕاخێل  نەمابوون!»', False),
     ('ਪ੍ਰਭੂ ਯਿਸ਼ੂ ਮਸੀਹ ਦੀ ਪੀਹੜੀ ਅਤੇ ਜਨਮ', True),  # this is an actual section title from Malwai
     ('ਯਿਸੂ ਦੀ ਵੰਸ਼ਾਵਲੀ', True),
-    ])
+    ('ਯਿਸੂ ਪੰਜ ਹਜ਼ਾਰ ਨੂੰ ਰਜਾਉਂਦਾ ਹੈ', True),  # actual Punjabi heading, another GURMUKHI script
+    ('(ਕੂਚ 35:30 - 36:1)', True),   # actual Punjabi heading
+])
 def test_is_possibleheading(str, expected):
     import section_titles
     assert section_titles.is_possible_heading(str) == expected
@@ -214,7 +218,32 @@ def test_find_eol_heading(line, expected):
     import section_titles
     assert section_titles.find_eol_heading(line) == expected
 
-@pytest.mark.parametrize('str, expected',
+@pytest.mark.parametrize('s, expected',
+    [('Sentence 1.', 8/10),
+     ('numbers 1 2', 7/9),
+     ('tion!', 4/5),
+     ('(Parens)', 6/8),
+     ('(Newline In\nParenthesized Heading)', 29/32),
+     ('.;-%  ', 0),
+     ('" With Quotes"  ', 10/12),
+     ('A sentence XYZ; a phrase!A sentence-dash?    Another sentence  ', 47/51),
+     ('\\v 3 Verse Three.', 11/14),
+     ('', 0),
+     ('\\c 2 St      \\v 2 asdfasdf', 12/16),
+     ('TitleMiXedlower', 1.0),
+     ('two words', 8/8),
+     ("How Paul's word", 12/13),
+     ('  ', 0),
+    ('\n‘"', 0),
+    ('....,;Asdf-no Quotes!', 12/20),
+    ('  « Begins A Quote.', 12/14),
+    ('ਸਲੀਬੀ ਮੌਤ', 5/8),
+    ])
+def test_percentAlpha(s, expected):
+    import section_titles
+    assert section_titles.percentAlpha(s) == expected
+
+@pytest.mark.parametrize('s, expected',
     [('Sentence 1. Sentence 2.', 1.0),
      ('numbers 1 2', 0),
      ('Sentence Final Punctuation!', 1),
@@ -242,11 +271,11 @@ def test_find_eol_heading(line, expected):
     ('They Said, "At this', 3/4),
     ("Single Quotes' Don't Count as Internal 'Quotes", 6/7)
     ])
-def test_percentTitleCase(str, expected):
+def test_percentTitleCase(s, expected):
     import section_titles
-    assert section_titles.percentTitlecase(str) == expected
+    assert section_titles.percentTitlecase(s) == expected
 
-@pytest.mark.parametrize('str, expected',
+@pytest.mark.parametrize('s, expected',
     [('N’amamera', True),
      ('text', False),
      ('5', False),
@@ -273,9 +302,9 @@ def test_percentTitleCase(str, expected):
      ('"Hosana!', True),
      ('After-all', True),
     ])
-def test_isCapitalized(str, expected):
+def test_isCapitalized(s, expected):
     import section_titles
-    assert section_titles._isCapitalized(str) == expected
+    assert section_titles._isCapitalized(s) == expected
 
 @pytest.mark.parametrize('preheading, heading, postheading, expected',
     [('N’amamera', 'heading', '\n', 'N’amamera\n\\s heading\n\\p\n'),
