@@ -45,7 +45,7 @@ def makeUsfmFilename(bookId):
         reportError(f"Invalid book ID: {bookId}")
     return fname
 
-format1_re = re.compile(r'0?[0-6][0-9]-?([123AC-EG-JL-PR-TZ][A-Z][A-Z])')
+format1_re = re.compile(r'0?[0-7][0-9]-?([123AC-EG-JL-PR-TZ][A-Z][A-Z])')
 
 # Returns the apparent book ID from the specified file name.
 def bookidfromFilename(fname):
@@ -81,6 +81,8 @@ def convertFile(path:Path, work_dir):
 def convert(ptx_dir, work_dir):
     count = 0
     ptxpath = Path(ptx_dir)
+    for path in ptxpath.glob('*.usfm'):
+        count += convertFile(path, work_dir)
     for path in ptxpath.glob('*.SFM'):
         count += convertFile(path, work_dir)
     if count == 0:
