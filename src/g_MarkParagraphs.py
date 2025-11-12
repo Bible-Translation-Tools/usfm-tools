@@ -32,7 +32,7 @@ class MarkParagraphs(g_step.Step):
         if not values['filename']:
             count = g_util.count_files(values['work_dir'], ".*sfm$")
         self.script = "mark_paragraphs"
-        self.mainapp.execute_script(self.script, count*2)
+        self.mainapp.execute_script(self.script, count)
         self.frame.clear_messages()
 
     # Temporary function, until "source_dir" is fully retired.
