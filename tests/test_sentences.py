@@ -169,7 +169,8 @@ def test_sentenceCount(str, expected):
      ('Incorrectly quoted sentence!‘', True, ''),
      ('মহিমার মত হব’।”', False, '।'),
      ('মহিমার মত হব’।”', True, '।'),
-     ('لەبەردەمیدا ڕابوەستێت؟', True, '؟')
+     ('لەبەردەمیدا ڕابوەستێت؟', True, '؟'),
+     ('మొదటి ప్రార్థన (మార్కు 14:35. లూకా 22:41;42)', False, ''),
     ])
 def test_endsSentence(str, checkquotes, expected):
     returned = sentences.endsSentence(str, checkquotes)

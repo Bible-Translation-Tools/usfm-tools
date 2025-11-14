@@ -6,6 +6,7 @@ import sys
 tests_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
+import section_titles
 import pytest
 
 @pytest.mark.parametrize('str, expected',
@@ -80,7 +81,6 @@ import pytest
     ('(ਕੂਚ 35:30 - 36:1)', False),   # actual Punjabi heading
     ])
 def test_is_heading(str, expected):
-    import section_titles
     assert section_titles.is_heading(str) == expected
 
 @pytest.mark.parametrize('str, expected',
@@ -150,7 +150,6 @@ def test_is_heading(str, expected):
     ('(ਕੂਚ 35:30 - 36:1)', True),   # actual Punjabi heading
 ])
 def test_is_possibleheading(str, expected):
-    import section_titles
     assert section_titles.is_possible_heading(str) == expected
 
 @pytest.mark.parametrize('str, expected',
@@ -196,7 +195,6 @@ def test_is_possibleheading(str, expected):
         ('\\v 2 some sentence. (Oneword)', None)
     ])
 def test_find_parenthesized_heading(str, expected):
-    import section_titles
     assert section_titles.find_parenthesized_heading(str) == expected
 
 @pytest.mark.parametrize('line, expected',
@@ -215,7 +213,6 @@ def test_find_parenthesized_heading(str, expected):
     #  ('\\v 17 ਸੋ ਤੱਕ ਚੌਦਾਂ । ਯਿਸੂ ਦਾ ਜਨਮ', 'ਯਿਸੂ ਦਾ ਜਨਮ'), # actual GURMUKHI eol heading, but is not supported
     ])
 def test_find_eol_heading(line, expected):
-    import section_titles
     assert section_titles.find_eol_heading(line) == expected
 
 @pytest.mark.parametrize('s, expected',
@@ -240,7 +237,6 @@ def test_find_eol_heading(line, expected):
     ('ਸਲੀਬੀ ਮੌਤ', 5/8),
     ])
 def test_percentAlpha(s, expected):
-    import section_titles
     assert section_titles.percentAlpha(s) == expected
 
 @pytest.mark.parametrize('s, expected',
@@ -272,7 +268,6 @@ def test_percentAlpha(s, expected):
     ("Single Quotes' Don't Count as Internal 'Quotes", 6/7)
     ])
 def test_percentTitleCase(s, expected):
-    import section_titles
     assert section_titles.percentTitlecase(s) == expected
 
 @pytest.mark.parametrize('s, expected',
@@ -303,8 +298,14 @@ def test_percentTitleCase(s, expected):
      ('After-all', True),
     ])
 def test_isCapitalized(s, expected):
-    import section_titles
     assert section_titles._isCapitalized(s) == expected
+
+@pytest.mark.parametrize('s, expected',
+    [('మొదటి ప్రార్థన (మార్కు 14:35. లూకా 22:41;42)', 0.555),
+])
+def test_titlecase_threshold(s, expected):
+    result = section_titles._titlecase_threshold(s)
+    assert result == expected
 
 @pytest.mark.parametrize('preheading, heading, postheading, expected',
     [('N’amamera', 'heading', '\n', 'N’amamera\n\\s heading\n\\p\n'),
@@ -314,6 +315,5 @@ def test_isCapitalized(s, expected):
      ('Pre    ', 'heading', '', 'Pre\n\\s heading\n\\p\n'),
     ])
 def test_insert_heading(preheading, heading, postheading, expected):
-    import section_titles
     result = section_titles.insert_heading(preheading, heading, postheading)
     assert result == expected
