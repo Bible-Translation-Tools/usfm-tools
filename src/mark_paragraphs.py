@@ -351,6 +351,8 @@ def takeS(tag, value:str):
         capsN = 1 if section_titles._isCapitalized(lastword) or lastword.isupper() else 0
         pctCap = section_titles.percentTitlecase(value)
         qual = 1 if section_titles._qualifies(value, thresh) else 0
+        is_heading = 1 if section_titles.is_heading(value) else 0
+        poss = 1 if section_titles.is_possible_heading(value) else 0
         quotes = 1 if section_titles.forbidden_re.search(value) else 0
         endss = 1 if sentences.endsSentence(value) else 0
         nchars = len(value)
@@ -360,7 +362,7 @@ def takeS(tag, value:str):
         inSource = 1 if smark in {'s','s1','s2','sr','r','d','sp'} else 0
         pctAlpha = section_titles.percentAlpha(value)
         row = f"{state.ID},{state.chapter},{state.verse},{hd},{thresh},{caps1},{capsN},{pctCap}"
-        row += f",{qual},{quotes},{endss},{nchars},{nwords},{nsents},{inSource},{pctAlpha}"
+        row += f",{qual},{is_heading},{poss},{quotes},{endss},{nchars},{nwords},{nsents},{inSource},{pctAlpha}"
         sections_file.write(f"{row}\n")
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
@@ -595,12 +597,14 @@ def open_sections_file():
         path = os.path.join(work_dir, "sections.csv")
         try:
             sections_file = io.open(path, "tw", encoding='utf-8-sig')
-            row = "Book,Chap,Verse,Heading,Thresh,1stWordCaps,LastWordCaps,% Title,_qualifies(),quotes,endsSentence"
+            row = "Book,Chap,Verse,Heading,Thresh,1stWordCaps,LastWordCaps,% Title,_qualifies()"
+            row += ",is,possible,quotes,endsSentence"
             row += ",Chars,Words,Sentences,inSource,% Alpha"
             sections_file.write(f"{row}\n")
         except PermissionError as e:
             reportError("Permission error opening sections.csv")
             sections_file = None
+            sys.exit(-1)
 
 # Writes message to stderr and to issues.mark_paragraphs.txt.
 def reportError(msg, realIssue=True):
