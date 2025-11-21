@@ -153,7 +153,7 @@ class ToolsConfigManager:
                     'enable6': True,
                     'enable7': False,
                     'enable8': False,
-                    'sourcetext_dir': "" }
+                    'compare_dir': "" }
             case 'Usx2Usfm':
                 sec = {'usx_dir': "",
                        'filename': "",
