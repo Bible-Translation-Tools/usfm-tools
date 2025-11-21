@@ -3,6 +3,7 @@
 #    parseLine()
 #    unalign_usfm()
 #    unicodeBlock()
+#    isCaseless()
 
 from __future__ import unicode_literals
 import re
@@ -85,4 +86,5 @@ def unicodeBlock(text):
 # Returns True if the script is caseless.
 def isCaseless(text):
     block = unicodeBlock(text)
-    return (block in {'ARABIC','BENGALI','CJK','DEVANAGARI','ETHIOPIC','GURMUKHI','HEBREW','HIRAGANA'})
+    return (block in {'ARABIC','BENGALI','CJK','DEVANAGARI','ETHIOPIC','GUJARATI','GURMUKHI',
+                      'HEBREW','HIRAGANA','KANNADA','ORIYA','TAMIL','TELUGU'})
