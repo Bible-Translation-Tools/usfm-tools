@@ -291,8 +291,10 @@ then you don't need to run this process.")
 
         if not code:
             objections.append("Language code is required.")
-        if not dir or not model_dir:
-            objections.append("Specify locations of files.")
+        if not dir:
+            objections.append("Specify location of files to be marked.")
+        if not model_dir:
+            objections.append("Specify location of model files.")
         if dir and not os.path.isdir(dir):
             objections.append(f"{dir} is not a valid folder.")
         if model_dir and not os.path.isdir(model_dir):
@@ -301,7 +303,7 @@ then you don't need to run this process.")
             filepath = os.path.join(dir, namedfile)
             if not os.path.isfile(filepath):
                 objections.append(f"{filepath} is not a valid file.")
-        if model_dir == dir:
+        if dir and model_dir and model_dir == dir:
             objections.append("The two file folders can't be the same.")
         return objections
 
