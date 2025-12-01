@@ -77,7 +77,6 @@ def percentTitlecase(s):
 pphrase_re = re.compile(r'\([\s]*([\w\- ]+)[\s]*\)\s*$', re.MULTILINE)
 
 # Returns that portion of the specified line that is most likely a heading.
-# A single word in parentheses fails the test.
 # Returns None if no parenthesized heading is found.
 def find_parenthesized_heading(line):
     pheading = None
@@ -104,7 +103,6 @@ def find_eol_heading(line):
     return candidate
 
 # Returns True if the string looks like a section heading.
-# Any backslash markers or quote marks in the string disqualify it.
 # See comments at the top of this file for factors that are considered.
 # The threshold parameter specifies the minimum percentage of capitalized words
 #    in a string that is partly title case.
@@ -119,18 +117,15 @@ def is_heading(s):
 
 def is_possible_heading(s):
     s = s.strip(' \n')
-    # if isCaseless(s):
-    #     threshold = 0.0
-    # else:
     threshold = _titlecase_threshold(s) - 0.21
     if 0.0 < threshold < 0.45:
         threshold = 0.45
     return _qualifies(s, threshold)
 
 anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
-amen_re = re.compile(r'[AE][mM][eiEI]+[nN]')
-selah_re = re.compile(r'Selah')
-forbidden_re = re.compile(r'["“‘‹«”›»]')
+amen_re = re.compile(r'[AE]m[ei]+n', flags=re.IGNORECASE)
+selah_re = re.compile(r'Selah', flags=re.IGNORECASE)
+quotes_re = re.compile(r'["“‘‹«”›»]')
 singleWordInParens_re = re.compile(r'\(\s*\w+\s*\)')
 
 # Returns True if the string qualifies as a section heading given the specified threshold of capitalized words.
@@ -139,11 +134,10 @@ def _qualifies(s, threshold):
     firstword = sentences.firstword(s)
     caseless = isCaseless(firstword)
     # Initial qualification
-    possible = (threshold <= 1 and not '\n' in s and\
+    possible = (threshold <= 1 and\
                 not anyMarker_re.search(s) and not amen_re.search(s) and not selah_re.search(s) and\
                 (firstword.isupper() or _isCapitalized(firstword) or caseless) and\
-                # not quotes.partialQuote(s) and\
-                not forbidden_re.search(s) and\
+                not quotes_re.search(s) and\
                 not singleWordInParens_re.match(s) and\
                 sentences.sentenceCount(s) == 1)
     if possible and not confirmed:
@@ -175,7 +169,7 @@ def _titlecase_threshold(s):
             adj += 0.18
         if ends := sentences.endsSentence(s):
             adj += 0.16
-            if _wordcount(s) == 1:
+            if _wordcount(s) > 17:
                 adj = 1.01
             if ends in "!?;":
                 adj = 0.99
