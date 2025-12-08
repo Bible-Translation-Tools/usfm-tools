@@ -144,6 +144,7 @@ class ToolsConfigManager:
                 sec = {'language_code': "",
                     'work_dir': "",
                     'filename': "",
+                    'compare_dir': "",   # the source language folder, for comparisons
                     'standard_chapter_title': "",
                     'enable1': True,
                     'enable2': True,
@@ -152,8 +153,7 @@ class ToolsConfigManager:
                     'enable5': False,
                     'enable6': True,
                     'enable7': False,
-                    'enable8': False,
-                    'compare_dir': "" }
+                    'enable8': False }
             case 'Usx2Usfm':
                 sec = {'usx_dir': "",
                        'filename': "",

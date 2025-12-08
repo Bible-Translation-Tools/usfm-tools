@@ -28,7 +28,7 @@ class VerifyUSFM(g_step.Step):
 
     def onNext(self):
         if self.executed:
-            super().onNext('work_dir', 'filename', 'language_code', 'standard_chapter_title')
+            super().onNext('work_dir', 'filename', 'compare_dir', 'language_code', 'standard_chapter_title')
         else:
             super().onNext()
         self.executed = False
@@ -264,9 +264,9 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             self.controller.mainapp.save_values(stepname, self.values)
 
             projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
-            if self.values['compare_dir']:
+            if self.values['compare_dir'] != projectInfo.getSourceDir():
                 projectInfo.setSourceDir(self.values['compare_dir'])
-            projectInfo.save()
+                projectInfo.save()
 
     # Returns a list of incomplete or incorrect inputs.
     # Used by _onExecute().
