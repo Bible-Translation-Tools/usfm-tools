@@ -87,4 +87,4 @@ def unicodeBlock(text):
 def isCaseless(text):
     block = unicodeBlock(text)
     return (block in {'ARABIC','BENGALI','CJK','DEVANAGARI','ETHIOPIC','GUJARATI','GURMUKHI',
-                      'HEBREW','HIRAGANA','KANNADA','ORIYA','TAMIL','TELUGU'})
+                      'HEBREW','HIRAGANA','KANNADA','LAO','ORIYA','TAMIL','TELUGU'})

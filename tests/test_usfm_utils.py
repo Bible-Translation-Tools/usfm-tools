@@ -72,6 +72,7 @@ def test_unicodeBlock(text, expectedblock):
         ("सब के बारे में हम ", True),  # Urdu-devanagari
         ("देकमिओ छावनछा", True),  # Rai
         ("দ্বিতীয় দিন ", True),     # Assamese
+        ("ເປັນເມັດ", True),       # Lao
     ])
 def test_isCaseless(text, expected):
     result = usfm_utils.isCaseless(text)
