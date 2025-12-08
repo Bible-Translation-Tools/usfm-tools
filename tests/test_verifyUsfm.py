@@ -59,6 +59,15 @@ def test_nChapters(str, result):
         ('Yahweh—that', True),  # isMixed() returns True but em-dash -> two words
         ('laws—I', True),     # isMixed() returns True but em-dash -> two words
         ('Tu`u`tu`u', False),
+        ("ኧያእቆቢ ኧችን፤", False),  # this one and the remaining tests are from caseless scripts
+        ("دەرناکات،", False),   # Arabic comma
+        ("  ؟  ", False),      # Arabic question mark
+        ("میرے یسوع دے نال پکے ", False),  # Western Punjabi
+        ("\\v 27 ਕਿਉਂ*-!", False),   # Malwai
+        ("सब के बारे में हम ", False),  # Urdu-devanagari
+        ("देकमिओ छावनछा", False),  # Rai
+        ("দ্বিতীয় দিন ", False),     # Assamese
+        ("ເປັນເມັດ", False),      # Lao
     ])
 def test_isMixed(word, expected):
     assert verifyUSFM.isMixed(word) == expected

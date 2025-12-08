@@ -134,7 +134,7 @@ class State:
             self.sourcetext.clear()
             self.source_nverses.clear()
             self.sourcefootnote.clear()
-            self.nchunks_src = 0
+            self.source_nchunks = 0
         elif id and id not in self.IDs:
             self.IDs.append(id)
 
@@ -217,7 +217,7 @@ class State:
     # Records the start of a new chunk
     def addS5(self):
         if self.scanning:
-            self.nchunks_src += 1
+            self.source_nchunks += 1
         self.startChunkVerse = self.verse + 1
         self.startChunkRef = self.ID + " " + str(self.chapter) + ":" + str(self.startChunkVerse)
 
@@ -454,7 +454,7 @@ def openIssuesFile():
         issuesFile.write("-------------------\n")
     return issuesFile
 
-# Returns the longest common substring at the start of s1 and s2
+# Returns the longest common substrin g at the start of s1 and s2
 def long_substring(s1, s2):
     if s1.startswith(s2):
         return s2
@@ -599,10 +599,11 @@ punct_table = str.maketrans('', '', "'’`\"-_()–&")
 def isMixed(word):
     global trans
     mixed = False
-    if len(word) > 1 and not (word.islower() or word.istitle() or word.isupper()):
-        w2 = word.translate(punct_table)
-        if len(w2) > 1 and not (w2.islower() or w2.istitle() or w2.isupper()):
-            mixed = True
+    if len(word) > 1 and not usfm_utils.isCaseless(word):
+        if not (word.islower() or word.istitle() or word.isupper()):
+            w2 = word.translate(punct_table)
+            if len(w2) > 1 and not (w2.islower() or w2.istitle() or w2.isupper()):
+                mixed = True
     return mixed
 
 # Scans the word list for mixed case words.
@@ -769,7 +770,7 @@ def similarToSource():
     similarity = 0
     n = 0
     ref = state.getReference()
-    if state.sourcetext and ref in state.sourcetext:
+    if ref in state.sourcetext:
         setA = set(state.sourcetext[ref].split())
         if ref in state.sourcefootnote:
             setA.update(state.sourcefootnote[ref].split())
@@ -994,8 +995,7 @@ def reportSectionPrecedentErrors(tag):
         reportIssue(f"\\b should not be used before or after section heading. {state.getReference()}", 29)
 
 def takeSection(tag):
-    if tag != 's5':
-        reportSectionPrecedentErrors(tag)
+    reportSectionPrecedentErrors(tag)
     state.addSection(tag)
 
 def takeTitle(token: usfmReader.Token):
@@ -1431,8 +1431,8 @@ def verifyWholeFile(contents, path):
 
     if state.nconflicts > 0:
         # When there are unresolved conflicts, we must adjust state.booklength
-        if state.nchunks_src:
-            conflicted_portion = state.nconflicts / state.nchunks_src
+        if state.source_nchunks > 0:
+            conflicted_portion = state.nconflicts / state.source_nchunks
         else:
             nchunks = sum(usfm_verses.verseCounts[state.ID]['verses']) / 2.4
             conflicted_portion = state.nconflicts / nchunks
