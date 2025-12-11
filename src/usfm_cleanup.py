@@ -452,11 +452,12 @@ def change_floating_quotes(line, all):
 
 verse_re = re.compile(r'\\v +([0-9]+)')
 
+# Called for every line in the file, if section titles fixes are enabled.
 # If the specified line is a section heading, returns (True, line), the line being modified.
 # Line modification consists of prepending "\s " and possibly inserting newline before/after heading.
 # Otherwise, returns (False, line), the line being unchanged.
 def mark_sections(line):
-    if not hasattr(mark_sections, "prevline"):  # first time called
+    if not hasattr(mark_sections, "prevline")or line.startswith("\\id "):
         mark_sections.prevline = "xx"
         mark_sections.verse = "0"
         mark_sections.sentenceended = True
@@ -643,9 +644,9 @@ def convertFile(path):
     changed1 = convert_wholefile(path)
     changed2 = changed4 = False
     if not corrupt_file:
-        changed2 = convert_by_line(path)  # marks section titles
+        changed2 = convert_by_line(path)  # marks section titles, etc.
         if enable[7] and changed2:   # sections may have been added
-            convert_wholefile(path)
+            convert_wholefile(path)   # rerun
         changed4 = False
         if enable[5] or enable[8]:   # capitalization or chapter titles
             changed4 = convert_by_token(path)
