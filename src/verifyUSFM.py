@@ -90,7 +90,7 @@ class State:
         self.verse = 0
         self.lastVerse = 0
         self.lastToken = None
-        self.startChunkVerse = 1
+        # self.startChunkVerse = 1
         self.needPP = False
         self.needQQ = False
         self.needVerseText = False
@@ -106,7 +106,7 @@ class State:
         self.endnote_ends = 0
         self.reference = ""
         self.lastRef = ""
-        self.startChunkRef = ""
+        # self.startChunkRef = ""
         self.bridge_start = self.bridge_end = 0
         self.currItemCategory = OTHER
         self.prevItemCategory = OTHER
@@ -165,7 +165,7 @@ class State:
         self.textOkayHere = False
         self.lastRef = self.reference
         self.reference = self.ID + " " + c
-        self.startChunkRef = self.reference + ":1"
+        # self.startChunkRef = self.reference + ":1"
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = C
         if self.scanning:
@@ -218,8 +218,8 @@ class State:
     def addS5(self):
         if self.scanning:
             self.source_nchunks += 1
-        self.startChunkVerse = self.verse + 1
-        self.startChunkRef = self.ID + " " + str(self.chapter) + ":" + str(self.startChunkVerse)
+        # self.startChunkVerse = self.verse + 1
+        # self.startChunkRef = self.ID + " " + str(self.chapter) + ":" + str(self.startChunkVerse)
 
     def addVerse(self, v: str):
         self.lastVerse = self.verse
@@ -606,7 +606,7 @@ def isMixed(word):
                 mixed = True
     return mixed
 
-# Scans the word list for mixed case words.
+# Reports mixed case words in the word list.
 def reportMixedCase():
     mcwords = []
     limit = 20
