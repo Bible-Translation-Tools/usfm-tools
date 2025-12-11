@@ -77,3 +77,22 @@ def test_unicodeBlock(text, expectedblock):
 def test_isCaseless(text, expected):
     result = usfm_utils.isCaseless(text)
     assert result == expected
+
+@pytest.mark.parametrize('path, expected',
+    [
+        (r"C:\DCS\Test\Test_4_usfm_errors\41-MAT.usfm", "incomplete"),
+        (r"C:\DCS\Test\Test_4_usfm_errors\42-MAT.usfm", "Unable to open"),
+        (r"C:\DCS\Test\Test_4_usfm_errors\42-MRK.usfm", ""),
+        (r"C:\DCS\Test\Test_4_usfm_errors\43-LUK.usfm", "stranded backslash"),
+        (r"C:\DCS\Test\Test_4_usfm_errors\43-LUK.usfm", "verse number(s) not followed by space"),
+        (r"C:\DCS\Test\Test_4_usfm_errors\43-LUK.usfm", "foreign usfm code: \\1"),
+        (r"C:\DCS\Test\Test_4_usfm_errors\43-LUK.usfm", r"43-LUK.usfm"),
+    ])
+def test_usfm_errors(path, expected):
+    # Tests usfm_text_errors() inherently
+    errors = usfm_utils.usfm_errors(path)
+    if expected:
+        assert len(errors) > 0
+        assert errors[0].find(expected) >= 0 or errors[-1].find(expected) >= 0 or (len(errors) > 1 and errors[1].find(expected) >= 0 )
+    else:
+        assert not errors

@@ -4,10 +4,14 @@
 #    unalign_usfm()
 #    unicodeBlock()
 #    isCaseless()
+#    usfm_errors(path)
+#    usfm_text_errors(text)
 
 from __future__ import unicode_literals
 import re
 import unicodedata
+import os
+import io
 
 usfm_re = re.compile(r'\\([a-z][a-z1-5]*\*?)(\s+.*)?')
 cvnumber_re = re.compile(r'[1-9][-0-9]*')
@@ -88,3 +92,33 @@ def isCaseless(text):
     block = unicodeBlock(text)
     return (block in {'ARABIC','BENGALI','CJK','DEVANAGARI','ETHIOPIC','GUJARATI','GURMUKHI',
                       'HEBREW','HIRAGANA','KANNADA','LAO','ORIYA','TAMIL','TELUGU'})
+
+backslash_re = re.compile(r'\\\s')
+jammed_re = re.compile(r'(\\v +[-0-9]+[^-\s0-9])', re.UNICODE)
+usfmcode_re = re.compile(r'(\\[^a-z\+\s])', re.UNICODE)
+
+# Returns a list of serious errors encountered on a quick scan of the specified usfm file.
+def usfm_errors(usfmpath):
+    errors = []
+    if os.path.isfile(usfmpath):
+        if os.path.getsize(usfmpath) < 1000:
+            errors.append(f"{usfmpath} is incomplete, too small")
+        else:
+            with io.open(usfmpath, "tr", 1, encoding="utf-8-sig") as input:
+                text = input.read(-1)
+            errors = usfm_text_errors(text)
+            for i in range(0, len(errors)):
+                errors[i] = f"{os.path.basename(usfmpath)} {errors[i]}"
+    else:
+        errors.append( f"Unable to open: {usfmpath}")
+    return errors
+
+def usfm_text_errors(text):
+    errors = []
+    if backslash_re.search(text):
+        errors.append("contains stranded backslash(es) followed by space or end of line")
+    if bad := jammed_re.search(text):
+        errors.append(f"contains verse number(s) not followed by space: {bad.group(1)}")
+    for badcode in re.finditer(usfmcode_re, text):
+        errors.append(f"contains foreign usfm code: {badcode.group(1)}")
+    return errors
