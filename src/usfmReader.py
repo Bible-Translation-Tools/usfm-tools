@@ -53,9 +53,15 @@ class Token:
         return self.type in {'x','x*','xo','xt'}
     # Returns true if token is part of a footnote
     def isFootnote(self):
-        return self.type in {'f','f*','fe','fe*','fr','fk','fl','fq','fqa','fp','ft',
+        return self.type in {'f','f*','fe','fe*','ex','ex*','ef','ef*',
+            'fr','fk','fl','fq','fqa','fp','ft',
             'fv','+fv','fv*','+fv*','fdc','+fdc','fdc*','+fdc*', 'fm','+fm','fm*','+fm*',
-            'rq','+rq','rq*','+rq*','ex','ex*'
+            'rq','+rq','rq*','+rq*'
+        }
+    def isFootnoteInterior(self):
+        return self.type in {'fr','fk','fl','fq','fqa','fp','ft',
+            'fv','+fv','fv*','+fv*','fdc','+fdc','fdc*','+fdc*', 'fm','+fm','fm*','+fm*',
+            'rq','+rq','rq*','+rq*'
         }
     def isIntro(self):
         return self.type in {'is','ip','ipi','iot','io','im','imt','imt1'}

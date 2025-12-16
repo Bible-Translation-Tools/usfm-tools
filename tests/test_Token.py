@@ -28,24 +28,26 @@ def test_isCharacterStyle(mark, expected):
     iss = token.isCharacterStyle()
     assert iss == expected
 
-@pytest.mark.parametrize('mark, expected',
+@pytest.mark.parametrize('mark, expected, interior',
     [
-        ('f', True),
-        ('', False),
-        ('p', False),
-        ('f*', True),
-        (' f', False),
-        ("ft", True),
-        ("*f", False),
-        ("fe", True),
-        ("fe*", True),
-        ("rq*", True),
-        ("fq", True),
+        ('f', True, False),
+        ('', False, False),
+        ('p', False, False),
+        ('f*', True, False),
+        (' f', False, False),
+        ("ft", True, True),
+        ("*f", False, False),
+        ("fe", True, False),
+        ("fe*", True, False),
+        ("rq*", True, True),
+        ("fq", True, True),
     ])
-def test_isFootnote(mark, expected):
+def test_isFootnote(mark, expected, interior):
     token = Token(mark, "")
     isf = token.isFootnote()
     assert isf == expected
+    isinterior = token.isFootnoteInterior()
+    assert isinterior == interior
 
 @pytest.mark.parametrize('mark, expected',
     [
