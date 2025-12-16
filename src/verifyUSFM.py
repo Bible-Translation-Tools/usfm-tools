@@ -343,7 +343,7 @@ class State:
 
     def addSourceFootnote(self, t):
         if self.reference in self.sourcefootnote:
-            state.sourcefootnote[state.reference] += " " + t
+            state.sourcefootnote[state.reference] += t
         else:
             state.sourcefootnote[state.reference] = t
 
@@ -689,7 +689,7 @@ def scan(token: usfmReader.Token):
         state.addID(token.value[0:3].upper())
     elif token.type == 's5':
         state.addS5()
-    elif token.isFootnote():
+    elif token.isFootnoteInterior():
         state.addSourceFootnote(token.value)
 
 # Parses the source text into a Python data structure.
@@ -948,7 +948,7 @@ def takeFootnote(token: usfmReader.Token):
     else:
         if not state.inFootnote():
             reportIssue(f"Footnote marker ({token.type}) not between \\f ... \\f* pair at {state.getReference()}", 21)
-    if token.value: # Prevent a problem with trying to take text where there is none
+    if token.value and token.isFootnoteInterior(): # Prevent a problem with trying to take text where there is none
         takeText(token.value, footnote=True)
 
 def takeID(id):
