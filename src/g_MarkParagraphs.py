@@ -62,7 +62,7 @@ class MarkParagraphs(g_step.Step):
             self.frame.show_progress(status)
         nIssues = 0
         if self.script == "mark_paragraphs":
-            issuespath = os.path.join(self.values['work_dir'], "issues.txt")
+            issuespath = os.path.join(self.values['work_dir'], "issues.mark_paragraphs.txt")
             if os.path.exists(issuespath) and time.time() - os.path.getmtime(issuespath) < 10:     # issues.txt is recent
                 nIssues = 1
             else:
