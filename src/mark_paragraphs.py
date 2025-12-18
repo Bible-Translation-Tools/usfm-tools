@@ -20,6 +20,7 @@ import usfm_verses
 import usfmWriter
 import yaml
 import section_titles
+import section_titles_new
 from datetime import datetime
 from usfm_utils import unicodeBlock
 from yaml.scanner import ScannerError
@@ -53,6 +54,7 @@ class State:
         self.chapter = self.verse = 0
         self.bridge = 0
         self.pChapter = self.pVerse = 0
+        self.sChapter = self.sVerse = 0
         self.s5chapter = self.s5verse = -1
         self.needPmarker = 0
         self.reference = fname
@@ -111,6 +113,8 @@ class State:
     # Sets expectText and needPmarker to ensure that \p will follow any section marker
     # Do not use this method for \s5 markers.
     def addS(self, tag):
+        self.sChapter = self.chapter
+        self.sVerse = self.verse
         self.midSentence = False    # fair assumption
         self.lastText = ''
         self.expectText = False
@@ -177,6 +181,10 @@ class State:
                 pmark = pp['mark']
                 punct = pp['endPunc']
                 break
+        if not pmark and s5_to_p:
+            pmark, punct = self.smarkInModel(priorverse=True)
+            if pmark == 's5':
+                pmark = 'p'
         return (pmark, punct)
 
     # Returns True immediately after a verse or paragraph marker or footnote.
@@ -185,10 +193,11 @@ class State:
 
     # Returns the section mark that occurred in the model file at the current location,
     # and the punctuation ending the preceding sentence.
-    def smarkInModel(self):
+    def smarkInModel(self, priorverse=False):
         smark = punct = ""
+        verse = self.verse - 1 if priorverse and self.verse > 0 else self.verse
         for s in self.sections_model:
-            if s['chapter'] == self.chapter and s['verse'] == self.verse and s['located']:
+            if s['chapter'] == self.chapter and s['verse'] == verse and s['located']:
                 smark = s['mark']
                 punct = s['endPunc']
                 break
@@ -251,7 +260,7 @@ def identifyModel(model_dir):
     errors = my.load(model_dir)
     if not errors:
         language = my.getLanguageName()
-        identifier = my.getLanguageId().upper()
+        identifier = my.getResourceId().upper()
         version = my.getVersion()
         state.identifyModel(f"{language} {identifier} version {version}")
 
@@ -340,30 +349,43 @@ def csv(s):
     return s
 
 def takeS(tag, value:str):
-    state.addS(tag)
-    state.usfm.writeUsfm(tag, value)
     if sections_file:
+        record_section_statistics(value, sDistance())
+    else:
+        state.usfm.writeUsfm(tag, value)
+    state.addS(tag)
+
+# Returns the number of verses since the previous section title in the same chapter.
+# Returns an arbitrary high number if the previous section title was in a different chapter.
+def sDistance():
+    return state.verse - state.sVerse if state.sChapter == state.chapter else 1000
+
+def record_section_statistics(value, distance):
         hd = csv(value)
-        thresh = section_titles._titlecase_threshold(value)
+        # thresh = section_titles._titlecase_threshold_old(value)
+        thresh = section_titles_new.titlecase_threshold(value)
         firstword = sentences.firstword(value)
         caps1 = 1 if firstword.isupper() or section_titles._isCapitalized(firstword) else 0
         lastword = sentences.lastword(value)
-        capsN = 1 if section_titles._isCapitalized(lastword) or lastword.isupper() else 0
-        pctCap = section_titles.percentTitlecase(value)
-        qual = 1 if section_titles._qualifies(value, thresh) else 0
-        is_heading = 1 if section_titles.is_heading(value) else 0
+        capsN = 1 if section_titles_new._isCapitalized(lastword) or lastword.isupper() else 0
+        pctCap = section_titles_new.percentTitleOrCaps(value)
+        qual_old = 1 if section_titles._qualifies(value, thresh) else 0
+        qual = 0 if section_titles_new.disqualified(value) else 1
+        prob = section_titles_new.prob_heading(value)
+        # is_heading = 1 if section_titles.is_heading(value) else 0
         poss = 1 if section_titles.is_possible_heading(value) else 0
-        quotes = 1 if section_titles.forbidden_re.search(value) else 0
+        quotes = 1 if section_titles_new.quotes_re.search(value) else 0
         endss = 1 if sentences.endsSentence(value) else 0
         nchars = len(value)
         nwords = len(value.split())
         nsents = sentences.sentenceCount(value)
         (smark, punc) = state.smarkInModel()
         inSource = 1 if smark in {'s','s1','s2','sr','r','d','sp'} else 0
-        pctAlpha = section_titles.percentAlpha(value)
+        npunct = section_titles_new.nPunctuationChars(value)
         row = f"{state.ID},{state.chapter},{state.verse},{hd},{thresh},{caps1},{capsN},{pctCap}"
-        row += f",{qual},{is_heading},{poss},{quotes},{endss},{nchars},{nwords},{nsents},{inSource},{pctAlpha}"
-        sections_file.write(f"{row}\n")
+        row += f",{qual_old},{qual},{prob},{poss},{distance},{quotes},{endss},{nchars},{nwords},{nsents},{inSource},{npunct}"
+        if sections_file:
+            sections_file.write(f"{row}\n")
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
@@ -375,7 +397,7 @@ def takeV(v):
     state.addVerse(v)
     if not state.pAlready(current=True) and removes5markers:
         (pmark, punct) = state.pmarkInModel()
-        if pmark:
+        if pmark and (copy_nb or pmark not in {'nb', 'b', 'm'}):
             if punct and not isPoetryMark(pmark):
                 mayTerminateLastSentence(punct)
             if isPoetryMark(pmark) or not state.isMidSentence() or not sentence_sensitive:
@@ -494,11 +516,8 @@ def convertFile(usfmpath, fname):
         sys.exit(-1)
     with io.open(usfmpath, "tr", 1, encoding="utf-8-sig") as input:
         str = input.read(-1)
-    sys.stdout.flush()
     success = isParseable(str, usfmpath, fname)
     if success:
-        # reportProgress(f"Marking {fname}")
-        sys.stdout.flush()
         tokens = usfmReader.parseString(str)
         token = tokens[0]   # safe because isParseable should reject empty files
         for nexttoken in tokens[1:]:
@@ -593,13 +612,13 @@ def open_sections_file():
     global sections_file
 
     if not sections_file:
-        work_dir = getWorkDir()
-        path = os.path.join(work_dir, "sections.csv")
+        lang = ToolsConfigManager().get('MarkParagraphs', 'language_code')
+        path = os.path.join(r'C:\DCS\Test\sections', f"sections_{lang}.csv")
         try:
             sections_file = io.open(path, "tw", encoding='utf-8-sig')
-            row = "Book,Chap,Verse,Heading,Thresh,1stWordCaps,LastWordCaps,% Title,_qualifies()"
-            row += ",is,possible,quotes,endsSentence"
-            row += ",Chars,Words,Sentences,inSource,% Alpha"
+            row = "Book,Chap,Verse,Heading,Thresh,1stWordCaps,LastWordCaps,% Title,qual_old,qual"
+            row += ",Prob,possible,dist,quotes,endsSentence"
+            row += ",Chars,Words,Sentences,inSource,nPunct"
             sections_file.write(f"{row}\n")
         except PermissionError as e:
             reportError("Permission error opening sections.csv")
@@ -727,7 +746,6 @@ def scanModelFile(modelpath, fname):
         input = io.open(modelpath, "tr", 1, encoding="utf-8-sig")
         str = input.read(-1)
         input.close()
-        sys.stdout.flush()
         success = isParseable(str, modelpath, os.path.basename(modelpath))
         if success:
             # reportProgress(f"Parsing model file: {fname}")
