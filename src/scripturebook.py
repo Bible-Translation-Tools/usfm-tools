@@ -20,6 +20,7 @@ class ScriptureBook:
         self.chapter = self.verse = self.bridge = 0
         self.paragraphs_model = {}
         self.sections_model = {}
+        self.sections_model_real = {}   # sections other than \s5
         self.endPunctuation = ''
         self.unicodeBlock = ''
         self.text = {}    # verse-reference: verse-text
@@ -63,6 +64,9 @@ class ScriptureBook:
             smark = self.sections_model[ref]['mark']
             punct = self.sections_model[ref]['endPunc']
         return (smark, punct)
+    # Returns a count of sections **other than \s5 sections**
+    def countRealSections(self):
+        return len(self.sections_model_real)
 
     # Parses the self.usfmpath USFM file.
     def _scanText(self):
@@ -134,6 +138,8 @@ class ScriptureBook:
         ref = f"{self.chapter}:{self.verse}"
         if not ref in self.sections_model:      # save only the first section mark per verse
             self.sections_model[ref] = section
+            if type != 's5':
+                self.sections_model_real[ref] = section
         if type == 's5':
             self.nchunks += 1
 
@@ -153,6 +159,8 @@ class ScriptureBook:
         # Forget section and paragraph marks in the middle of a verse.
         if ref in self.sections_model:
             del self.sections_model[ref]
+        if ref in self.sections_model_real:
+            del self.sections_model_real[ref]
         nextref = f"{self.chapter}:{self.verse+1}"
         if nextref in self.paragraphs_model:
             del self.paragraphs_model[nextref]
