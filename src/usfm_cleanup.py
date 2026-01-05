@@ -18,7 +18,9 @@ import substitutions
 import quotes
 import usfmReader
 import sentences
-import section_titles
+import section_titles_new
+from manifestyaml import ManifestYaml
+from scripturebook import ScriptureBook
 import usfm_utils
 import usfmWriter
 from datetime import date
@@ -43,6 +45,7 @@ in_footnote = False
 issuesFile = None
 corrupt_file = False
 saidwords = []
+sourcebook = None
 
 # Manages the state for a single usfm file. Used when converting by token.
 # @TODO Move needcaps and in_footnote into the State object.
@@ -52,19 +55,20 @@ class State:
 
     def initBook(self):
         self.bookId = ""
-        self.schapter = ""
-        self.sverse = ""
+        self.strChapter = ""    # current chapter
+        self.strVerse = ""      # current verse
         self.reference = ""
+        self.source_id = ""
         self.currMarker = None
         self.prevMarker = None
 
     def addToken(self, token):
         if token.type == 'c':
-            self.schapter = token.value
+            self.strChapter = token.value
             self.reference = self.bookId + " " + token.value
         elif token.type == 'v':
-            self.sverse = token.value
-            self.reference = self.bookId + " " + self.schapter + ":" + token.value
+            self.strVerse = token.value
+            self.reference = self.bookId + " " + self.strChapter + ":" + token.value
         elif token.type == 'id':
             self.bookId = token.value
             self.reference = token.value + " header/intro"
@@ -79,11 +83,11 @@ class State:
                 self.bookId = remainder[0:3].upper()
                 self.reference = self.bookId + " header/intro"
             case 'c':
-                self.schapter = value
+                self.strChapter = value
                 self.reference = self.bookId + " " + value
             case 'v':
-                self.sverse = value
-                self.reference = self.bookId + " " + self.schapter + ":" + value
+                self.strVerse = value
+                self.reference = self.bookId + " " + self.strChapter + ":" + value
 
 state = State()
 
@@ -129,6 +133,38 @@ def openIssuesFile():
             issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
             issuesFile.write(f"Issues detected by usfmCleanup, {date.today()}, {work_dir}\n-------------------\n")
     return issuesFile
+
+# Returns information about the resource in the specified folder.
+def identifyResource(dir):
+    srcmy = ManifestYaml()
+    errors = srcmy.load(dir)
+    resource = dict()
+    if not errors:
+        resource['language_id'] = srcmy.getLanguageId()
+        resource['resource_id'] = srcmy.getResourceId()
+        resource['version'] = srcmy.getVersion()
+    return resource
+
+# Returns information about the resource in the specified folder, as a string.
+def strResource(dir):
+    if resource := identifyResource(dir):
+        id = resource['language_id'] + "_" + resource['resource_id'] + " " + resource['version']
+    else:
+        id = ""
+    return id
+
+# Loads the source text for the current book if compare_dir is set.
+# It parses a usfm file and stores verse text in a dict.
+def load_source(fname):
+    sourcedir = ToolsConfigManager().get('UsfmCleanup', 'compare_dir')
+    if sourcedir:
+        state.source_id = strResource(sourcedir)
+
+        # Then parse the usfm for the current book.
+        sourcepath = os.path.join(sourcedir, fname)
+        if os.path.isfile(sourcepath):
+            global sourcebook
+            sourcebook = ScriptureBook(sourcepath)
 
 # Sets the global saidwords list, assuming language_code is available.
 def getSaidWords(work_dir):
@@ -450,7 +486,33 @@ def change_floating_quotes(line, all):
                         line = line[0:pos+1] + line[pos+2:]
     return line
 
+# Returns True if a section is marked at the specified verse in the source text.
+def source_has_section(chap, verse):
+    if sourcebook and sourcebook.countRealSections() > 0:
+        mark, punct = sourcebook.getSmark(chap, verse)
+        allows = (mark != "" and mark != 's5')
+    else:
+        allows = False
+    return allows
+
+def find_section_heading(line, chap, verse, prevline, sentenceended):
+    pheading = ""
+    if verse == 0 or prevline.strip() == '' or sentenceended:
+        if section_titles_new.prob_heading(line) >= 0.1:
+            pheading = line.lstrip()
+    if source_has_section(chap, verse):
+        if not pheading and section_titles_new.prob_heading(line) >= 0.1:
+            pheading = line.lstrip()
+        if not pheading:
+            pheading = section_titles_new.find_parenthesized_heading(line, 0.249)
+        if not pheading and sentences.sentenceCount(line) > 1:
+            if not state or state.reference not in section_titles_new.exclude_eol_checks:
+                pheading = section_titles_new.find_eol_heading(line, 0.100)
+    return pheading
+
+chap_re = re.compile(r'\\c +([0-9]+)')
 verse_re = re.compile(r'\\v +([0-9]+)')
+section_re = re.compile(r'\\s[1-4]? +')
 
 # Called for every line in the file, if section titles fixes are enabled.
 # If the specified line is a section heading, returns (True, line), the line being modified.
@@ -459,32 +521,32 @@ verse_re = re.compile(r'\\v +([0-9]+)')
 def mark_sections(line):
     if not hasattr(mark_sections, "prevline")or line.startswith("\\id "):
         mark_sections.prevline = "xx"
-        mark_sections.verse = "0"
+        mark_sections.chapter = 0
+        mark_sections.verse = 0
         mark_sections.sentenceended = True
+        mark_sections.lasttitleverse = 0
 
-    if line.find("\\c ") >= 0:
-        mark_sections.verse = "0"
+    if c := chap_re.search(line):
+        mark_sections.chapter = int(c.group(1))
+        mark_sections.verse = 0
+        mark_sections.lasttitleverse = -1
     if v := verse_re.search(line):
-        mark_sections.verse = v.group(1)
+        mark_sections.verse = int(v.group(1))
+    elif section_re.match(line):
+        mark_sections.lasttitleverse = mark_sections.verse
 
     changed = False
-    pheading = None
-    if section_titles.is_heading(line):
-        if mark_sections.verse == "0" or mark_sections.prevline.strip() == '' or mark_sections.sentenceended:
-            pheading = line.lstrip()
-    if not pheading:
-        pheading = section_titles.find_parenthesized_heading(line)
-    if not pheading and sentences.sentenceCount(line) > 1:
-        if not state or state.reference not in section_titles.exclude_eol_checks:
-            pheading = section_titles.find_eol_heading(line)
-
+    pheading = ""
+    if mark_sections.chapter > 0 and mark_sections.lasttitleverse != mark_sections.verse:
+        pheading = find_section_heading(line, mark_sections.chapter, mark_sections.verse, mark_sections.prevline, mark_sections.sentenceended)
     if pheading:
+        mark_sections.lasttitleverse = mark_sections.verse
         startpos = line.find(pheading)
         endpos = startpos + len(pheading)
         assert startpos >= 0 and endpos <= len(line)
         if pheading.startswith('('):
             pheading = pheading.strip('(). \n')
-        line = section_titles.insert_heading(line[0:startpos].rstrip('( '), pheading.strip('() \n'), line[endpos:])
+        line = section_titles_new.insert_heading(line[0:startpos].rstrip('( '), pheading.strip('() \n'), line[endpos:])
         changed = True
 
     mark_sections.prevline = line
@@ -508,24 +570,48 @@ def remove_periods(line):
         vperiod = vperiod_re.search(line, vperiod.end()-1)
     return (changed, line)
 
-# Rewrites the file line by line, making changes to individual lines
-# Returns True if any changes are made
-def convert_by_line(path):
-    state.initBook()
+# Iterator, returns the next block in the file.
+# Usually, a block is a single line.
+# If multiple lines of pure text occur together, they are returned as a single block.
+def nextblock(path):
     with io.open(path, "tr", encoding="utf-8-sig") as input:
         lines = input.readlines()
-    output = io.open(path, "tw", encoding='utf-8', newline='\n')
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        marker, value, remainder = usfm_utils.parseLine(line)
+        if marker == '' and not line.isspace():
+            block = line
+            i += 1
+            while i < len(lines):
+                nextline = lines[i]
+                nextmarker, nextvalue, nextremainder = usfm_utils.parseLine(nextline)
+                if nextmarker == '':
+                    block += nextline
+                    i += 1
+                else:
+                    break
+            yield block
+        else:
+            yield line
+            i += 1
+
+# Rewrites the file line by line, making changes to individual lines
+# Returns True if any changes are made
+def convert_by_line(inputpath, path):
+    state.initBook()
+    output = usfmWriter.usfmWriter(path)
     changedfile = False
     changed3 = False
 
-    for line in lines:
-        state.addLine(line)
+    for block in nextblock(inputpath):
+        state.addLine(block)
         if enable[7]:
-            (changed3, line) = mark_sections(line)
-        (changed4, line) = remove_periods(line)
+            (changed3, block) = mark_sections(block)
+        (changed4, block) = remove_periods(block)
         if changed3 or changed4:
             changedfile = True
-        output.write(line)
+        output.writeStr(block)
     output.close()
     return (changedfile)
 
@@ -567,15 +653,15 @@ def fix_chapter_label(label, schapter):
 def takeCL(label, usfm):
     origlabel = label
     if enable[8]:
-        label = fix_chapter_label(label, state.schapter)
+        label = fix_chapter_label(label, state.strChapter)
     usfm.writeUsfm("cl", label)
     return (label != origlabel)
 
 def takeText(s, usfm):
     origstr = s
     global in_footnote
-    if state.prevMarker == 'v' and s.startswith(state.sverse):
-        vlen = len(state.sverse)
+    if state.prevMarker == 'v' and s.startswith(state.strVerse):
+        vlen = len(state.strVerse)
         if vlen < len(s) and s[vlen] in '.)':   # period or paren is stuck to verse number
             vlen += 1
         s = s[vlen:].lstrip()
@@ -633,7 +719,9 @@ def convertFile(path):
     global nChanged
     global corrupt_file
     corrupt_file = False
+    load_source(os.path.basename(path))
     reportProgress(f"Checking {shortname(path)}")
+    sys.stdout.flush()
 
     tmppath = path + ".tmp"
     if os.path.exists(tmppath):
@@ -644,7 +732,7 @@ def convertFile(path):
     changed1 = convert_wholefile(path)
     changed2 = changed4 = False
     if not corrupt_file:
-        changed2 = convert_by_line(path)  # marks section titles, etc.
+        changed2 = convert_by_line(tmppath, path)  # marks section titles, etc.
         if enable[7] and changed2:   # sections may have been added
             convert_wholefile(path)   # rerun
         changed4 = False
