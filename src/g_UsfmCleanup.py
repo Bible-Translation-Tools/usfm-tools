@@ -65,13 +65,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self.filename = StringVar()
         self.compare_dir = StringVar()
         self.std_titles = StringVar()
-        for var in (self.language_code, self.filename):
-            var.trace_add("write", self._set_button_status)
-        self.work_dir.trace_add("write", self._onChangeWorkDir)
-        self.std_titles.trace_add("write", self._onChangeTitles)
         self.enable = [BooleanVar(value = False) for i in range(9)]
-        self.enable[3].trace_add("write", self._onChangeQuotes)
-        self.enable[4].trace_add("write", self._onChangeQuotes)
 
         language_code_label = ttk.Label(self, text="Language code:", width=20)
         language_code_label.grid(row=3, column=1, sticky="wen", pady=2)
@@ -199,9 +193,16 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self.controller.bindButtonEvent(2, "<Enter>", self._onCheckInputs)
         self.controller.showbutton(3, "Work folder", self._onOpenWorkDir)
         self.controller.showbutton(4, "Undo", self._onUndo, tip="Restore any and all .usfm.orig backup files.")
+        self.controller.bindButtonEvent(4, "<Enter>", self._onCheckInputs)
         self.controller.showbutton(5, ">>>", self._onNext, tip="Mark paragraphs")
 
+        self.language_code.trace_add("write", self._set_button_status)
+        self.std_titles.trace_add("write", self._onChangeTitles)
+        self.work_dir.trace_add("write", self._onChangeWorkDir)
+        self.filename.trace_add("write", self._set_button_status)
         self.compare_dir.trace_add("write", self._set_button_status)
+        self.enable[3].trace_add("write", self._onChangeQuotes)
+        self.enable[4].trace_add("write", self._onChangeQuotes)
         self._set_button_status()
         self._onChangeTitles()
 
@@ -241,7 +242,8 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
             self.enable[4].set(False)
 
     def _save_values(self):
-        if not self.invalidInputs():
+        valid = not self.invalidInputs()
+        if valid:
             self.values['language_code'] = self.language_code.get()
             self.values['work_dir'] = self.work_dir.get()
             self.values['filename'] = self.filename.get()
@@ -261,6 +263,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
             projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
             projectInfo.setSourceDir(self.values['compare_dir'])
             projectInfo.save()
+        return valid
 
     # Returns a list of incomplete or incorrect inputs.
     # Used by _onExecute().
@@ -322,8 +325,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self._set_button_status()
 
     def _onOpenWorkDir(self, *args):
-        self._save_values()
-        os.startfile(self.getWorkDirConfigValue())
+        os.startfile(self.work_dir.get())
 
     def _onFindCmpDir(self, *args):
         hints = self._list_sources()
@@ -345,9 +347,9 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         return "\n".join(sourcehints)
 
     def _onUndo(self, *args):
-        self._save_values()
-        self.controller.revertChanges()
-        self.controller.enablebutton(4, False)
+        if self._save_values():
+            self.controller.revertChanges()
+            self.controller.enablebutton(4, False)
 
     # When there is no standard chapter title, disable the 'Fix chapter titles" button.
     def _onChangeTitles(self, *args):
@@ -355,17 +357,11 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self.enable[8].set(dolabels)
         # self.enable8_checkbox.state(['!disabled'] if self.std_titles.get() else ['disabled'])
 
-    def _onOpenIssues(self, *args):
-        self._save_values()
-        path = os.path.join(self.getWorkDirConfigValue(), "issues.txt")
-        os.startfile(path)
-
     def _set_button_status(self, *args):
         work_dir = self.work_dir.get()
         good_workdir = os.path.isdir(work_dir)
         self.controller.enablebutton(3, good_workdir)
-        backup_count = g_util.count_files(work_dir, r".*\.usfm\.orig$")
-        self.controller.enablebutton(4, backup_count > 0)
 
         self.cleanup_ready = not self.invalidInputs()
         self.controller.enablebutton(2, self.cleanup_ready)
+        self.controller.enablebutton(4, self.cleanup_ready)
