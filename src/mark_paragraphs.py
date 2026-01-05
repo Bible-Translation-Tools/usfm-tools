@@ -363,7 +363,7 @@ def sDistance():
 def record_section_statistics(value, distance):
         hd = csv(value)
         # thresh = section_titles._titlecase_threshold_old(value)
-        thresh = section_titles_new.titlecase_threshold(value)
+        thresh = section_titles_new._titlecase_threshold(value)
         firstword = sentences.firstword(value)
         caps1 = 1 if firstword.isupper() or section_titles._isCapitalized(firstword) else 0
         lastword = sentences.lastword(value)

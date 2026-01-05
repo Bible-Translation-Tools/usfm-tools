@@ -59,39 +59,34 @@ def percentTitleOrCaps(s):
 # pphrase_re = re.compile(r'\([\s]*([\w\- ]+)[\s]*\)\s*$', re.MULTILINE)
 pphrase_re = re.compile(r'\([^()\n\t]+\)\s*$', re.MULTILINE)
 
-# Finds a parenthesized string at the end of the line, if one exists,
-# Also returns the probability of it being a section title,
-# based only on string characteristics.
-# Returns None if no parenthesized heading is found.
-def find_parenthesized_heading(line):
+# Finds a probable parenthesized string in the line,
+# at the required probability level based only on string characteristics.
+# Returns "" if no probable parenthesized heading is found.
+def find_parenthesized_heading(line, required_prob):
     pheading = ""
-    prob = 0.0
     for possible_hd in pphrase_re.finditer(line):
         possible_heading = possible_hd.group(0).strip()
-        prob = prob_heading(possible_heading)
-        if prob > 0.0:
+        if prob_heading(possible_heading) >= required_prob:
             nextword = sentences.firstword(line[possible_hd.end():])
             if not nextword or (nextword and not nextword.islower()):
                 pheading = possible_heading
                 break
-    return pheading, prob
+    return pheading
 
-# Returns possible heading at end of line,
-# and the probability of it being a section title, based only on string characteristics.
-# Returns empty string if no heading is found at end of line.
-def find_eol_heading(line):
+# Returns a probable heading at end of line,
+# at the required probability level based only on string characteristics.
+# Returns empty string if no probable heading is found at end of line.
+def find_eol_heading(line, required_prob):
     candidate = ""
-    prob = 0.0
     sentence_starts = [pos for pos in sentences.nextstartpos(line)]
     if len(sentence_starts) > 0:
         startpos = sentence_starts[-1]
         if startpos > 0 and line[startpos-1] == '(':
             startpos -= 1
         candidate = line[startpos:]
-        prob = prob_heading(candidate)    # last "sentence" in the line
-        if prob <= 0.0:
+        if prob_heading(candidate) < required_prob:
             candidate = ""
-    return candidate, prob
+    return candidate
 
 digit_re = re.compile(r'\d')
 # Returns a probability of a given string being a section title, based on the available factors.
@@ -108,7 +103,7 @@ def prob_heading(s):
             prob = 0.1
         else:
             percent = percentTitleOrCaps(s)
-            diff = percent - titlecase_threshold(s)
+            diff = percent - _titlecase_threshold(s)
             if diff >= 0.0:
                 prob = 0.5
                 if percent >= 0.8:
@@ -121,6 +116,7 @@ def prob_heading(s):
             prob -= 0.002 * (len(s) - 80)
         if _wordcount(s) > 10:
             prob -= 0.005 * (_wordcount(s) - 10)
+        prob -= 0.15 * s.count('\n')
         prob -= 0.03 * nPunctuationChars(s)
         if sentences.endsSentence(s):
             prob -= 0.1
@@ -138,14 +134,13 @@ singleWordInParens_re = re.compile(r'\(\s*\w+\s*\)')
 # Returns True if the string has any disqualifying characteristics.
 def disqualified(s):
     disqual = (not s or\
-               '\n' in s or\
-               anyMarker_re.search(s) or\
+               anyMarker_re.search(s) or s[0] == '\\' or\
                ((amen_re.search(s) or selah_re.search(s)) and _wordcount(s) == 1))
     return disqual
 
 goodstart_re = re.compile(r'[\w\(]')
 
-def titlecase_threshold(s):
+def _titlecase_threshold(s):
     if not s or len(s) < 2:
         adj = 0.99
     else:
