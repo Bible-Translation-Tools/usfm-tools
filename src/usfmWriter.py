@@ -7,6 +7,7 @@
 #    by calling newline() to insert extra line breaks
 
 import io
+import usfm_utils
 
 startline_tags = {'id','ide','usfm','c','cl','v','p','rem',
                 'mt','mt1','mt2','mt3','mte','mte1','mte2','ms','ms1','ms2','mr',
@@ -21,6 +22,7 @@ startline_tags = {'id','ide','usfm','c','cl','v','p','rem',
                 'sd','sd1','sd2','sd3',
                 'esb','esbe','lit','pb','pm','pmo','pmc','pmr'
 }
+# These tags are mostly, but not all, character styles.
 inline_tags = {'va','va*','vp','vp*','ca*',
                 'add','add*', 'bd','bd*', 'bdit','bdit*', 'bk','bk*', 'dc','dc*',
                 'em','em*', 'it','it*', 'k','k*',
@@ -61,10 +63,12 @@ class usfmWriter:
     def writeStr(self, s):
         if s and self._file:
             if not self._newlined and s[0] == '\\':
-                s = "\n" + s
-            elif not self._spaced and s[0] not in '.?!;:,)’”»›\n ':
+                tag = usfm_utils.usfm_re.match(s)
+                if not tag or tag.group(1) not in inline_tags:
+                    s = "\n" + s
+            elif not self._spaced and s[0] not in '\\.?!;:,)’”»›\n ':
             # Indonesian TBI version of this condition:
-            # elif not self._spaced and s[0] not in '.?!;:,)’»›\n ':
+            # elif not self._spaced and s[0] not in '\\.?!;:,)’»›\n ':
                 s = " " + s
             self._file.write(s)
             self._spaced = (s[-1] == ' ')
