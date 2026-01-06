@@ -44,6 +44,9 @@ class ScriptureBook:
     def getText(self, chapter, verse ):
         ref = f"{chapter}:{verse}"
         return self.text[ref] if ref in self.text else ""
+    def getVerseLength(self, chapter, verse):
+        ref = f"{chapter}:{verse}"
+        return len(self.text[ref]) if ref in self.text else 0
     def getFootnote(self, chapter, verse ):
         ref = f"{chapter}:{verse}"
         return self.footnote[ref] if ref in self.footnote else ""
@@ -73,9 +76,11 @@ class ScriptureBook:
         self.errors = usfm_utils.usfm_errors(self.usfmpath)
         if not self.errors:
             with io.open(self.usfmpath, "tr", 1, encoding="utf-8-sig") as input:
-                text = input.read(-1)
-                self.booklength = len(text)
-                tokens = usfmReader.parseString(text)
+                contents = input.read(-1)
+                if "lemma=" in contents or "x-occurrences" in contents:
+                    contents = usfm_utils.unalign_usfm(contents)
+                self.booklength = len(contents)
+                tokens = usfmReader.parseString(contents)
                 for token in tokens:
                     self._take(token)
 
