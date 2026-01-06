@@ -15,7 +15,7 @@ import usfmReader
 import usfm_utils
 
 # Verses with footnotes in the English ULB. (Default set)
-footnotedVerses_en_ulb = [
+footnotedVerses_en_ulb = {
   "GEN 1:26",
   "GEN 4:8",
   "GEN 10:4",
@@ -399,7 +399,7 @@ footnotedVerses_en_ulb = [
   "REV 11:17",
   "REV 22:14",
   "REV 22:19",
-  "REV 22:21"]
+  "REV 22:21"}
 
 class State:
     def __init__(self):
@@ -408,7 +408,7 @@ class State:
         self.chapter = 0
         self.verse = 0
         self.reference = ""
-        self.footnoteRefs = list()
+        self.footnoteRefs = set()
         self.canContinue = True
         self.loadedDir = None
 
@@ -437,8 +437,7 @@ class State:
 
     # Adds the current reference to the list of footnote references
     def addFootnote(self):
-        if self.reference not in self.footnoteRefs:
-            self.footnoteRefs.append(self.reference)
+        self.footnoteRefs.add(self.reference)
 
 state = State()
 
@@ -479,7 +478,7 @@ def getFootnotedVerses(dir=""):
     elif not dir:
         state.footnoteRefs = footnotedVerses_en_ulb
         state.loadedDir = ""
-    return set(state.footnoteRefs)
+    return state.footnoteRefs
 
 # Loads the pre-scanned set of footnoted verses if possible.
 # Sets state.footnoteRefs and state.loadedDir, or leaves them unchanged.
@@ -489,7 +488,7 @@ def _loadPrescanned(dir):
         fvpath = os.path.join(dir, "footnotedVerses.json")
         if os.path.isfile(fvpath):
             with io.open(fvpath, 'r') as json_file:
-                state.footnoteRefs = json.load(json_file)
+                state.footnoteRefs = set( json.load(json_file) )  # JSON saves a list
             state.setLoadedDir(dir)
 
 # Scans all USFM files in the specified folder and saves the results.
@@ -511,12 +510,10 @@ def _processDir(dirpath):
                 state.canContinue = True
                 _processFile(entry.path)
 
-# Appends the footnoted verse references from the specified file to state.footnoteRefs.
+# Adds the footnoted verse references from the specified file to state.footnoteRefs.
 def _processFile(path):
     global state
     state.canContinue = True
-    # print(f"Processing {path}")
-    # sys.stdout.flush
     with io.open(path, "tr", 1, encoding="utf-8-sig") as input:
         contents = input.read(-1)
     if "lemma=" in contents or "x-occurrences" in contents:
@@ -584,6 +581,7 @@ def _reportError(msg):
         sys.stderr.write(msg + ": (Unicode...)\n")
 
 # Saves the current list of footnoted verses to the specified file location.
+# Note: JSON can't directly save a set, so save as a list.
 def _saveReferences(fvpath):
     with io.open(fvpath, 'w') as json_file:
-        json.dump(state.footnoteRefs, json_file, indent=2)
+        json.dump( list(state.footnoteRefs), json_file, indent=2)
