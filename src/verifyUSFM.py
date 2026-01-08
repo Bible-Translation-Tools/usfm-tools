@@ -30,6 +30,7 @@ issues: dict = {}   # Can't put in State because we want to accumulate issues ac
 wordlist = dict()
 footnotedVerses = {}
 footnotedVerses_en_ulb = {}
+sourcebook = None
 nFiles = 0  # number of .usfm files verified
 nSectionHeadings = 0
 nNoPAfterC = 0
@@ -48,7 +49,8 @@ from projectinfo import SaidWords, ProjectInfo
 from manifestyaml import ManifestYaml
 import usfm_utils
 import sentences
-import section_titles
+import section_titles_new
+from scripturebook import ScriptureBook
 from datetime import date, datetime
 
 # Constants
@@ -68,10 +70,6 @@ class State:
         self.reference = ""
         self.bridge_start = self.bridge_end = 0
         self.errorRefs = set()
-        self.scanning = False    # True when scanning source text
-        self.sourcetext = {}    # verse-reference: verse-text
-        self.source_nverses = {}  # chapter-reference: number of verses
-        self.sourcefootnote = {}    # verse-reference: text of footnote(s)
         self.booklength_src = 1
         self.booklength = 1
         self.canContinue = True
@@ -90,7 +88,6 @@ class State:
         self.verse = 0
         self.lastVerse = 0
         self.lastToken = None
-        # self.startChunkVerse = 1
         self.needPP = False
         self.needQQ = False
         self.needVerseText = False
@@ -106,7 +103,6 @@ class State:
         self.endnote_ends = 0
         self.reference = ""
         self.lastRef = ""
-        # self.startChunkRef = ""
         self.bridge_start = self.bridge_end = 0
         self.currItemCategory = OTHER
         self.prevItemCategory = OTHER
@@ -118,11 +114,6 @@ class State:
     def __repr__(self):
         return f'State({self.reference})'
 
-    def setScanning(self, scan):
-        self.scanning = scan
-        self.initBook()   # needed when book ID is missing in file; otherwise redundant
-        self.ID = ""
-
     # Resets state data for a new book
     # The scan parameter is set when source text is being parsed.
     def addID(self, id):
@@ -130,12 +121,7 @@ class State:
         self.reference = id + " header/intro"
         self.ID = id
         self.nconflicts = 0
-        if self.scanning:
-            self.sourcetext.clear()
-            self.source_nverses.clear()
-            self.sourcefootnote.clear()
-            self.source_nchunks = 0
-        elif id and id not in self.IDs:
+        if id and id not in self.IDs:
             self.IDs.append(id)
 
     def addTitle(self, bookTitle):
@@ -165,11 +151,8 @@ class State:
         self.textOkayHere = False
         self.lastRef = self.reference
         self.reference = self.ID + " " + c
-        # self.startChunkRef = self.reference + ":1"
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = C
-        if self.scanning:
-            state.source_nverses[state.reference] = 1
 
     # Isolate the word/phrase for "chapter" from the given string.
     # Add it to the list of chapter titles.
@@ -216,10 +199,7 @@ class State:
 
     # Records the start of a new chunk
     def addS5(self):
-        if self.scanning:
-            self.source_nchunks += 1
-        # self.startChunkVerse = self.verse + 1
-        # self.startChunkRef = self.ID + " " + str(self.chapter) + ":" + str(self.startChunkVerse)
+        pass
 
     def addVerse(self, v: str):
         self.lastVerse = self.verse
@@ -236,9 +216,6 @@ class State:
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = OTHER
         self.asciiVerse = True   # until proven False
-        if self.scanning:
-            chapref = self.ID + " " + str(self.chapter)
-            self.source_nverses[chapref] = self.verse
 
     def addVerseBridge(self, vnStart, vnEnd):
         self.bridge_start = vnStart
@@ -251,15 +228,6 @@ class State:
             return f"{self.ID} {self.chapter}:{self.bridge_start}-{self.bridge_end}"
         else:
             return self.reference
-
-    # Returns the number of verses in the current chapter in the source text.
-    # Returns 0 if no data for the current chapter.
-    def nVerses_source(self):
-        n = 0
-        chapref = self.ID + " " + str(self.chapter)
-        if chapref in self.source_nverses:
-            n = self.source_nverses[chapref]
-        return n
 
     def addAcrosticHeading(self):
         self.textOkayHere = True
@@ -334,32 +302,20 @@ class State:
         self.needVerseText = False
         self.textOkayHere = True
 
-    # Simply appends the text to the sourcetext for the current verse
-    def addSourceText(self, t):
-        if self.reference in self.sourcetext:
-            state.sourcetext[state.reference] += " " + t
+    # Returns the length of the source text for the current verse.
+    def sourcelength(self):
+        if sourcebook:
+            length = sourcebook.getVerseLength(self.chapter, self.verse)
+            if length == 0 and self.bridge_start > 0:
+                for vn in range(self.bridge_start, self.bridge_end + 1):
+                    verselen = sourcebook.getVerseLength(self.chapter, vn)
+                    if verselen > 0:
+                        length += verselen
+                    else:
+                        length = 1
+                        break
         else:
-            state.sourcetext[state.reference] = t
-
-    def addSourceFootnote(self, t):
-        if self.reference in self.sourcefootnote:
-            state.sourcefootnote[state.reference] += t
-        else:
-            state.sourcefootnote[state.reference] = t
-
-    # Returns the length of the source text for the specified reference.
-    def sourcelength(self, ref):
-        length = 1
-        if ref in self.sourcetext:
-            length = len(self.sourcetext[ref])
-        elif self.bridge_start > 0 and ref == self.getReference():
-            for vn in range(self.bridge_start, self.bridge_end + 1):
-                subref = f"{self.ID} {self.chapter}:{vn}"
-                if subref in self.sourcetext:
-                    length += len(self.sourcetext[subref])
-                else:
-                    length = 1
-                    break
+            length = 1
         return length
 
     # Adds the specified reference to the set of error references
@@ -676,34 +632,6 @@ def wordkey(item):
     word = item[0].lstrip("'")
     return str.lower(word)
 
-# Handles the next token in the source text.
-# Only cares about storing text, as of the date of this comment (Apr-2024)
-def scan(token: usfmReader.Token):
-    if token.type == 'text':
-        state.addSourceText(token.value)
-    elif token.type == 'v':
-        state.addVerse(token.value)
-    elif token.type == 'c':
-        state.addChapter(token.value)
-    elif token.type == 'id':
-        state.addID(token.value[0:3].upper())
-    elif token.type == 's5':
-        state.addS5()
-    elif token.isFootnoteInterior():
-        state.addSourceFootnote(token.value)
-
-# Parses the source text into a Python data structure.
-def scanSourceFile(path):
-    state.initBook()
-    with io.open(path, "tr", encoding="utf-8-sig") as input:
-        contents = input.read(-1)
-    if "lemma=" in contents or "x-occurrences" in contents:
-        contents = usfm_utils.unalign_usfm(contents)
-    tokens = usfmReader.parseString(contents)
-    for token in tokens:
-        scan(token)
-    state.booklength_src = len(contents) if len(contents) > 0 else 1
-
 # Returns information about the resource in the specified folder.
 def identifyResource(dir):
     srcmy = ManifestYaml()
@@ -738,13 +666,14 @@ def load_source(fname):
                 reportStatus(f"Scanning source text for footnotes...")
             footnotedVerses = footnotes.getFootnotedVerses(sourcedir)
             if len(footnotedVerses) == 0:
-                footnotedVerses_en_ulb = set(footnotes.footnotedVerses_en_ulb)
+                footnotedVerses_en_ulb = footnotes.footnotedVerses_en_ulb
 
         # Then parse the usfm for the current book.
         sourcepath = os.path.join(sourcedir, fname)
         if os.path.isfile(sourcepath):
-            # reportStatus(f"Loading source text...")
-            scanSourceFile(sourcepath)
+            global sourcebook
+            sourcebook = ScriptureBook(sourcepath)
+            state.booklength_src = sourcebook.getBookLength()
 
 psalmv1_re = re.compile(r'PSA \d+:1(-|$)')
 
@@ -756,7 +685,7 @@ psalmv1_re = re.compile(r'PSA \d+:1(-|$)')
 def relative_length(ref):
     rlen = 1.0
     if not psalmv1_re.match(ref):
-        sourcelength = state.sourcelength(ref)
+        sourcelength = state.sourcelength()
         txln_len = state.getTextLength()
         if sourcelength > 1:
             rlen = txln_len / (sourcelength * (state.booklength / state.booklength_src))
@@ -769,11 +698,11 @@ def relative_length(ref):
 def similarToSource():
     similarity = 0
     n = 0
-    ref = state.getReference()
-    if ref in state.sourcetext:
-        setA = set(state.sourcetext[ref].split())
-        if ref in state.sourcefootnote:
-            setA.update(state.sourcefootnote[ref].split())
+    srcText = sourcebook.getText(state.chapter, state.verse) if sourcebook else ""
+    if srcText:
+        setA = set(srcText.split())
+        srcFootnotes = sourcebook.getFootnote(state.chapter, state.verse) if sourcebook else ""
+        setA.update(srcFootnotes.split())
         setB = set(state.versetext.split())
         wordsincommon = [w for w in setA&setB if len(w) > 2 and w.islower()]
         n = len(wordsincommon)
@@ -799,11 +728,6 @@ def previousVerseCheck():
     (sim, n) = similarToSource()
     if sim > 0.4:
         reportIssue(f"Verse may be untranslated (based on words in common with source text): {state.getReference()}", 3.5)
-
-# def longChunkCheck():
-#     max_chunk_length = 400  # set lower if this is ever needed again
-#     if not state.aligned_usfm and state.verse - (max_chunk_length-1) > state.startChunkVerse:
-#         reportIssue("Long chunk: " + state.startChunkRef + "-" + str(state.verse) + "   (" + str(state.verse-state.startChunkVerse+1) + " verses)", 4)
 
 # Returns the first book title found that is not the same as the English title.
 # Returns the English title as a fallback.
@@ -843,7 +767,8 @@ def verifyVerseCount():
         # 2 Cor. may have 13 or 14 verses, normally 14.
         # 3 John may have 14 or 15 verses, normally 14.
         # Revelation 12 may have 17 or 18 verses, normally 17.
-        n = state.nVerses_source()
+
+        n = sourcebook.getVerseCount(state.chapter) if sourcebook else 0
         if n == 0 and state.reference not in {'REV 12:18', '3JN 1:15', '2CO 13:13', 'ACT 19:40'}:
             reportIssue(f"Chapter usually has {nVerses_niv(state.ID, state.chapter)} verses: {state.reference}", 8)
         elif n > 0 and state.verse != n:
@@ -877,7 +802,6 @@ def takeC(c):
     if c != "1":
         # Report missing text in previous verse
         previousVerseCheck()
-        # longChunkCheck()
     # if state.currItemCategory == S:
     #     reportIssue(f"Chapter ends with a section heading: {state.reference}", 13.2)
     if not c.isnumeric():
@@ -982,7 +906,7 @@ def takeQ(type, value):
     state.addPoetry(value)
 
 def takeS5():
-    state.addS5()
+    # state.addS5()
     if state.currItemCategory == S:
         reportIssue(f"Back to back section markers after {state.getReference()}", 29.5)
 
@@ -1412,10 +1336,10 @@ embeddedquotes_re = re.compile(r"\w'\w")
 def verifyWholeFile(contents, path):
     if not contents.startswith("\\id "):
         reportIssue(f"USFM file does not start with book id: {shortname(path)}", 74.1)
-    verifyChapterAndVerseMarkers(contents, path)
+    verifyChapterAndVerseMarkers(contents, shortname(path))
 
     lines = contents.split('\n')
-    verifyLineByLine(lines)
+    verifyBlockByBlock(path)
 
     if not suppress[6]:
         nembedded = len(embeddedquotes_re.findall(contents))
@@ -1431,8 +1355,9 @@ def verifyWholeFile(contents, path):
 
     if state.nconflicts > 0:
         # When there are unresolved conflicts, we must adjust state.booklength
-        if state.source_nchunks > 0:
-            conflicted_portion = state.nconflicts / state.source_nchunks
+        source_nchunks = sourcebook.getChunkCount() if sourcebook else 0
+        if source_nchunks > 0:
+            conflicted_portion = state.nconflicts / source_nchunks
         else:
             nchunks = sum(usfm_verses.verseCounts[state.ID]['verses']) / 2.4
             conflicted_portion = state.nconflicts / nchunks
@@ -1456,30 +1381,57 @@ def reportFootnoteSpacing(line, reference):
         if not (line.startswith('\\v ') and fspace.start() < 7):  # ignore footnotes right after verse number
             reportIssue(f"Space before footnote marker \\{fspace.group(1)} at {reference}", 78)
 
-def reportSectionTitles(line, reference):
-    if line[0] != '\\' and section_titles.is_possible_heading(line):
-        reportIssue(f"Possible section title on a line by itself at {reference}", 76)
-    elif reference not in section_titles.exclude_eol_checks:
-        marker, value, remainder = usfm_utils.parseLine(line)
-        if remainder and section_titles.find_eol_heading(remainder):
-            reportIssue(f"Possible section title at end of {reference}", 76.1)
+section_re = re.compile(r'\\s[1-4]? +')
+
+def reportSectionTitles(block, reference, chap, verse):
+    if not hasattr(reportSectionTitles, "lastHd"):
+        reportSectionTitles.lastHd = ""         # reference of last section heading
+        reportSectionTitles.prevline = "xx"
+        reportSectionTitles.sentenceended = True    # previous block ended a sentence
+
+    if section_re.match(block):
+        reportSectionTitles.lastHd = reference
+
+    if reference != reportSectionTitles.lastHd:
+        pheading = find_section_heading(block, chap, verse, reportSectionTitles.prevline, reportSectionTitles.sentenceended)
+        if pheading:
+            reportSectionTitles.lastHd = reference
+            if pheading == block:
+                reportIssue(f"Possible section title on a line by itself at {reference}", 76)
+            else:
+                reportIssue(f"Possible section title at end of {reference}", 76.1)
+
+    reportSectionTitles.prevline = block
+    reportSectionTitles.sentenceended = (sentences.endsSentence(block, checkquotes=True) != '')
+
+def find_section_heading(block, chap, verse, prevline, sentenceended):
+    pheading = ""
+    if verse == 0 or prevline.strip() == '' or sentenceended:
+        prob = section_titles_new.prob_heading(block)
+        if prob >= 0.1 or verse == 0 and prob > 0:
+            pheading = block.lstrip()
+    if not pheading and sourcebook and sourcebook.has_section(chap, verse):
+        if not pheading and section_titles_new.prob_heading(block) >= 0.1:
+            pheading = block.lstrip()
+        if not pheading:
+            pheading = section_titles_new.find_parenthesized_heading(block, 0.249)
+        if not pheading and sentences.sentenceCount(block) > 1:
+            if not state or state.reference not in section_titles_new.exclude_eol_checks:
+                pheading = section_titles_new.find_eol_heading(block, 0.100)
+    return pheading
 
 conflict_head_re = re.compile(r'<+ HEAD')   # conflict resolution tag
 conflict_tail_re = re.compile(r'>>>')   # conflict resolution tag
-# Performs checks that are best done on a line-by-line basis.
-#   Reports lines of text that may contain section headings.
-#   Determines whether to check for ASCII content, and sets suppress[9] accordingly.
-#   Collects "said" words.
-#   Reports problems with unresolved merge conflicts.
-#   Reports problems with
-def verifyLineByLine(lines):
+def verifyBlockByBlock(path):
     localstate = State()
     nAscii = 0
     nconflicts = 0
-    for line in lines:
-        if not line.strip():
+    nblocks = 0
+    for block in usfm_utils.nextblock(path):
+        nblocks += 1
+        if not block.strip():
             continue
-        marker, value, remainder = usfm_utils.parseLine(line)
+        marker, value, remainder = usfm_utils.parseLine(block)
         match marker:
             case 'id':
                 localstate.addID(remainder[0:3].upper())
@@ -1488,22 +1440,22 @@ def verifyLineByLine(lines):
             case 'v':
                 vs = value.split('-')
                 localstate.addVerse(vs[-1])
-        if conflict_head_re.search(line):
+        if conflict_head_re.search(block):
             reportIssue(f"Unresolved translation conflict near {localstate.reference}", ID_CONFLICTS)
-            localstate.trackConflict(line)
+            localstate.trackConflict(block)
             nconflicts += 1
-        elif conflict_tail_re.match(line):
-            localstate.trackConflict(line)
-        elif marker not in {'id','c','cl'}:
-            if line.isascii():
+        if conflict_tail_re.match(block):
+            localstate.trackConflict(block)
+        if not localstate.inConflict and marker not in {'id','c','cl'}:
+            if block.isascii():
                 nAscii += 1
             if word := said_word(remainder):
                 saidwords.addWord(word)
             if remainder and localstate.chapter > 0:
-                reportSectionTitles(line, localstate.reference)
-                reportFootnoteSpacing(line, localstate.reference)
+                reportSectionTitles(block, localstate.reference, localstate.chapter, localstate.verse)
+                reportFootnoteSpacing(block, localstate.reference)
 
-    suppress[9] = (nAscii / len(lines) > 0.05)
+    suppress[9] = (nAscii / nblocks > 0.05)
     global nFiles
     nFiles += 1
     state.setConflictCount(nconflicts)
@@ -1563,12 +1515,10 @@ def verifyFile(path):
     elif peripheral(os.path.basename(path)):
         reportError(f"Peripheral file not checked: {shortname(path)}", 80.1)
     else:
-        state.setScanning(True)
         load_source(os.path.basename(path))
         reportProgress(f"Checking {shortname(path)}...")
         sys.stdout.flush()
-        state.setScanning(False)
-        verifyWholeFile(contents, shortname(path))
+        verifyWholeFile(contents, path)
         tokens = usfmReader.parseString(contents)
         for token in tokens:
             take(token)

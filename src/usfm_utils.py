@@ -122,3 +122,25 @@ def usfm_text_errors(text):
     for badcode in re.finditer(usfmcode_re, text):
         errors.append(f"contains foreign usfm code: {badcode.group(1)}")
     return errors
+
+# Iterator, returns the next block in the file.
+# Usually, a block is a single line.
+# If multiple lines of pure text occur together, they are returned as a single block.
+def nextblock(path):
+    with io.open(path, "tr", encoding="utf-8-sig") as input:
+        lines = input.readlines()
+    i = 0
+    while i < len(lines):
+        if not usfm_re.match(lines[i]) and not lines[i].isspace():
+            block = lines[i]
+            i += 1
+            while i < len(lines):
+                if not usfm_re.match(lines[i]):
+                    block += lines[i]
+                    i += 1
+                else:
+                    break
+            yield block
+        else:
+            yield lines[i]
+            i += 1

@@ -486,21 +486,12 @@ def change_floating_quotes(line, all):
                         line = line[0:pos+1] + line[pos+2:]
     return line
 
-# Returns True if a section is marked at the specified verse in the source text.
-def source_has_section(chap, verse):
-    if sourcebook and sourcebook.countRealSections() > 0:
-        mark, punct = sourcebook.getSmark(chap, verse)
-        allows = (mark != "" and mark != 's5')
-    else:
-        allows = False
-    return allows
-
 def find_section_heading(line, chap, verse, prevline, sentenceended):
     pheading = ""
     if verse == 0 or prevline.strip() == '' or sentenceended:
         if section_titles_new.prob_heading(line) >= 0.1:
             pheading = line.lstrip()
-    if source_has_section(chap, verse):
+    if not pheading and sourcebook and sourcebook.has_section(chap, verse):
         if not pheading and section_titles_new.prob_heading(line) >= 0.1:
             pheading = line.lstrip()
         if not pheading:
@@ -519,7 +510,7 @@ section_re = re.compile(r'\\s[1-4]? +')
 # Line modification consists of prepending "\s " and possibly inserting newline before/after heading.
 # Otherwise, returns (False, line), the line being unchanged.
 def mark_sections(line):
-    if not hasattr(mark_sections, "prevline")or line.startswith("\\id "):
+    if not hasattr(mark_sections, "prevline") or line.startswith("\\id "):
         mark_sections.prevline = "xx"
         mark_sections.chapter = 0
         mark_sections.verse = 0
@@ -544,9 +535,8 @@ def mark_sections(line):
         startpos = line.find(pheading)
         endpos = startpos + len(pheading)
         assert startpos >= 0 and endpos <= len(line)
-        if pheading.startswith('('):
-            pheading = pheading.strip('(). \n')
-        line = section_titles_new.insert_heading(line[0:startpos].rstrip('( '), pheading.strip('() \n'), line[endpos:])
+        pheading = pheading.strip('().\u0964\u0965\u1362\u06D4 \n')
+        line = section_titles_new.insert_heading(line[0:startpos].rstrip('( '), pheading, line[endpos:])
         changed = True
 
     mark_sections.prevline = line
@@ -604,7 +594,7 @@ def convert_by_line(inputpath, path):
     changedfile = False
     changed3 = False
 
-    for block in nextblock(inputpath):
+    for block in nextblock(inputpath):  # @TODO use usfm_utils.nextblock() once it is tested
         state.addLine(block)
         if enable[7]:
             (changed3, block) = mark_sections(block)

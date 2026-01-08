@@ -70,6 +70,14 @@ class ScriptureBook:
     # Returns a count of sections **other than \s5 sections**
     def countRealSections(self):
         return len(self.sections_model_real)
+    # Returns True if a section is marked at the specified verse in the source text.
+    def has_section(self, chapter, verse):
+        ref = f"{chapter}:{verse}"
+        if ref in self.sections_model:
+            has_section = (self.sections_model[ref]['mark'] in {'s','s1','s2','s3','s4'})
+        else:
+            has_section = False
+        return has_section
 
     # Parses the self.usfmpath USFM file.
     def _scanText(self):
