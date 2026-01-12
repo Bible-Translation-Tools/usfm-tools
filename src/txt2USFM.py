@@ -12,7 +12,7 @@ from configmanager import ToolsConfigManager
 from projectinfo import ProjectInfo
 from pathlib import Path
 import sentences
-import section_titles
+import section_titles_new
 import usfm_verses
 import re
 import io
@@ -401,22 +401,23 @@ def remove_parens(str):
 
 chapter_re = re.compile(r'\\c\s+([0-9]+)[\s]*', re.UNICODE)
 
-# Searches for likely section heading at the beginning of a section,
+# Searches for likely section heading at the beginning of a chunk,
 # before the first verse marker.
 # Inserts \s before unmarked section heading, if found.
-def mark_section_heading_bos(section):
-    chap = chapter_re.search(section)   # valid chapter marker
+def mark_section_heading_bos(strChunk):
+    chap = chapter_re.search(strChunk)   # valid chapter marker
     cendpos = chap.end() if chap else 0
-    vpos = section.find("\\v")
+    vpos = strChunk.find("\\v")
     if vpos < 0:
-        vpos = len(section)
+        vpos = len(strChunk)
     if cendpos > vpos:
         cendpos = 0
-    candidate = section[cendpos:vpos] if vpos == len(section) else section[cendpos:vpos-1]
+    candidate = strChunk[cendpos:vpos] if vpos == len(strChunk) else strChunk[cendpos:vpos-1]
     candidate = remove_parens(candidate)
-    if section_titles.is_heading(candidate):
-        section = section_titles.insert_heading(section[0:cendpos], candidate, section[vpos:])
-    return section
+    if section_titles_new.prob_heading(candidate) >= 0.1:
+        heading = candidate.rstrip('.\u0964\u0965\u1362\u06D4')
+        strChunk = section_titles_new.insert_heading(strChunk[0:cendpos], heading, strChunk[vpos:])
+    return strChunk
 
 anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
 
@@ -436,12 +437,13 @@ def mark_section_heading_eos(section):
         candidate = None
         if startpos > 0 and section[startpos-1] == '(':
             startpos -= 1
-            candidate = section_titles.find_parenthesized_heading(section)
+            candidate = section_titles_new.find_parenthesized_heading(section, 0.499)
             candidate = remove_parens(candidate)
         else:
             candidate = section[startpos:]  # last "sentence" in the line
-        if candidate and section_titles.is_heading(candidate):
-            section = section_titles.insert_heading(section[0:startpos], candidate, "")
+        if candidate and section_titles_new.prob_heading(candidate) > 0.7:
+            heading = candidate.rstrip('.\u0964\u0965\u1362\u06D4')
+            section = section_titles_new.insert_heading(section[0:startpos], heading, "")
     return section
 
 lbi_re = re.compile(r'^[^\\\n]+$', re.MULTILINE)
@@ -452,34 +454,35 @@ lbi_re = re.compile(r'^[^\\\n]+$', re.MULTILINE)
 def mark_section_heading_lbi(section, lastref, lastchunk):
     lbi = lbi_re.search(section)
     while lbi:
-        if lbi.end() >= len(section) and (lastchunk or lastref in section_titles.exclude_eol_checks):
+        if lbi.end() >= len(section) and (lastchunk or lastref in section_titles_new.exclude_eol_checks):
             break
         candidate = remove_parens(lbi.group(0))
-        if section_titles.is_heading(candidate):
+        if section_titles_new.prob_heading(candidate) > 0.1:
             startpos = lbi.start() + (len(candidate) - len(candidate.lstrip(' ')))
-            section = section_titles.insert_heading(section[0:startpos], candidate, section[lbi.end():])
+            heading = candidate.rstrip('.\u0964\u0965\u1362\u06D4')
+            section = section_titles_new.insert_heading(section[0:startpos], heading, section[lbi.end():])
             break
         lbi = lbi_re.search(section, lbi.end())
     return section
 
 # Inserts \s before any section heading that can be identified.
-# Sections at the end of a chapter (lastchunk=True) are treated slightly differently.
+# Chunks at the end of a chapter (lastchunk=True) are treated slightly differently.
 # Currently searches for headings only:
 #   before the first \v marker
 #   after the last sentence after the last usfm marker
 #   on lines with no usfm markers
 # Marks at most one section heading.
-# Returns the section, modified or not.
-# @param lastref is the verse reference of the last verse in the section
+# Returns the chunk text, modified or not.
+# @param lastref is the verse reference of the last verse in the chunk
 # @param lastchunk is True when it is the last chunk in the chapter
-def mark_section_headings(section, lastref, lastchunk):
-    orig_section = section
-    section = mark_section_heading_bos(section)
-    if not lastchunk and lastref not in section_titles.exclude_eol_checks:
-        section = mark_section_heading_eos(section)
-    if section == orig_section:
-        section = mark_section_heading_lbi(section, lastref, lastchunk)
-    return section
+def mark_section_headings(strChunk, lastref, lastchunk):
+    orig_section = strChunk
+    strChunk = mark_section_heading_bos(strChunk)
+    if not lastchunk and lastref not in section_titles_new.exclude_eol_checks:
+        strChunk = mark_section_heading_eos(strChunk)
+    if strChunk == orig_section:
+        strChunk = mark_section_heading_lbi(strChunk, lastref, lastchunk)
+    return strChunk
 
 vtag_re = re.compile(r'([\\p\s]*)\\v\s')
 
@@ -619,21 +622,21 @@ condense_re = re.compile(r'[ \t][ \t]+')
 # Converts the section string by adding chapter, label, chunk, and p parkers where needed.
 # Starts each usfm marker on a new line.
 # Fixes white space, such as converting tabs to spaces and removing trailing spaces.def
-def convertSection(schap, section, firstinchapter, lastref, chapterTitle, lastchunk):
-    section = re.sub(condense_re, ' ', section)
-    section = newline_markers(section)
-    section = section.replace(" \n", "\n")
+def convertChunk(schap, strChunk, firstinchapter, lastref, chapterTitle, lastchunk):
+    strChunk = re.sub(condense_re, ' ', strChunk)
+    strChunk = newline_markers(strChunk)
+    strChunk = strChunk.replace(" \n", "\n")
 
     config = ToolsConfigManager()
     if config.getboolean('Txt2USFM', 'section_headings'):
-        section = mark_section_headings(section, lastref, lastchunk)
+        strChunk = mark_section_headings(strChunk, lastref, lastchunk)
 
     if config.getboolean('Txt2USFM', 'mark_chunks'):
-        section = mark_chunk(section)
+        strChunk = mark_chunk(strChunk)
 
     if firstinchapter:
-        section = augmentChapter(schap, section, chapterTitle)
-    return section
+        strChunk = augmentChapter(schap, strChunk, chapterTitle)
+    return strChunk
 
 # Returns True if the specified directory is one with text files to be converted
 def isChapter(dirname):
@@ -847,7 +850,7 @@ def convertBook(folder, bookId, bookTitle):
             verserange = makeVerseRange(chunks, i, bookId, int(chap))
             section = cleanupChunk(txtPath, chap, verserange, firstchunk)
             lastref = f"{bookId} {schap}:{verserange[-1]}"
-            section = convertSection(schap, section, firstchunk, lastref, chapterTitle, i+1 >= len(chunks)).rstrip()
+            section = convertChunk(schap, section, firstchunk, lastref, chapterTitle, i+1 >= len(chunks)).rstrip()
             usfm.writeStr('\n' + section)
             firstchunk = False
     usfm.close()
