@@ -102,16 +102,21 @@ def prob_heading(s):
         if caseless:
             prob = 0.1
         else:
-            percent = percentTitleOrCaps(s)
-            diff = percent - _titlecase_threshold(s)
-            if diff >= 0.0:
-                prob = 0.5
-                if percent >= 0.8:
-                    prob = 0.75
+            if s.isupper():
+                prob = 0.8
             else:
-                prob = 0.04
+                percent = percentTitleOrCaps(s)
+                diff = percent - _titlecase_threshold(s)
+                if diff >= 0.0:
+                    prob = 0.5
+                    if percent >= 0.8:
+                        prob = 0.75
+                else:
+                    prob = 0.04
         if s[0] == '(' and s[-1] == ')':
             prob += 0.15
+        if digit_re.search(s) and ':' in s:
+            prob -= 0.1
         if len(s) > 80:
             prob -= 0.002 * (len(s) - 80)
         if _wordcount(s) > 10:
