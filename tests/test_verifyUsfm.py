@@ -211,3 +211,10 @@ def test_State_versebridges():
     assert state.verse == 20
     assert state.reference == 'MAT 2:20'
     assert state.getReference() == 'MAT 2:20-25'
+
+def test_similarity():
+    strA = "In the beginning God created the heaven and the earth."
+    strB = "In the start God made the heavens and the earth."
+    sim, n = verifyUSFM.similarity(strA, strB)
+    assert n == 3  # 'the', 'and', 'earth.'
+    assert abs(sim - (3 / 11)) < 0.0001  # 5 common words, 13 unique words total

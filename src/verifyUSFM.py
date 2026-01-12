@@ -693,21 +693,23 @@ def relative_length(ref):
             rlen = txln_len / 100.0
     return rlen
 
+# Returns Jaccard Similarity value, and number of words of length > 2 in common.
+def similarity(strA, strB):
+    setA = set(strA.split())
+    setB = set(strB.split())
+    wordsincommon = [w for w in setA&setB if len(w) > 2 and w.islower()]
+    n = len(wordsincommon)
+    sim = n / len(setA | setB) if len(setA | setB) > 0 else 0
+    return (sim, n)
+
 # Compares current verse to the source text
 # Returns Jaccard Similarity value, and number of words of length > 2 in common.
 def similarToSource():
-    similarity = 0
-    n = 0
-    srcText = sourcebook.getText(state.chapter, state.verse) if sourcebook else ""
-    if srcText:
-        setA = set(srcText.split())
-        srcFootnotes = sourcebook.getFootnote(state.chapter, state.verse) if sourcebook else ""
-        setA.update(srcFootnotes.split())
-        setB = set(state.versetext.split())
-        wordsincommon = [w for w in setA&setB if len(w) > 2 and w.islower()]
-        n = len(wordsincommon)
-        similarity = n / len(setA|setB)
-    return (similarity, n)
+    if sourcebook:
+        srcText = sourcebook.getText(state.chapter, state.verse) + " " + sourcebook.getFootnote(state.chapter, state.verse)
+        return similarity(srcText, state.versetext)
+    else:
+        return (0,0)
 
 # Report empty verse, verse fragment or all ASCII text, in previous verse
 def previousVerseCheck():
