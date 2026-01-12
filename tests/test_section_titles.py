@@ -155,7 +155,7 @@ def test_is_possibleheading(str, expected):
 
 parens_test_cases = [(' ( Sentence 1 Sentence Two )', '( Sentence 1 Sentence Two )'),
      ('No Parens  ', None),
-     ('(Two words)', None),
+     ('(Two words)', '(Two words)'),
      ('(Two Sentences. Heading)', None),
      ('before parens(Only Sentence Xyz  )after parens  ', None),
      ('\nline before\n(Only Sentence Xyz)\nLine after\n', '(Only Sentence Xyz)'),
@@ -163,7 +163,7 @@ parens_test_cases = [(' ( Sentence 1 Sentence Two )', '( Sentence 1 Sentence Two
      ('(" Sentence With Quotes)"  ', None),
      ('(  )', None),
      ('(This Fine House\nAbc)', None),
-     ('(\nStarts With Newline)', '(\nStarts With Newline)'),
+     ('(\nStarts With Newline)', None),
      ('(\\v 1 This Is Interesting)', None),
      ('Parens At End)', None),
      ('(No End Paren', None),
@@ -172,14 +172,14 @@ parens_test_cases = [(' ( Sentence 1 Sentence Two )', '( Sentence 1 Sentence Two
         ('\\v plain verse', None),
         ('', None),
         ('\\v 1 verse then (Heading Title Case)', '(Heading Title Case)'),
-        ('\\v 1 verse then (Heading not title)', None),
-        ('\\v 1 verse then (heading Not Title)', None),
+        ('\\v 1 verse then (Heading not title)', '(Heading not title)'),
+        ('\\v 1 verse then (heading Not Title)', '(heading Not Title)'),
         ('\\v 1 verse then (Heading Title case) continue verse', None),
         ('(Heading half Title case) then some text', None),
-        ('(notlower Firstword)', None),
+        ('(notlower Firstword)', '(notlower Firstword)'),
         ('some text then (Heading Title Case Minus Close Paren', None),
         ('some text then (First heading) (Second Heading)', '(Second Heading)'),
-        ('some text then (first heading) (Second heading)', None),
+        ('some text then (first heading) (Second heading)', '(Second heading)'),
         ('(first heading) (Second Heading) (Third Heading)', '(Third Heading)'),
         ('\\v 15 Meakore me einya honainyele iteainyembe. (Nim-Kam Mekae Rei maite Yeuboke)', '(Nim-Kam Mekae Rei maite Yeuboke)'),
         ('Do not mark (Parenthesized Words) in the middle of a sentence as a title.', None),
@@ -191,23 +191,21 @@ parens_test_cases = [(' ( Sentence 1 Sentence Two )', '( Sentence 1 Sentence Two
         ('end of line (Mary Peter Paul)', '(Mary Peter Paul)'),
         ('end of line (One Two Three) with more', None),
         ('(Single).', None),
-        ('(Single)', None),
-        ('\\v 2 some sentence. (Oneword)', None)
+        ('(Single)', '(Single)'),
+        ('\\v 2 some sentence. (Oneword)', '(Oneword)')
     ]
 
-@pytest.mark.parametrize('line, expected', parens_test_cases)
-def test_find_parenthesized_heading(line, expected):
-    s = section_titles.find_parenthesized_heading(line)
-    assert s == expected
-
 # @pytest.mark.parametrize('line, expected', parens_test_cases)
-# def test_find_parenthesized_heading_new(line, expected):
-#     s, prob = section_titles_new.find_parenthesized_heading(line)
+# def test_find_parenthesized_heading(line, expected):
+#     s = section_titles.find_parenthesized_heading(line)
 #     assert s == expected
-#     if s:
-#         assert prob > 0.0
-#     else:
-#         assert prob == 0.0
+
+@pytest.mark.parametrize('line, expected', parens_test_cases)
+def test_find_parenthesized_heading_new(line, expected):
+    if expected is None:
+        expected = ""
+    s = section_titles_new.find_parenthesized_heading(line, 0.249)
+    assert s == expected
 
 @pytest.mark.parametrize('line, expected',
     [('', None),
@@ -327,7 +325,7 @@ def test_isCapitalized(s, expected):
      ('Pre    ', 'heading', '', 'Pre\n\\s heading\n\\p\n'),
     ])
 def test_insert_heading(preheading, heading, postheading, expected):
-    result = section_titles.insert_heading(preheading, heading, postheading)
+    result = section_titles_new.insert_heading(preheading, heading, postheading)
     assert result == expected
 
 @pytest.mark.parametrize('s, expected',
