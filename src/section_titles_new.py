@@ -123,6 +123,10 @@ def prob_heading(s):
             prob -= 0.005 * (_wordcount(s) - 10)
         prob -= 0.15 * s.count('\n')
         prob -= 0.03 * nPunctuationChars(s)
+        if prob > 0.05 and s.endswith(','):
+            prob = 0.05
+        if prob > 0.1 and s.endswith(':'):
+            prob = 0.1
         if sentences.endsSentence(s):
             prob -= 0.1
             prob -= 0.3 * (nPunctuationChars(s) - 1)
