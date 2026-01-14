@@ -19,7 +19,6 @@ import sentences
 import usfm_verses
 import usfmWriter
 import yaml
-import section_titles
 import section_titles_new
 from datetime import datetime
 from usfm_utils import unicodeBlock
@@ -360,20 +359,17 @@ def takeS(tag, value:str):
 def sDistance():
     return state.verse - state.sVerse if state.sChapter == state.chapter else 1000
 
+# This function can be removed when section titles changes are done.
 def record_section_statistics(value, distance):
         hd = csv(value)
-        # thresh = section_titles._titlecase_threshold_old(value)
         thresh = section_titles_new._titlecase_threshold(value)
         firstword = sentences.firstword(value)
-        caps1 = 1 if firstword.isupper() or section_titles._isCapitalized(firstword) else 0
+        caps1 = 1 if firstword.isupper() or section_titles_new._isCapitalized(firstword) else 0
         lastword = sentences.lastword(value)
         capsN = 1 if section_titles_new._isCapitalized(lastword) or lastword.isupper() else 0
         pctCap = section_titles_new.percentTitleOrCaps(value)
-        qual_old = 1 if section_titles._qualifies(value, thresh) else 0
         qual = 0 if section_titles_new.disqualified(value) else 1
         prob = section_titles_new.prob_heading(value)
-        # is_heading = 1 if section_titles.is_heading(value) else 0
-        poss = 1 if section_titles.is_possible_heading(value) else 0
         quotes = 1 if section_titles_new.quotes_re.search(value) else 0
         endss = 1 if sentences.endsSentence(value) else 0
         nchars = len(value)
@@ -383,7 +379,7 @@ def record_section_statistics(value, distance):
         inSource = 1 if smark in {'s','s1','s2','sr','r','d','sp'} else 0
         npunct = section_titles_new.nPunctuationChars(value)
         row = f"{state.ID},{state.chapter},{state.verse},{hd},{thresh},{caps1},{capsN},{pctCap}"
-        row += f",{qual_old},{qual},{prob},{poss},{distance},{quotes},{endss},{nchars},{nwords},{nsents},{inSource},{npunct}"
+        row += f",{qual},{prob},{distance},{quotes},{endss},{nchars},{nwords},{nsents},{inSource},{npunct}"
         if sections_file:
             sections_file.write(f"{row}\n")
 
@@ -424,7 +420,7 @@ def takeText(t):
 so sentence termination functionality is disabled.")
 
     ####### This is the case where the model has a section heading, and t might be a section heading on a line by itself #######
-    if smark in {'s','s1','s2','sr','r','d','sp'} and section_titles.is_possible_heading(t):
+    if smark in {'s','s1','s2','sr','r','d','sp'} and section_titles_new.prob_heading(t) >= 0.1:
         mayTerminateLastSentence(punct)
         state.usfm.writeUsfm(smark, t)
         nChanges += 1
@@ -608,6 +604,7 @@ def closeFiles():
         sections_file.close()
         sections_file = None
 
+# This function can be removed when section title changes are done.
 def open_sections_file():
     global sections_file
 
