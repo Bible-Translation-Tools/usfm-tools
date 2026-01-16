@@ -33,14 +33,13 @@ class VerifyUSFM(g_step.Step):
             super().onNext()
         self.executed = False
 
-    def onExecute(self, values):
+    def onExecute(self):
         self.enablebutton(2, False)
         self.enablebutton(3, False)
         self.enablebutton(5, False)
-        # self.values = values    # redundant, they were the same dict to begin with
         count = 1
-        if not values['filename']:
-            count = g_util.count_files(values['work_dir'], ".*sfm$")
+        if not self.getOption('filename'):
+            count = g_util.count_files(self.getOption('work_dir'), ".*sfm$")
         self.mainapp.execute_script("verifyUSFM", count)
         self.frame.clear_messages()
         self.executed = True
@@ -170,25 +169,22 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
 
     # Temporary function, until "source_dir" is fully retired.
     def getWorkDirConfigValue(self):
-        workdir = self.values.get('work_dir', fallback="")
+        workdir = self.getOption('work_dir')
         if not workdir:
-            self.values.get('source_dir', fallback="")  # the old name
+            workdir = self.getOption('source_dir')
         return workdir
 
-    def show_values(self, values):
-        # self.changingVars = True
-        self.values = values
-        code = values.get('language_code', fallback="")
+    def show_values(self):
+        code = self.getOption('language_code')
         dir = self.getWorkDirConfigValue()
         self.work_dir.set(dir)
         self.language_code.set(code)
         self.set_compare_dir(code, dir)
-        self.filename.set(values.get('filename', fallback=""))
-        self.std_titles.set(values.get('standard_chapter_title', fallback=""))
+        self.filename.set(self.getOption('filename'))
+        self.std_titles.set(self.getOption('standard_chapter_title'))
         for si in range(len(self.suppress)):
-            configvalue = f"suppress{si}"
-            self.suppress[si].set( values.get(configvalue, fallback = False))
-
+            configname = f"suppress{si}"
+            self.suppress[si].set(self.getBooleanOption(configname))
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Previous step")
         self.controller.showbutton(2, "VERIFY", self._onExecute, tip="Check the USFM files now.")
@@ -202,7 +198,6 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         else:
             tip = "Automated USFM file cleanup"
         self.controller.showbutton(5, ">>>", self._onNext, tip)
-        # self.changingVars = False
         self._set_button_status()
         self.language_code.trace_add("write", self._onChangeLanguage)
         self.work_dir.trace_add("write", self._onChangeSourceDir)
@@ -247,25 +242,26 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
 
     # Called by base class on Back, Next, Skip and Execute
-    # Copies current values from GUI into self.values dict, and calls mainapp to save
+    # Copies current values from GUI into a dict, and calls mainapp to save
     # them to the configuration file.
     # Also saves compare_dir to ProjectInfo.
     def _save_values(self):
         if not self.invalidInputs():
-            self.values['language_code'] = self.language_code.get()
-            self.values['work_dir'] = self.work_dir.get()
-            self.values['filename'] = self.filename.get()
+            values = {}
+            values['language_code'] = self.language_code.get()
+            values['work_dir'] = self.work_dir.get()
+            values['filename'] = self.filename.get()
             value = self.compare_dir.get()
-            self.values['compare_dir'] = "" if value.startswith("(locate") else value
-            self.values['standard_chapter_title'] = self.std_titles.get()
+            values['compare_dir'] = "" if value.startswith("(locate") else value
+            values['standard_chapter_title'] = self.std_titles.get()
             for si in range(len(self.suppress)):
                 configvalue = f"suppress{si}"
-                self.values[configvalue] = str(self.suppress[si].get())
-            self.controller.mainapp.save_values(stepname, self.values)
+                values[configvalue] = str(self.suppress[si].get())
+            self.controller.mainapp.save_values(stepname, values)
 
             projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
-            if self.values['compare_dir'] != projectInfo.getSourceDir():
-                projectInfo.setSourceDir(self.values['compare_dir'])
+            if values['compare_dir'] != projectInfo.getSourceDir():
+                projectInfo.setSourceDir(values['compare_dir'])
                 projectInfo.save()
 
     # Returns a list of incomplete or incorrect inputs.

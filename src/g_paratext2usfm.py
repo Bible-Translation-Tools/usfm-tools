@@ -20,16 +20,10 @@ class Paratext2Usfm(g_step.Step):
     def name(self):
         return stepname
 
-    def onExecute(self, values):
+    def onExecute(self):
         self.enablebutton(2, False)
         self.mainapp.execute_script("paratext2usfm", 1)
         self.frame.clear_messages()
-
-    # Called by the main app.
-    # def onScriptEnd(self, status: str):
-    #     if status:
-    #         self.frame.show_progress(status)
-    #     self.frame.onScriptEnd()
 
 class Paratext2Usfm_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
@@ -71,16 +65,15 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
 
     # Temporary function, until "target_dir" is fully retired.
     def getWorkDirConfigValue(self):
-        workdir = self.values.get('work_dir', fallback="")
+        workdir = self.getOption('work_dir')
         if not workdir:
-            self.values.get('target_dir', fallback="")  # the old name
+            workdir = self.getOption('target_dir')  # the old name
         return workdir
 
-    def show_values(self, values):
-        self.values = values
-        self.ptx_dir.set(values.get('paratext_dir', fallback=""))
+    def show_values(self):
+        self.ptx_dir.set(self.getOption('paratext_dir'))
         self.work_dir.set(self.getWorkDirConfigValue())
-        self.filename.set(values.get('filename', fallback=""))
+        self.filename.set(self.getOption('filename'))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack)
@@ -94,13 +87,14 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
         self._set_button_status()
 
-    # Copies current values from GUI into self.values dict, and calls mainapp to save
+    # Copies current values from GUI into a dict, and calls mainapp to save
     # them to the configuration file.
     def _save_values(self):
-        self.values['paratext_dir'] = self.ptx_dir.get()
-        self.values['work_dir'] = self.work_dir.get()
-        self.values['filename'] = self.filename.get()
-        self.controller.mainapp.save_values(stepname, self.values)
+        values = {}
+        values['paratext_dir'] = self.ptx_dir.get()
+        values['work_dir'] = self.work_dir.get()
+        values['filename'] = self.filename.get()
+        self.controller.mainapp.save_values(stepname, values)
         self._set_button_status()
 
     def _onFindPtxDir(self, *args):

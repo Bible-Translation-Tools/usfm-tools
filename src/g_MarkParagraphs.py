@@ -24,22 +24,21 @@ class MarkParagraphs(g_step.Step):
     def name(self):
         return stepname
 
-    def onExecute(self, values):
+    def onExecute(self):
         self.enablebutton(2, False)
         self.enablebutton(3, False)
-        # self.values = values    # redundant, they were the same dict to begin with
         count = 1
-        if not values['filename']:
-            count = g_util.count_files(values['work_dir'], ".*sfm$")
+        if not self.getOption('filename'):
+            count = g_util.count_files(self.getOption('work_dir'), ".*sfm$")
         self.script = "mark_paragraphs"
         self.mainapp.execute_script(self.script, count)
         self.frame.clear_messages()
 
     # Temporary function, until "source_dir" is fully retired.
     def getWorkDir(self):
-        workdir = self.values['work_dir']
+        workdir = self.getOption('work_dir')
         if not workdir:
-            workdir = self.values['source_dir']
+            workdir = self.getOption('source_dir')
         return workdir
 
     # Runs the revertChanges script to revert mark_paragraphs changes.
@@ -52,6 +51,7 @@ class MarkParagraphs(g_step.Step):
         self.mainapp.execute_script(self.script, 1)
         self.frame.clear_messages()
 
+    # Temporary overload of Step.onNext()
     def onNext(self):
         self.frame._save_values()  # only needed until 'source_dir' is retired
         super().onNext('work_dir')
@@ -62,7 +62,7 @@ class MarkParagraphs(g_step.Step):
             self.frame.show_progress(status)
         nIssues = 0
         if self.script == "mark_paragraphs":
-            issuespath = os.path.join(self.values['work_dir'], "issues.mark_paragraphs.txt")
+            issuespath = os.path.join(self.getOption('work_dir'), "issues.mark_paragraphs.txt")
             if os.path.exists(issuespath) and time.time() - os.path.getmtime(issuespath) < 10:     # issues.txt is recent
                 nIssues = 1
             else:
@@ -169,28 +169,26 @@ then you don't need to run this process.")
 
     # Temporary function, until "source_dir" is fully retired.
     def getWorkDirConfigValue(self):
-        workdir = self.values.get('work_dir', fallback="")
+        workdir = self.getOption('work_dir')
         if not workdir:
-            self.values.get('source_dir', fallback="")  # the old name
+            workdir = self.getOption('source_dir')  # the old name
         return workdir
 
-    def show_values(self, values):
-        self.values = values
-        code = values.get('language_code', fallback="")
+    def show_values(self):
+        code = self.getOption('language_code')
         dir = self.getWorkDirConfigValue()
         self.work_dir.set(dir)
-        # model_dir = values.get('model_dir', fallback="")
         self.language_code.set(code)
         if not code:
             self.set_language_code(dir)
         self.set_model_dir(code, dir)
-        self.filename.set(values.get('filename', fallback=""))
-        self.copy_nb.set(values.get('copy_nb', fallback=False))
-        self.remove_s5.set(values.get('removeS5markers', fallback=True))
-        # self.s5_only.set(values.get('s5_only', fallback=False))
-        self.s5_to_p.set(values.get('s5_to_p', fallback=False))
-        self.mark_every_verse.set(values.get('mark_every_verse', fallback=False))
-        # self.punctuate.set(values.get('punctuate', fallback=True))
+        self.filename.set(self.getOption('filename'))
+        self.copy_nb.set(self.getBooleanOption('copy_nb'))
+        self.remove_s5.set(self.getBooleanOption('removeS5markers'))
+        # self.s5_only.set(self.getBooleanOption('s5_only'))
+        self.s5_to_p.set(self.getBooleanOption('s5_to_p'))
+        self.mark_every_verse.set(self.getBooleanOption('mark_every_verse'))
+        # self.punctuate.set(self.getBooleanOption('punctuate'))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Verify usfm")
@@ -263,17 +261,18 @@ then you don't need to run this process.")
     # Called by base class on Back, Next, Skip and Execute
     def _save_values(self):
         if not self.invalidInputs():
-            self.values['language_code'] = self.language_code.get()
-            self.values['work_dir'] = self.work_dir.get()
-            self.values['model_dir'] = self.model_dir.get()
-            self.values['filename'] = self.filename.get()
-            self.values['copy_nb'] = str(self.copy_nb.get())
-            self.values['removeS5markers'] = str(self.remove_s5.get())
-            # self.values['s5_only'] = str(self.s5_only.get())
-            self.values['s5_to_p'] = str(self.s5_to_p.get())
-            self.values['mark_every_verse'] = str(self.mark_every_verse.get())
-            # self.values['punctuate'] = str(self.punctuate.get())
-            self.controller.mainapp.save_values(stepname, self.values)
+            values = {}
+            values['language_code'] = self.language_code.get()
+            values['work_dir'] = self.work_dir.get()
+            values['model_dir'] = self.model_dir.get()
+            values['filename'] = self.filename.get()
+            values['copy_nb'] = str(self.copy_nb.get())
+            values['removeS5markers'] = str(self.remove_s5.get())
+            # values['s5_only'] = str(self.s5_only.get())
+            values['s5_to_p'] = str(self.s5_to_p.get())
+            values['mark_every_verse'] = str(self.mark_every_verse.get())
+            # values['punctuate'] = str(self.punctuate.get())
+            self.controller.mainapp.save_values(stepname, values)
 
             projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
             projectInfo.setSourceDir(self.model_dir.get())

@@ -19,7 +19,7 @@ class SelectProcess(g_step.Step):
         return stepname
 
     def onNext(self):
-        self.mainapp.set_process(self.values['selection'])
+        self.mainapp.set_process(self.getOption('selection'))
         self.mainapp.step_next()
 
 class Select_Frame(g_step.Step_Frame):
@@ -63,9 +63,8 @@ class Select_Frame(g_step.Step_Frame):
         self.columnconfigure(1, minsize=505)
 
     # Called when the frame is first activated. Populate the initial values.
-    def show_values(self, values):
-        self.values = values
-        self.process.set(values['selection'])
+    def show_values(self):
+        self.process.set(self.getOption('selection'))
         self._explain()
         self.controller.showbutton(5, ">>>", self._onNext, tip="Begin the process you selected above.")
         self.controller.hidebutton(1,2,3,4)
@@ -73,7 +72,6 @@ class Select_Frame(g_step.Step_Frame):
 
     # Handles the radio button click event.
     def _onRbChange(self, *args):
-        self.values['selection'] = self.process.get()
         self._explain()
         self._set_button_status()
 
@@ -135,10 +133,11 @@ Settings.xml file, with changes to reflect the new file names.""")
 
     # Required ABC methods
 
-    # Caches the current selection in self.values and calls the mainapp to save in the config file.
+    # Caches the current selection in a dict and calls the mainapp to save in the config file.
     def _save_values(self):
-        self.values['selection'] = self.process.get()
-        self.controller.mainapp.save_values(stepname, self.values)
+        values = {}
+        values['selection'] = self.process.get()
+        self.controller.mainapp.save_values(stepname, values)
 
     def _set_button_status(self):
         self.controller.enablebutton(5, True)

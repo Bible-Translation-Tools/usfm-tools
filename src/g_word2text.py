@@ -21,16 +21,16 @@ class Word2text(g_step.Step):
     def name(self):
         return stepname
 
-    def onExecute(self, values):
+    def onExecute(self):
         self.enablebutton(2, False)
         self.enablebutton(5, False)
         count = 1
-        if not values['filename']:
-            count = g_util.count_files(values['source_dir'], ".*docx$")
+        if not self.getOption('filename'):
+            count = g_util.count_files(self.getOption('source_dir'), ".*docx$")
         self.mainapp.execute_script("word2text", count)
         self.frame.clear_messages()
     def onNext(self):
-        copyparms = {'source_dir': self.values['target_dir']}
+        copyparms = {'source_dir': self.getOption('target_dir')}
         self.mainapp.step_next(copyparms)
 
     # Called by the main app.
@@ -85,11 +85,10 @@ class Word2text_Frame(g_step.Step_Frame):
         source_dir_entry.focus()
 
     # Called when the frame is first activated. Populate the initial values.
-    def show_values(self, values):
-        self.values = values
-        self.filename.set(values['filename'])
-        self.source_dir.set(values['source_dir'])
-        self.target_dir.set(values['target_dir'])
+    def show_values(self):
+        self.filename.set(self.getOption('filename'))
+        self.source_dir.set(self.getOption('source_dir'))
+        self.target_dir.set(self.getOption('target_dir'))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack)
@@ -105,12 +104,13 @@ It assumes that each Word document contains a single book of the Bible. \
 It attempts to identify the Bible book, based on the .docx file name.\n\n\
 Word headers, footers, footnotes, styles, etc. are not supported at this time.")
 
-    # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
+    # Caches the current parameters in a dict and calls the mainapp to save them in the config file.
     def _save_values(self):
-        self.values['filename'] = self.filename.get()
-        self.values['source_dir'] = self.source_dir.get()
-        self.values['target_dir'] = self.target_dir.get()
-        self.controller.mainapp.save_values(stepname, self.values)
+        values = {}
+        values['filename'] = self.filename.get()
+        values['source_dir'] = self.source_dir.get()
+        values['target_dir'] = self.target_dir.get()
+        self.controller.mainapp.save_values(stepname, values)
         self._set_button_status()
 
     def _onFindSrcDir(self, *args):
@@ -128,7 +128,7 @@ Word headers, footers, footnotes, styles, etc. are not supported at this time.")
         os.startfile(self.source_dir.get())
     def _onOpenTargetDir(self, *args):
         self._save_values()
-        os.startfile(self.values['target_dir'])
+        os.startfile(self.getOption('target_dir'))
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
         self.controller.showbutton(5, ">>>", self._onNext, tip="Convert the text files to usfm.")

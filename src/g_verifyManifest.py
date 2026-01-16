@@ -19,10 +19,9 @@ class VerifyManifest(g_step.Step):
     def name(self):
         return stepname
 
-    def onExecute(self, values):
+    def onExecute(self):
         self.enablebutton(2, False)
         self.enablebutton(5, False)
-        # self.values = values
         self.mainapp.execute_script("verifyManifest", 1)
         self.frame.clear_messages()
 
@@ -65,16 +64,15 @@ class VerifyManifest_Frame(g_step.Step_Frame):
 
     # Temporary function, until "source_dir" is fully retired.
     def getWorkDirConfigValue(self):
-        workdir = self.values.get('work_dir', fallback="")
+        workdir = self.getOption('work_dir')
         if not workdir:
-            self.values.get('source_dir', fallback="")  # the old name
+            workdir = self.getOption('source_dir')  # the old name
         return workdir
 
-    def show_values(self, values):
-        self.values = values
+    def show_values(self):
         self.work_dir.set( self.getWorkDirConfigValue())
-        self.bibletype.set(values.get('bibletype', fallback = True))
-        self.expectAscii.set(values.get('expectascii', fallback = False))
+        self.bibletype.set(self.getBooleanOption('bibletype'))
+        self.expectAscii.set(self.getBooleanOption('expectascii'))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Previous step")
@@ -90,10 +88,11 @@ class VerifyManifest_Frame(g_step.Step_Frame):
         self.controller.enablebutton(5, True)
 
     def _save_values(self):
-        self.values['work_dir'] = self.work_dir.get()
-        self.values['bibletype'] = str(self.bibletype.get())
-        self.values['expectascii'] = str(self.expectAscii.get())
-        self.controller.mainapp.save_values(stepname, self.values)
+        values = {}
+        values['work_dir'] = self.work_dir.get()
+        values['bibletype'] = str(self.bibletype.get())
+        values['expectascii'] = str(self.expectAscii.get())
+        self.controller.mainapp.save_values(stepname, values)
         self._set_button_status()
 
     def _onFindSrcDir(self, *args):

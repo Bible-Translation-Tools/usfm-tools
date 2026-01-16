@@ -14,6 +14,7 @@ class Step(ABC):
         self.steptitle = title  # Descriptive, displayable title for the step
         self.buttons = mainapp.buttonsframe
         self.frame = None
+        self.values = {}
 
     # Ensures that self.frame is non-null.
     def _frame(self):
@@ -27,11 +28,16 @@ class Step(ABC):
     # Called by UsfmWizard.activate_step()
     def show(self, values):
         self.values = values
-        self._frame().show_values(values)
+        self._frame().show_values()
         self._frame().tkraise()
 
     def title(self):
         return self.steptitle
+    def getOption(self, option):
+        return self.values[option] if option in self.values else ""
+    def getBooleanOption(self, option):
+        value = self.values[option] if option in self.values else ""
+        return (value in {'True', 'true', '1'})
 
     def onBack(self):
         self.mainapp.step_back()
@@ -42,7 +48,7 @@ class Step(ABC):
         copyparms = {parm: self.values[parm] for parm in parms} if parms else {}
         self.mainapp.step_next(copyparms)
 
-    # Default implementation, only for Steps that don't execute,. i.e. SelectProcess
+    # Default implementation, for Steps that don't execute,. i.e. SelectProcess
     def onExecute(self):
         pass
     def showbutton(self, psn, text, cmd, tip=""):
@@ -93,7 +99,6 @@ class Step_Frame(ttk.Frame, ABC):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        self.values = {}
 
         # Set up message area
         self.message_area = Text(self, height=10, width=30, wrap="word")
@@ -106,10 +111,15 @@ class Step_Frame(ttk.Frame, ABC):
         ys.grid(column = 6, row = 88, sticky = 'ns')
         self.message_area['yscrollcommand'] = ys.set
 
-    def show_values(self, values):
+    def show_values(self):
         raise NotImplementedError("show_values() not implemented")
     def _save_values(self):
         raise NotImplementedError("_save_values() not implemented")
+
+    def getOption(self, option):
+        return self.controller.getOption(option)
+    def getBooleanOption(self, option):
+        return self.controller.getBooleanOption(option)
 
     def show_progress(self, status):
         self.message_area.insert('end', status + '\n')
@@ -149,15 +159,18 @@ class Step_Frame(ttk.Frame, ABC):
     def _onSkip(self, *args):
         self._save_values()
         self.controller.onSkip()
+    # Saves current config values and advances to the next step in response to >>> button press.
     def _onNext(self, *args):
         self._save_values()
         self.controller.onNext()
+    # Called by the Frame subclass when the Execute button is pressed.
+    # Saves values to configmanager and then executes the script via controller.onExecute().
     def _onExecute(self, *args):
         objections = self.invalidInputs()
         if len(objections) == 0:
             self._save_values()
             self.controller.enablebutton(5, False)
-            self.controller.onExecute(self.values)
+            self.controller.onExecute()
         else:
             self.controller.enablebutton(2, False)
             for objection in objections:

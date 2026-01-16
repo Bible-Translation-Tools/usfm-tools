@@ -21,11 +21,11 @@ class Usx2Usfm(g_step.Step):
     def name(self):
         return stepname
 
-    def onExecute(self, values):
+    def onExecute(self):
         self.enablebutton(2, False)
         count = 1
-        if not values['filename']:
-            count = g_util.count_files(values['usx_dir'], ".usx")
+        if not self.getOption('filename'):
+            count = g_util.count_files(self.getOption('usx_dir'), ".usx")
         self.mainapp.execute_script("usx2usfm", count)
         self.frame.clear_messages()
     def onNext(self):
@@ -90,18 +90,17 @@ class Usx2Usfm_Frame(g_step.Step_Frame):
 
     # Temporary function, until "usfm_dir" is fully retired.
     def getWorkDirConfigValue(self):
-        workdir = self.values.get('work_dir', fallback="")
+        workdir = self.getOption('work_dir')
         if not workdir:
-            self.values.get('usfm_dir', fallback="")  # the old name
+            workdir = self.getOption('usfm_dir')  # the old name
         return workdir
 
     # Called when the frame is first activated. Populate the initial values.
-    def show_values(self, values):
-        self.values = values
-        self.filename.set(values.get('filename', fallback=""))
-        self.usx_dir.set(values.get('usx_dir', fallback=""))
-        self.work_dir.set( self.getWorkDirConfigValue() )
-        self.notes.set(values.get('notes', fallback = False))
+    def show_values(self):
+        self.filename.set(self.getOption('filename'))
+        self.usx_dir.set(self.getOption('usx_dir'))
+        self.work_dir.set(self.getWorkDirConfigValue())
+        self.notes.set(self.getOption('notes'))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack)
@@ -116,13 +115,14 @@ class Usx2Usfm_Frame(g_step.Step_Frame):
 The process creates one USFM file per book, with \
 standardized names, like 41-MAT.usfm.")
 
-    # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
+    # Caches the current parameters in a dict and calls the mainapp to save them in the config file.
     def _save_values(self):
-        self.values['filename'] = self.filename.get()
-        self.values['usx_dir'] = self.usx_dir.get()
-        self.values['work_dir'] = self.work_dir.get()
-        self.values['notes'] = str(self.notes.get())
-        self.controller.mainapp.save_values(stepname, self.values)
+        values = {}
+        values['filename'] = self.filename.get()
+        values['usx_dir'] = self.usx_dir.get()
+        values['work_dir'] = self.work_dir.get()
+        values['notes'] = str(self.notes.get())
+        self.controller.mainapp.save_values(stepname, values)
         self._set_button_status()
 
     def _onFindSrcDir(self, *args):

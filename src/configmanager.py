@@ -57,8 +57,7 @@ class ToolsConfigManager:
     def get(self, sectionname, option):
         if not self.cfgParser.has_section(sectionname) or len(self.cfgParser[sectionname]) == 0:
             defaultvalues = self.default_section(sectionname)
-            if defaultvalues:
-                self.set_section(sectionname, defaultvalues)
+            self.set_section(sectionname, defaultvalues)
         elif option not in self.cfgParser[sectionname]:
             defaultvalues = self.default_section(sectionname)
             if option in defaultvalues:
@@ -72,12 +71,17 @@ class ToolsConfigManager:
         return (value in {'True', 'true', '1'})
 
     # Deprecated; use get() and getboolean()
-    def get_section(self, sectionname) -> SectionProxy:
+    def get_section(self, sectionname) -> dict:
         if not self.cfgParser.has_section(sectionname) or len(self.cfgParser[sectionname]) == 0:
             values = self.default_section(sectionname)
             self.set_section(sectionname, values)
-        return self.cfgParser[sectionname]
 
+        section = {}
+        for option in self.cfgParser[sectionname]:
+            section[option] = self.cfgParser[sectionname][option]
+        return section
+
+    # Sets the specified option value in ConfigParser, but doesn't save to file yet.
     def set(self, section:str, option:str, value: str|bool):
         if not self.cfgParser.has_section(section):
             self.cfgParser.add_section(section)
@@ -85,11 +89,11 @@ class ToolsConfigManager:
             value = "True" if value else "False"
         self.cfgParser.set(section, option, value)
 
-    # Updates the section with the specified values.
-    # Doesn't overwrite options not specified.
-    def set_section(self, sectionname, values:dict):
-        for value in values:
-            self.set(sectionname, value, values[value])
+    # Updates the ConfigParser section with only the specified values.
+    # Doesn't write to file yet.
+    def set_section(self, sectionname:str, values:dict):
+        for option in values:
+            self.set(sectionname, option, values[option])
 
     # Rewrites the entire configuration file with current values.
     def save(self):

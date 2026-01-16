@@ -21,11 +21,10 @@ class Txt2USFM(g_step.Step):
     def name(self):
         return stepname
 
-    def onExecute(self, values):
+    def onExecute(self):
         self.enablebutton(2, False)
-        self.values = values
-        pattern = values['language_code'] + r"_[\w][\w][\w].*_reg|_ulb"
-        count = g_util.count_folders(values['source_dir'], pattern)
+        pattern = self.getOption('language_code') + r"_[\w][\w][\w].*_reg|_ulb"
+        count = g_util.count_folders(self.getOption('source_dir'), pattern)
         self.mainapp.execute_script("txt2USFM", count)
         self.frame.clear_messages()
 
@@ -36,7 +35,7 @@ class Txt2USFM(g_step.Step):
     # Called by the main app.
     def onScriptEnd(self, status: str):
         if not status:  # the normal case
-            if self.values.getboolean('section_headings', fallback = False):
+            if self.getBooleanOption('section_headings'):
                 status = """
 Regarding section titles:
 This process attempted to identify section titles using various criteria. \
@@ -97,22 +96,22 @@ class Text2USFM_Frame(g_step.Step_Frame):
 
     # Temporary function, until "target_dir" is fully retired.
     def getWorkDirConfigValue(self):
-        workdir = self.values.get('work_dir', fallback="")
+        workdir = self.getOption('work_dir')
         if not workdir:
-            self.values.get('target_dir', fallback="")  # the old name
+            workdir = self.getOption('target_dir')
         return workdir
 
     # Called when the frame is first activated. Populate the initial values.
-    def show_values(self, values):
+    def show_values(self):
         self.language_code.trace_remove("write", self.lang_cbname)
         self.source_dir.trace_remove("write", self.source_cbname)
         self.work_dir.trace_remove("write", self.work_cbname)
 
-        self.values = values
-        self.language_code.set(values['language_code'])
-        self.source_dir.set(values['source_dir'])
+        self.language_code.set(self.getOption('language_code'))
+        self.source_dir.set(self.getOption('source_dir'))
         self.work_dir.set( self.getWorkDirConfigValue() )
-        self.headings.set(values.get('section_headings', fallback = False))
+        # self.headings.set(values['section_headings'] if 'section_headings' in values else False)
+        self.headings.set(self.getBooleanOption('section_headings'))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack)
@@ -127,14 +126,15 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.work_cbname = self.work_dir.trace_add("write", self._onChangeEntry)
         self._set_button_status()
 
-    # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
+    # Caches the current parameters in a dict and calls the mainapp to save them in the config file.
     def _save_values(self):
         if not self.invalidInputs():
-            self.values['language_code'] = self.language_code.get()
-            self.values['source_dir'] = self.source_dir.get()
-            self.values['work_dir'] = self.work_dir.get()
-            self.values['section_headings'] = str(self.headings.get())
-            self.controller.mainapp.save_values(stepname, self.values)
+            values = {}
+            values['language_code'] = self.language_code.get()
+            values['source_dir'] = self.source_dir.get()
+            values['work_dir'] = self.work_dir.get()
+            values['section_headings'] = str(self.headings.get())
+            self.controller.mainapp.save_values(stepname, values)
             self._set_button_status()
 
     def _onFindSrcDir(self, *args):

@@ -28,19 +28,19 @@ class UsfmCleanup(g_step.Step):
     def onNext(self):
         super().onNext('language_code', 'work_dir', 'filename', 'compare_dir')
 
-    def onExecute(self, values):
+    def onExecute(self):
         self.enablebutton(2, False)
         count = 1
-        if not values['filename']:
-            count = g_util.count_files(values['work_dir'], ".*sfm$")
+        if not self.getOption('filename'):
+            count = g_util.count_files(self.getOption('work_dir'), ".*sfm$")
         self.mainapp.execute_script("usfm_cleanup", count)
         self.frame.clear_messages()
 
     # Temporary function, until "source_dir" is fully retired.
     def getWorkDir(self):
-        workdir = self.values['work_dir']
+        workdir = self.getOption('work_dir')
         if not workdir:
-            workdir = self.values['source_dir']
+            workdir = self.getOption('source_dir')
         return workdir
 
     # Runs the revertChanges script to revert usfm_cleanup changes.
@@ -169,23 +169,22 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
 
     # Temporary function, until "source_dir" is fully retired.
     def getWorkDirConfigValue(self):
-        workdir = self.values.get('work_dir', fallback="")
+        workdir = self.getOption('work_dir')
         if not workdir:
-            self.values.get('source_dir', fallback="")  # the old name
+            workdir = self.getOption('source_dir')  # the old name
         return workdir
 
-    def show_values(self, values):
-        self.values = values
-        code = values.get('language_code', fallback="")
+    def show_values(self):
+        code = self.getOption('language_code')
         dir = self.getWorkDirConfigValue()
         self.language_code.set(code)
         self.work_dir.set(dir)
-        self.filename.set(values.get('filename', fallback=""))
+        self.filename.set(self.getOption('filename'))
         self.set_compare_dir(code, dir)
-        self.std_titles.set(values.get('standard_chapter_title', fallback=""))
+        self.std_titles.set(self.getOption('standard_chapter_title'))
         for i in range(len(self.enable)):
             configvalue = f"enable{i}"
-            self.enable[i].set( values.get(configvalue, fallback = False))
+            self.enable[i].set(self.getBooleanOption(configvalue))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Verify USFM")
@@ -244,24 +243,25 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
     def _save_values(self):
         valid = not self.invalidInputs()
         if valid:
-            self.values['language_code'] = self.language_code.get()
-            self.values['work_dir'] = self.work_dir.get()
-            self.values['filename'] = self.filename.get()
+            values = {}
+            values['language_code'] = self.language_code.get()
+            values['work_dir'] = self.work_dir.get()
+            values['filename'] = self.filename.get()
             value = self.compare_dir.get()
-            self.values['compare_dir'] = "" if value.startswith("(locate") else value
-            self.values['standard_chapter_title'] = self.std_titles.get()
+            values['compare_dir'] = "" if value.startswith("(locate") else value
+            values['standard_chapter_title'] = self.std_titles.get()
             for si in [2,3,4,5,7]:
                 configvalue = f"enable{si}"
-                self.values[configvalue] = str(self.enable[si].get())
-            self.values['enable1'] = "True" # Spaces
-            self.values['enable5'] = "True" # Capitalization
-            self.values['enable6'] = "True" # \s5 markers
-            self.values['enable8'] = "True" if self.std_titles.get() else "False"
-            self.controller.mainapp.save_values(stepname, self.values)
+                values[configvalue] = str(self.enable[si].get())
+            values['enable1'] = "True" # Spaces
+            values['enable5'] = "True" # Capitalization
+            values['enable6'] = "True" # \s5 markers
+            values['enable8'] = "True" if self.std_titles.get() else "False"
+            self.controller.mainapp.save_values(stepname, values)
             self._set_button_status()
 
             projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
-            projectInfo.setSourceDir(self.values['compare_dir'])
+            projectInfo.setSourceDir(values['compare_dir'])
             projectInfo.save()
         return valid
 

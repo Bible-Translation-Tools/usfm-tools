@@ -22,13 +22,14 @@ class Plaintext2Usfm(g_step.Step):
     def name(self):
         return stepname
 
-    def onExecute(self, values):
+    def onExecute(self):
         self.enablebutton(2, False)
         count = 1
-        if not values['filename']:
-            count = g_util.count_files(values['source_dir'], ".*txt$")
+        if not self.getOption('filename'):
+            count = g_util.count_files(self.getOption('source_dir'), ".*txt$")
         self.mainapp.execute_script("plaintext2usfm", count)
         self.frame.clear_messages()
+
     def onNext(self):
         self.frame._save_values()   # only needed until 'target_dir' is retired
         super().onNext('work_dir')
@@ -84,17 +85,16 @@ class Plaintext2Usfm_Frame(g_step.Step_Frame):
 
     # Temporary function, until "target_dir" is fully retired.
     def getWorkDirConfigValue(self):
-        workdir = self.values.get('work_dir', fallback="")
+        workdir = self.getOption('work_dir')
         if not workdir:
-            self.values.get('target_dir', fallback="")  # the old name
+            workdir = self.getOption('target_dir')  # the old name
         return workdir
 
     # Called when the frame is first activated. Populate the initial values.
-    def show_values(self, values):
-        self.values = values
-        self.filename.set(values['filename'])
-        self.source_dir.set(values['source_dir'])
-        self.work_dir.set( self.getWorkDirConfigValue())
+    def show_values(self):
+        self.filename.set(self.getOption('filename'))
+        self.source_dir.set(self.getOption('source_dir'))
+        self.work_dir.set(self.getWorkDirConfigValue())
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack)
@@ -119,12 +119,13 @@ The process creates one USFM file per book, with \
 standardized names, like 41-MAT.usfm. \
 The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
 
-    # Caches the current parameters in self.values and calls the mainapp to save them in the config file.
+    # Caches the current parameters in a dict and calls the mainapp to save them in the config file.
     def _save_values(self):
-        self.values['filename'] = self.filename.get()
-        self.values['source_dir'] = self.source_dir.get()
-        self.values['work_dir'] = self.work_dir.get()
-        self.controller.mainapp.save_values(stepname, self.values)
+        values = {}
+        values['filename'] = self.filename.get()
+        values['source_dir'] = self.source_dir.get()
+        values['work_dir'] = self.work_dir.get()
+        self.controller.mainapp.save_values(stepname, values)
         self._set_button_status()
 
     def _onFindSrcDir(self, *args):

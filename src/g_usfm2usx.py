@@ -23,12 +23,11 @@ class Usfm2Usx(g_step.Step):
     def name(self):
         return stepname
 
-    def onExecute(self, values):
+    def onExecute(self):
         self.enablebutton(2, False)
-        # self.values = values    # redundant, they were the same dict to begin with
         count = 1
-        if not values['filename']:
-            count = g_util.count_files(values['work_dir'], ".*sfm$")
+        if not self.getOption('filename'):
+            count = g_util.count_files(self.getOption('work_dir'), ".*sfm$")
         self.mainapp.execute_script("usfm2usx", count)
         self.frame.clear_messages()
 
@@ -132,24 +131,23 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
 
     # Temporary function, until "source_dir" is fully retired.
     def getWorkDirConfigValue(self):
-        workdir = self.values.get('work_dir', fallback="")
+        workdir = self.getOption('work_dir')
         if not workdir:
-            self.values.get('source_dir', fallback="")  # the old name
+            workdir = self.getOption('source_dir')  # the old name
         return workdir
 
-    def show_values(self, values):
-        self.values = values
-        self.language_code.set(values.get('language_code', fallback=""))
-        self.language_name.set(values.get('language_name', fallback=""))
-        self.direction.set(values.get('direction', fallback="ltr"))
-        self.bible_name.set(values.get('bible_name', fallback=""))
-        self.bible_id.set(values.get('bible_id', fallback=""))
-        self.pub_date.set(values.get('pub_date', fallback=""))
-        self.license.set(values.get('license', fallback=""))
-        self.version.set(values.get('version', fallback=""))
+    def show_values(self):
+        self.language_code.set(self.getOption('language_code'))
+        self.language_name.set(self.getOption('language_name'))
+        self.direction.set(self.getOption('direction'))
+        self.bible_name.set(self.getOption('bible_name'))
+        self.bible_id.set(self.getOption('bible_id'))
+        self.pub_date.set(self.getOption('pub_date'))
+        self.license.set(self.getOption('license'))
+        self.version.set(self.getOption('version'))
         self.work_dir.set( self.getWorkDirConfigValue() )
-        self.filename.set(values.get('filename', fallback=""))
-        self.rc_dir.set(values.get('rc_dir', fallback=""))
+        self.filename.set(self.getOption('filename'))
+        self.rc_dir.set(self.getOption('rc_dir'))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Reverify original USFM file(s)")
@@ -162,21 +160,22 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
         self.controller.enablebutton(5, True)
 
-    # Copies current values from GUI into self.values dict, and calls mainapp to save
+    # Copies current values from GUI into a dict, and calls mainapp to save
     # them to the configuration file.
     def _save_values(self):
-        self.values['language_code'] = self.language_code.get()
-        self.values['language_name'] = self.language_name.get()
-        self.values['bible_name'] = self.bible_name.get()
-        self.values['bible_id'] = self.bible_id.get()
-        self.values['direction'] = self.direction.get()
-        self.values['pub_date'] = self.pub_date.get()
-        self.values['license'] = self.license.get()
-        self.values['version'] = self.version.get()
-        self.values['work_dir'] = self.work_dir.get()
-        self.values['filename'] = self.filename.get()
-        self.values['rc_dir'] = self.rc_dir.get()
-        self.controller.mainapp.save_values(stepname, self.values)
+        values = {}
+        values['language_code'] = self.language_code.get()
+        values['language_name'] = self.language_name.get()
+        values['bible_name'] = self.bible_name.get()
+        values['bible_id'] = self.bible_id.get()
+        values['direction'] = self.direction.get()
+        values['pub_date'] = self.pub_date.get()
+        values['license'] = self.license.get()
+        values['version'] = self.version.get()
+        values['work_dir'] = self.work_dir.get()
+        values['filename'] = self.filename.get()
+        values['rc_dir'] = self.rc_dir.get()
+        self.controller.mainapp.save_values(stepname, values)
         self._set_button_status()
 
     def _onFindSrcDir(self, *args):
