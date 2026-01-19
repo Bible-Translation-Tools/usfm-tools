@@ -188,12 +188,12 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Verify USFM")
-        self.controller.showbutton(2, "CLEAN", self._onExecute, tip="Run the USFM cleanup script now.")
+        self.controller.showbutton(2, "CLEAN", self._onExecute)     # no tip since we bind the <Enter> event
         self.controller.bindButtonEvent(2, "<Enter>", self._onCheckInputs)
         self.controller.showbutton(3, "Work folder", self._onOpenWorkDir)
         self.controller.showbutton(4, "Undo", self._onUndo, tip="Restore any and all .usfm.orig backup files.")
-        self.controller.bindButtonEvent(4, "<Enter>", self._onCheckInputs)
-        self.controller.showbutton(5, ">>>", self._onNext, tip="Mark paragraphs")
+        # self.controller.bindButtonEvent(4, "<Enter>", self._onCheckInputs)
+        self.controller.showbutton(5, ">>>", self._onNext, tip="Next step")
 
         self.language_code.trace_add("write", self._set_button_status)
         self.std_titles.trace_add("write", self._onChangeTitles)

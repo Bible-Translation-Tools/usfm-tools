@@ -192,14 +192,14 @@ then you don't need to run this process.")
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Verify usfm")
-        self.controller.showbutton(2, "MARK", self._onExecute, tip="Mark paragraphs now.")
+        self.controller.showbutton(2, "MARK", self._onExecute)  # no tip since we bind the <Enter> event
         self.controller.bindButtonEvent(2, "<Enter>", self._onCheckInputs)
         self.controller.showbutton(3, "Open issues file", self._onOpenIssues,
                                    tip="Open the issues file (which may be from the previous step).")
         self.controller.showbutton(4, "Undo", self._onUndo,
                                    tip="Restore any and all .usfmorig backup files in the folder.")
         self.controller.enablebutton(4, False)
-        self.controller.showbutton(5, ">>>", self._onNext, tip="Verify manifest")
+        self.controller.showbutton(5, ">>>", self._onNext, tip="Next step")
         self._set_button_status()
         self.language_code.trace_add("write", self._onChangeLanguage)
         self.work_dir.trace_add("write", self._onChangeWorkDir)

@@ -114,8 +114,8 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.headings.set(self.getBooleanOption('section_headings'))
 
         # Create buttons
-        self.controller.showbutton(1, "<<<", self._onBack)
-        self.controller.showbutton(2, "CONVERT", self._onExecute, tip="Run the conversion script now.")
+        self.controller.showbutton(1, "<<<", self._onBack, tip="Back")
+        self.controller.showbutton(2, "CONVERT", self._onExecute)   # no tip since we bind the <Enter> event
         self.controller.bindButtonEvent(2, "<Enter>", self._onCheckInputs)
         self.controller.showbutton(3, "Source folder", self._onOpenTextDir,
                                    tip="Open the folder containing the files to be converted.")
@@ -135,7 +135,7 @@ class Text2USFM_Frame(g_step.Step_Frame):
             values['work_dir'] = self.work_dir.get()
             values['section_headings'] = str(self.headings.get())
             self.controller.mainapp.save_values(stepname, values)
-            self._set_button_status()
+            # self._set_button_status()
 
     def _onFindSrcDir(self, *args):
         self.controller.askdir(self.source_dir)

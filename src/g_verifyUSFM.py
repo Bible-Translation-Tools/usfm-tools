@@ -187,17 +187,14 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             self.suppress[si].set(self.getBooleanOption(configname))
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Previous step")
-        self.controller.showbutton(2, "VERIFY", self._onExecute, tip="Check the USFM files now.")
+        self.controller.showbutton(2, "VERIFY", self._onExecute)    # no tip since we bind the <Enter> event
         self.controller.bindButtonEvent(2, "<Enter>", self._onCheckInputs)
         # self.controller.bindButtonEvent(2, "<Leave>", self.clear_messages)
         self.controller.showbutton(3, "Open issues.txt", self._onOpenIssues,
                                    tip="Open issues.txt file in your default editor")
         nextstep = self.controller.mainapp.nextstepname()
-        if nextstep == "Usfm2Usx":
-            tip = "Convert to resource container"
-        else:
-            tip = "Automated USFM file cleanup"
-        self.controller.showbutton(5, ">>>", self._onNext, tip)
+        tip = "Convert to resource container" if nextstep == "Usfm2Usx" else "Next step"
+        self.controller.showbutton(5, ">>>", self._onNext, tip=tip)
         self._set_button_status()
         self.language_code.trace_add("write", self._onChangeLanguage)
         self.work_dir.trace_add("write", self._onChangeSourceDir)
