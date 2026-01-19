@@ -240,30 +240,28 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         if not self.enable[3].get():
             self.enable[4].set(False)
 
-    def _save_values(self):
-        valid = not self.invalidInputs()
-        if valid:
-            values = {}
-            values['language_code'] = self.language_code.get()
-            values['work_dir'] = self.work_dir.get()
-            values['filename'] = self.filename.get()
-            value = self.compare_dir.get()
-            values['compare_dir'] = "" if value.startswith("(locate") else value
-            values['standard_chapter_title'] = self.std_titles.get()
-            for si in [2,3,4,5,7]:
-                configvalue = f"enable{si}"
-                values[configvalue] = str(self.enable[si].get())
-            values['enable1'] = "True" # Spaces
-            values['enable5'] = "True" # Capitalization
-            values['enable6'] = "True" # \s5 markers
-            values['enable8'] = "True" if self.std_titles.get() else "False"
-            self.controller.mainapp.save_values(stepname, values)
-            self._set_button_status()
+    # Returns the entered values as a dict.
+    # @TODO remove ProjectInfo saving out of this function!
+    def get_entered_values(self):
+        values = {}
+        values['language_code'] = self.language_code.get()
+        values['work_dir'] = self.work_dir.get()
+        values['filename'] = self.filename.get()
+        value = self.compare_dir.get()
+        values['compare_dir'] = "" if value.startswith("(locate") else value
+        values['standard_chapter_title'] = self.std_titles.get()
+        for si in [2,3,4,5,7]:
+            configvalue = f"enable{si}"
+            values[configvalue] = str(self.enable[si].get())
+        values['enable1'] = "True" # Spaces
+        values['enable5'] = "True" # Capitalization
+        values['enable6'] = "True" # \s5 markers
+        values['enable8'] = "True" if self.std_titles.get() else "False"
 
-            projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
-            projectInfo.setSourceDir(values['compare_dir'])
-            projectInfo.save()
-        return valid
+        projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
+        projectInfo.setSourceDir(values['compare_dir'])
+        projectInfo.save()
+        return values
 
     # Returns a list of incomplete or incorrect inputs.
     # Used by _onExecute().

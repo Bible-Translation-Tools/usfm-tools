@@ -239,27 +239,25 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
 
     # Called by base class on Back, Next, Skip and Execute
-    # Copies current values from GUI into a dict, and calls mainapp to save
-    # them to the configuration file.
-    # Also saves compare_dir to ProjectInfo.
-    def _save_values(self):
-        if not self.invalidInputs():
-            values = {}
-            values['language_code'] = self.language_code.get()
-            values['work_dir'] = self.work_dir.get()
-            values['filename'] = self.filename.get()
-            value = self.compare_dir.get()
-            values['compare_dir'] = "" if value.startswith("(locate") else value
-            values['standard_chapter_title'] = self.std_titles.get()
-            for si in range(len(self.suppress)):
-                configvalue = f"suppress{si}"
-                values[configvalue] = str(self.suppress[si].get())
-            self.controller.mainapp.save_values(stepname, values)
+    # Returns the current entered values in a dict.
+    # @TODO remove ProjectInfo saving out of this function!
+    def get_entered_values(self):
+        values = {}
+        values['language_code'] = self.language_code.get()
+        values['work_dir'] = self.work_dir.get()
+        values['filename'] = self.filename.get()
+        value = self.compare_dir.get()
+        values['compare_dir'] = "" if value.startswith("(locate") else value
+        values['standard_chapter_title'] = self.std_titles.get()
+        for si in range(len(self.suppress)):
+            configvalue = f"suppress{si}"
+            values[configvalue] = str(self.suppress[si].get())
 
-            projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
-            if values['compare_dir'] != projectInfo.getSourceDir():
-                projectInfo.setSourceDir(values['compare_dir'])
-                projectInfo.save()
+        projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
+        if values['compare_dir'] != projectInfo.getSourceDir():
+            projectInfo.setSourceDir(values['compare_dir'])
+            projectInfo.save()
+        return values
 
     # Returns a list of incomplete or incorrect inputs.
     # Used by _onExecute().

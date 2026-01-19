@@ -18,7 +18,7 @@ class Txt2USFM(g_step.Step):
         self.frame = Text2USFM_Frame(parent=mainframe, controller=self)
         self.frame.grid(row=1, column=0, sticky="nsew")
 
-    def name(self):
+    def name(self) -> str:
         return stepname
 
     def onExecute(self):
@@ -126,16 +126,14 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.work_cbname = self.work_dir.trace_add("write", self._onChangeEntry)
         self._set_button_status()
 
-    # Caches the current parameters in a dict and calls the mainapp to save them in the config file.
-    def _save_values(self):
-        if not self.invalidInputs():
-            values = {}
-            values['language_code'] = self.language_code.get()
-            values['source_dir'] = self.source_dir.get()
-            values['work_dir'] = self.work_dir.get()
-            values['section_headings'] = str(self.headings.get())
-            self.controller.mainapp.save_values(stepname, values)
-            # self._set_button_status()
+    # Returns the current entered values in a dict.
+    def get_entered_values(self):
+        values = {}
+        values['language_code'] = self.language_code.get()
+        values['source_dir'] = self.source_dir.get()
+        values['work_dir'] = self.work_dir.get()
+        values['section_headings'] = str(self.headings.get())
+        return values
 
     def _onFindSrcDir(self, *args):
         self.controller.askdir(self.source_dir)

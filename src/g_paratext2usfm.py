@@ -87,15 +87,13 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
         self._set_button_status()
 
-    # Copies current values from GUI into a dict, and calls mainapp to save
-    # them to the configuration file.
-    def _save_values(self):
+    # Returns the current entered values in a dict.
+    def get_entered_values(self):
         values = {}
         values['paratext_dir'] = self.ptx_dir.get()
         values['work_dir'] = self.work_dir.get()
         values['filename'] = self.filename.get()
-        self.controller.mainapp.save_values(stepname, values)
-        self._set_button_status()
+        return values
 
     def _onFindPtxDir(self, *args):
         if not self.ptx_dir.get() and os.name == 'nt':

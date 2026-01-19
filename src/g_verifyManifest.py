@@ -87,13 +87,12 @@ class VerifyManifest_Frame(g_step.Step_Frame):
         self.controller.enablebutton(2, True)
         self.controller.enablebutton(5, True)
 
-    def _save_values(self):
+    def get_entered_values(self):
         values = {}
         values['work_dir'] = self.work_dir.get()
         values['bibletype'] = str(self.bibletype.get())
         values['expectascii'] = str(self.expectAscii.get())
-        self.controller.mainapp.save_values(stepname, values)
-        self._set_button_status()
+        return values
 
     def _onFindSrcDir(self, *args):
         self.controller.askdir(self.work_dir)

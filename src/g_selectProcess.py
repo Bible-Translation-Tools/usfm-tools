@@ -133,11 +133,11 @@ Settings.xml file, with changes to reflect the new file names.""")
 
     # Required ABC methods
 
-    # Caches the current selection in a dict and calls the mainapp to save in the config file.
-    def _save_values(self):
+    # Returns the current entered values in a dict.
+    def get_entered_values(self):
         values = {}
         values['selection'] = self.process.get()
-        self.controller.mainapp.save_values(stepname, values)
+        return values
 
     def _set_button_status(self):
         self.controller.enablebutton(5, True)

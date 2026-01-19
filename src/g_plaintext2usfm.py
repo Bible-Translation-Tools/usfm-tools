@@ -119,14 +119,13 @@ The process creates one USFM file per book, with \
 standardized names, like 41-MAT.usfm. \
 The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
 
-    # Caches the current parameters in a dict and calls the mainapp to save them in the config file.
-    def _save_values(self):
+    # Returns the current entered values in a dict.
+    def get_entered_values(self):
         values = {}
         values['filename'] = self.filename.get()
         values['source_dir'] = self.source_dir.get()
         values['work_dir'] = self.work_dir.get()
-        self.controller.mainapp.save_values(stepname, values)
-        self._set_button_status()
+        return values
 
     def _onFindSrcDir(self, *args):
         self.controller.askdir(self.source_dir)

@@ -258,25 +258,25 @@ then you don't need to run this process.")
         self.changingVars = False
         self._set_button_status()
 
-    # Called by base class on Back, Next, Skip and Execute
-    def _save_values(self):
-        if not self.invalidInputs():
-            values = {}
-            values['language_code'] = self.language_code.get()
-            values['work_dir'] = self.work_dir.get()
-            values['model_dir'] = self.model_dir.get()
-            values['filename'] = self.filename.get()
-            values['copy_nb'] = str(self.copy_nb.get())
-            values['removeS5markers'] = str(self.remove_s5.get())
-            # values['s5_only'] = str(self.s5_only.get())
-            values['s5_to_p'] = str(self.s5_to_p.get())
-            values['mark_every_verse'] = str(self.mark_every_verse.get())
-            # values['punctuate'] = str(self.punctuate.get())
-            self.controller.mainapp.save_values(stepname, values)
+    # Returns the current entered values in a dict.
+    # @TODO move ProjectInfo save out of this function
+    def get_entered_values(self):
+        values = {}
+        values['language_code'] = self.language_code.get()
+        values['work_dir'] = self.work_dir.get()
+        values['model_dir'] = self.model_dir.get()
+        values['filename'] = self.filename.get()
+        values['copy_nb'] = str(self.copy_nb.get())
+        values['removeS5markers'] = str(self.remove_s5.get())
+        # values['s5_only'] = str(self.s5_only.get())
+        values['s5_to_p'] = str(self.s5_to_p.get())
+        values['mark_every_verse'] = str(self.mark_every_verse.get())
+        # values['punctuate'] = str(self.punctuate.get())
 
-            projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
-            projectInfo.setSourceDir(self.model_dir.get())
-            projectInfo.save()
+        projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
+        projectInfo.setSourceDir(self.model_dir.get())
+        projectInfo.save()
+        return values
 
     # Returns a list of incomplete or incorrect inputs.
     # Used by _onExecute().

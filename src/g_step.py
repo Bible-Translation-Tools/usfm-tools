@@ -23,7 +23,7 @@ class Step(ABC):
         return self.frame
 
     def name(self) -> str:
-        return ""
+        raise NotImplementedError("name() not implemented")
 
     # Called by UsfmWizard.activate_step()
     def show(self, values):
@@ -47,6 +47,10 @@ class Step(ABC):
     def onNext(self, *parms):
         copyparms = {parm: self.values[parm] for parm in parms} if parms else {}
         self.mainapp.step_next(copyparms)
+
+    def save_values(self, values):
+        self.values = values
+        self.mainapp.save_values(self.name(), values)
 
     # Default implementation, for Steps that don't execute,. i.e. SelectProcess
     def onExecute(self):
@@ -113,8 +117,13 @@ class Step_Frame(ttk.Frame, ABC):
 
     def show_values(self):
         raise NotImplementedError("show_values() not implemented")
+    def get_entered_values(self):
+        raise NotImplementedError("get_entered_values() not implemented")
+
     def _save_values(self):
-        raise NotImplementedError("_save_values() not implemented")
+        if not self.invalidInputs():
+            values = self.get_entered_values()
+            self.controller.save_values(values)
 
     def getOption(self, option):
         return self.controller.getOption(option)

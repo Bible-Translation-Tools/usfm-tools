@@ -160,9 +160,8 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
         self.controller.enablebutton(5, True)
 
-    # Copies current values from GUI into a dict, and calls mainapp to save
-    # them to the configuration file.
-    def _save_values(self):
+    # Returns the current entered values in a dict.
+    def get_entered_values(self):
         values = {}
         values['language_code'] = self.language_code.get()
         values['language_name'] = self.language_name.get()
@@ -175,8 +174,7 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         values['work_dir'] = self.work_dir.get()
         values['filename'] = self.filename.get()
         values['rc_dir'] = self.rc_dir.get()
-        self.controller.mainapp.save_values(stepname, values)
-        self._set_button_status()
+        return values
 
     def _onFindSrcDir(self, *args):
         self.controller.askdir(self.work_dir)
