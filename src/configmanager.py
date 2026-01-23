@@ -70,7 +70,8 @@ class ToolsConfigManager:
         value = self.get(sectionname, option)
         return (value in {'True', 'true', '1'})
 
-    # Deprecated; use get() and getboolean()
+    # Useful in usfm_wizard.py to get all options in a section as a dict.
+    # But caused lint issues elsewhere.
     def get_section(self, sectionname) -> dict:
         if not self.cfgParser.has_section(sectionname) or len(self.cfgParser[sectionname]) == 0:
             values = self.default_section(sectionname)
@@ -114,7 +115,8 @@ class ToolsConfigManager:
                     'mark_every_verse': False,
                     'punctuate': True }
             case 'Paratext2Usfm':
-                sec = {'paratext_dir': "",
+                sec = {'language_code': "",
+                       'paratext_dir': "",
                        'work_dir': "",
                        'filename': ""}
             case 'Plaintext2Usfm':
