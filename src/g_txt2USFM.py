@@ -70,7 +70,7 @@ class Text2USFM_Frame(g_step.Step_Frame):
         source_dir_label.grid(row=4, column=1, sticky=W, pady=2)
         source_dir_entry = ttk.Entry(self, width=47, textvariable=self.source_dir)
         source_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
-        work_dir_Tip = Hovertip(source_dir_entry, hover_delay=1000,
+        work_dir_Tip = Hovertip(source_dir_entry, hover_delay=500,
                 text="Folder containing the files to be converted")
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
         src_dir_find.grid(row=4, column=4, sticky=W)
@@ -79,7 +79,7 @@ class Text2USFM_Frame(g_step.Step_Frame):
         work_dir_label.grid(row=5, column=1, sticky=W, pady=2)
         work_dir_entry = ttk.Entry(self, width=47, textvariable=self.work_dir)
         work_dir_entry.grid(row=5, column=2, columnspan=3, sticky=W)
-        work_dir_Tip = Hovertip(work_dir_entry, hover_delay=1000,
+        work_dir_Tip = Hovertip(work_dir_entry, hover_delay=500,
                 text="Folder for the new usfm files. The folder will be created if it doesn't exist.")
         work_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindWorkDir)
         work_dir_find.grid(row=5, column=4, sticky=W)
@@ -175,7 +175,6 @@ run the conversion both ways and keep the better result.\n"
 
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
-        self.controller.enablebutton(2, len(self.invalidInputs()) == 0)
         self.controller.showbutton(5, ">>>", self._onNext, tip="Verify USFM")
         self._set_button_status()
 

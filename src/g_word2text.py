@@ -59,7 +59,7 @@ class Word2text_Frame(g_step.Step_Frame):
         source_dir_label.grid(row=3, column=1, sticky=W, pady=2)
         source_dir_entry = ttk.Entry(self, width=42, textvariable=self.source_dir)
         source_dir_entry.grid(row=3, column=2, columnspan=3, sticky=W)
-        target_dir_Tip = Hovertip(source_dir_entry, hover_delay=1000,
+        target_dir_Tip = Hovertip(source_dir_entry, hover_delay=500,
                 text="Folder containing the files to be converted")
         src_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
         src_dir_find.grid(row=3, column=4, sticky=W, padx=5)
@@ -77,7 +77,7 @@ class Word2text_Frame(g_step.Step_Frame):
         target_dir_label.grid(row=5, column=1, sticky=W, pady=2)
         target_dir_entry = ttk.Entry(self, width=42, textvariable=self.target_dir)
         target_dir_entry.grid(row=5, column=2, columnspan=3, sticky=W)
-        target_dir_Tip = Hovertip(target_dir_entry, hover_delay=1000,
+        target_dir_Tip = Hovertip(target_dir_entry, hover_delay=500,
                 text="Folder for the new text files. The folder will be created if it doesn't exist.")
         target_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindTargetDir)
         target_dir_find.grid(row=5, column=4, sticky=W, padx=5)

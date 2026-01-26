@@ -57,7 +57,7 @@ class Usx2Usfm_Frame(g_step.Step_Frame):
         usx_dir_label.grid(row=3, column=1, sticky=W, pady=2)
         usx_dir_entry = ttk.Entry(self, width=42, textvariable=self.usx_dir)
         usx_dir_entry.grid(row=3, column=2, columnspan=3, sticky=W)
-        usx_dir_Tip = Hovertip(usx_dir_entry, hover_delay=1000,
+        usx_dir_Tip = Hovertip(usx_dir_entry, hover_delay=500,
                 text="Folder containing the files to be converted")
         usx_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindSrcDir)
         usx_dir_find.grid(row=3, column=4, sticky=W, padx=5)
@@ -75,7 +75,7 @@ class Usx2Usfm_Frame(g_step.Step_Frame):
         work_dir_label.grid(row=5, column=1, sticky=W, pady=2)
         work_dir_entry = ttk.Entry(self, width=42, textvariable=self.work_dir)
         work_dir_entry.grid(row=5, column=2, columnspan=3, sticky=W)
-        work_dir_Tip = Hovertip(work_dir_entry, hover_delay=1000,
+        work_dir_Tip = Hovertip(work_dir_entry, hover_delay=500,
                 text="Folder for the new usfm files. The folder will be created if it doesn't exist.")
         work_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindTargetDir)
         work_dir_find.grid(row=5, column=4, sticky=W, padx=5)
