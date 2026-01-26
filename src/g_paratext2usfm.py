@@ -51,12 +51,14 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         ptx_dir_entry.grid(row=4, column=2, columnspan=3, sticky=W)
         ptx_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindPtxDir)
         ptx_dir_find.grid(row=4, column=5, sticky=W)
+        ptx_dir_tip = Hovertip(ptx_dir_entry, hover_delay=500,
+                               text="Folder containing the .SFM or .usfm files to be copied/renamed.")
 
-        work_dir_label = ttk.Label(self, text="Location for .usfm files:", width=25)
+        work_dir_label = ttk.Label(self, text="Destination folder:", width=25)
         work_dir_label.grid(row=5, column=1, sticky=W, pady=2)
         work_dir_entry = ttk.Entry(self, width=55, textvariable=self.work_dir)
         work_dir_entry.grid(row=5, column=2, columnspan=3, sticky=W)
-        work_dir_Tip = Hovertip(work_dir_entry, hover_delay=1000,
+        work_dir_Tip = Hovertip(work_dir_entry, hover_delay=500,
                 text="Folder for .usfm files. It will be created if it doesn't exist.")
         work_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindWorkDir)
         work_dir_find.grid(row=5, column=5, sticky=W)
@@ -93,8 +95,8 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         self.controller.showbutton(1, "<<<", self._onBack)
         self.controller.showbutton(2, "CONVERT", self._onExecute)   # no tip since we bind the <Enter> event
         self.controller.bindButtonEvent(2, "<Enter>", self._onCheckInputs)
-        self.controller.showbutton(3, "Ptx folder", self._onOpenPtxDir, tip="Open the Paratext or other source folder.")
-        self.controller.showbutton(4, "Usfm folder", self._onOpenWorkDir)
+        self.controller.showbutton(3, "\"From\" folder", self._onOpenPtxDir, tip="Open the Paratext or other source folder.")
+        self.controller.showbutton(4, "\"To\" folder", self._onOpenWorkDir, tip="Open the destination folder.")
         self.controller.hidebutton(5)
 
         self.lang_cbname = self.language_code.trace_add("write", self._onChangeEntry)

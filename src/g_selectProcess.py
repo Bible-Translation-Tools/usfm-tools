@@ -55,11 +55,11 @@ class Select_Frame(g_step.Step_Frame):
         process4_Tip = Hovertip(process4_rb, hover_delay=500,
              text="Produce a BTTW-compatible resource container with .usx and auxiliary files, from USFM.")
 
-        process5_rb = ttk.Radiobutton(self, text='Convert Paratext SFM', variable=self.process,
+        process5_rb = ttk.Radiobutton(self, text='Copy/rename USFM files', variable=self.process,
                                       command=self._onRbChange, value='Paratext2Usfm')
         process5_rb.grid(row=9, column=1, sticky=W)
         process5_Tip = Hovertip(process5_rb, hover_delay=500,
-             text="Convert Paratext .SFM files to .usfm")
+             text="Convert files to standard names and line endings.")
         self.columnconfigure(1, minsize=505)
 
     # Called when the frame is first activated. Populate the initial values.
@@ -122,10 +122,9 @@ Chunk boundaries are based on \\s5 markers in the USFM files. \
 The input file(s) should be verified, correct USFM. Therefore, the first step of this process is to validate the USFM files.""")
             case 'Paratext2Usfm':
                 self.message_area.insert('end',
-"""This process copies .SFM files from a Paratext project folder into our target folder \
-while renaming the files according to our naming convention. \
-It also ensures that line endings are LF, and also copies the \
-Settings.xml file, with changes to reflect the new file names.""")
+"""This process copies USFM files from one folder (such as a Paratext folder) usually to another folder. \
+It standardizes file names and line endings in the process. And if there is a Settings.xml file, \
+it copies that also, with changes to reflect the new file names.""")
             case _:
                 self.message_area.insert('end', f"Please select process above.")
         self.message_area.see('1.0')
