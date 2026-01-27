@@ -259,7 +259,6 @@ then you don't need to run this process.")
         self._set_button_status()
 
     # Returns the current entered values in a dict.
-    # @TODO move ProjectInfo save out of this function
     def get_entered_values(self):
         values = {}
         values['language_code'] = self.language_code.get()
@@ -272,10 +271,6 @@ then you don't need to run this process.")
         values['s5_to_p'] = str(self.s5_to_p.get())
         values['mark_every_verse'] = str(self.mark_every_verse.get())
         # values['punctuate'] = str(self.punctuate.get())
-
-        projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
-        projectInfo.setSourceDir(self.model_dir.get())
-        projectInfo.save()
         return values
 
     # Returns a list of incomplete or incorrect inputs.
@@ -305,6 +300,13 @@ then you don't need to run this process.")
         if dir and model_dir and model_dir == dir:
             objections.append("The two file folders can't be the same.")
         return objections
+
+    def save_project_info(self):
+        projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
+        compare_dir = self.model_dir.get()
+        if compare_dir != projectInfo.getSourceDir():
+            projectInfo.setSourceDir(compare_dir)
+            projectInfo.save()
 
     def _onFindModelDir(self, *args):
         hints = self._list_sources()

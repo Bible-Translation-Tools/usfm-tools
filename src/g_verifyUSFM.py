@@ -240,7 +240,6 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
 
     # Called by base class on Back, Next, Skip and Execute
     # Returns the current entered values in a dict.
-    # @TODO remove ProjectInfo saving out of this function!
     def get_entered_values(self):
         values = {}
         values['language_code'] = self.language_code.get()
@@ -252,11 +251,6 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         for si in range(len(self.suppress)):
             configvalue = f"suppress{si}"
             values[configvalue] = str(self.suppress[si].get())
-
-        projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
-        if values['compare_dir'] != projectInfo.getSourceDir():
-            projectInfo.setSourceDir(values['compare_dir'])
-            projectInfo.save()
         return values
 
     # Returns a list of incomplete or incorrect inputs.
@@ -293,6 +287,14 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
                     objections.append(f"Language code doesn't match manifest at {dir}")
                     objections.append(f"{code} vs. {mycode}")
         return objections
+
+    def save_project_info(self):
+        compare_dir = self.compare_dir.get()
+        if compare_dir and not compare_dir.startswith("(locate"):
+            projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
+            if compare_dir != projectInfo.getSourceDir():
+                projectInfo.setSourceDir(compare_dir)
+                projectInfo.save()
 
     # Executes a script that inventories the existing chapter labels
     def _onInventoryLabels(self, *args):

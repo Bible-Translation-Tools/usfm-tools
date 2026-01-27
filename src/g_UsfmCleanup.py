@@ -241,7 +241,6 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
             self.enable[4].set(False)
 
     # Returns the entered values as a dict.
-    # @TODO remove ProjectInfo saving out of this function!
     def get_entered_values(self):
         values = {}
         values['language_code'] = self.language_code.get()
@@ -257,10 +256,6 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         values['enable5'] = "True" # Capitalization
         values['enable6'] = "True" # \s5 markers
         values['enable8'] = "True" if self.std_titles.get() else "False"
-
-        projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
-        projectInfo.setSourceDir(values['compare_dir'])
-        projectInfo.save()
         return values
 
     # Returns a list of incomplete or incorrect inputs.
@@ -297,6 +292,13 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
                     objections.append(f"Language code doesn't match manifest at {dir}")
                     objections.append(f"{code} vs. {mycode}")
         return objections
+
+    def save_project_info(self):
+        compare_dir = self.compare_dir.get()
+        if compare_dir and not compare_dir.startswith("(locate"):
+            projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
+            projectInfo.setSourceDir(compare_dir)
+            projectInfo.save()
 
     def _onFindWorkDir(self, *args):
         self.controller.askdir(self.work_dir)

@@ -119,11 +119,14 @@ class Step_Frame(ttk.Frame, ABC):
         raise NotImplementedError("show_values() not implemented")
     def get_entered_values(self):
         raise NotImplementedError("get_entered_values() not implemented")
+    def save_project_info(self):
+        pass
 
     def _save_values(self):
         if not self.invalidInputs():
             values = self.get_entered_values()
             self.controller.save_values(values)
+            self.save_project_info()
 
     def getOption(self, option):
         return self.controller.getOption(option)
