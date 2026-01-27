@@ -535,7 +535,7 @@ def _take(token: usfmReader.Token):
             _reportError("Missing book ID: " + state.reference)
             state.canContinue = False
         _takeC(token.value)
-    elif token.type == 'v':
+    elif token.type == 'v' and token.value:
         _takeV(token.value)
 
 def _takeID(id):
@@ -566,7 +566,10 @@ def _takeV(vstr):
         else:
             _reportError("Problem in verse range near " + state.reference)
     else:
-        vlist.append(int(vstr))
+        try:
+            vlist.append(int(vstr))
+        except ValueError:
+            pass
 
     for vn in vlist:
         v = str(vn)
@@ -584,4 +587,4 @@ def _reportError(msg):
 # Note: JSON can't directly save a set, so save as a list.
 def _saveReferences(fvpath):
     with io.open(fvpath, 'w') as json_file:
-        json.dump( list(state.footnoteRefs), json_file, indent=2)
+        json.dump( sorted(list(state.footnoteRefs)), json_file, indent=2)
