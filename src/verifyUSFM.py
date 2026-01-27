@@ -1171,7 +1171,7 @@ def reportNumbers(t, footnote):
 period_re = re.compile(r'[\s]*[\.,;:!\?]')  # detects phrase-ending punctuation standing alone or starting a phrase
 badmarker_re = re.compile(r'\\\w+\*?')
 
-# Performs checks on some text, at most a verse in length.
+# Performs checks on some text, usually a verse in length.
 def takeText(t, footnote=False):
     if bad := badmarker_re.search(t):
         reportIssue(f'Unsupported USFM marker ({bad.group(0)}) near {state.reference}', 53)
@@ -1183,8 +1183,13 @@ def takeText(t, footnote=False):
             reportIssue("  top of file", 0)
     if state.textOkay() and state.verse == 0 and state.chapter > 0:
         reportIssue(f"Unmarked text before {state.reference + ':1'}", 54.1)
-    if ("<" in t) ^ (">" in t) and not conflict_re.search(t) and not ">>>" in t:
-        reportIssue("Unmatched angle bracket at " + state.getReference(), 56)
+    if not state.inConflict:
+        if ("<" in t) ^ (">" in t) and not ">>>" in t:
+            reportIssue("Unmatched angle bracket at " + state.getReference(), 56)
+        if t.count("[") != t.count("]"):
+            reportIssue("Mismatched square brackets at " + state.getReference(), 56.1)
+        if t.count("(") != t.count(")"):
+            reportIssue("Mismatched parentheses at " + state.getReference(), 56.2)
     if "Conflict Parsing Error" in t:
         reportIssue("BTT Writer artifact in " + state.getReference(), 57)
     if not suppress[3] and not state.aligned_usfm:    # report punctuation issues
