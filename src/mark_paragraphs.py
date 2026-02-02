@@ -28,7 +28,7 @@ from yaml.parser import ParserError
 # import cProfile
 
 gui = None
-removes5markers = True
+removeS5markers = True
 s5_to_p = True
 mark_every_verse = False
 sentence_sensitive = True   # this is no longer configurable via the config file
@@ -160,11 +160,13 @@ class State:
     def needP(self):
         return self.needPmarker
 
-    # Returns True if a paragraph mark was already recorded for the current or next verse.
+    # Returns True if a paragraph mark was already recorded for the current verse.
     # See addP()
-    def pAlready(self, current):
-        currVerse = self.verse if current else self.verse + 1
-        return self.pVerse >= currVerse and self.pChapter == self.chapter
+    def pAlreadyCurrentVerse(self):
+        return self.pVerse >= self.verse and self.pChapter == self.chapter
+    # Returns True if a paragraph mark was already recorded for the next verse.
+    def pAlreadyPreviousVerse(self):
+        return self.pVerse >= self.verse + 1 and self.pChapter == self.chapter
 
     # Returns True if an \s5 was already marked on the preceding verse.
     def s5Already(self):
@@ -279,12 +281,12 @@ def mayTerminateLastSentence(punctuation):
 
 # Inserts \s5 mark if needed
 def mayInsertS5(newchapter=False):
-    if not removes5markers and not state.s5Already():
+    if not removeS5markers and not state.s5Already():
         smark = punct = ''
         if not newchapter:
             (smark, punct) = state.smarkInModel()
 
-        # if (newchapter and s5_only) or (smark == "s5" and not removes5markers):
+        # if (newchapter and s5_only) or (smark == "s5" and not removeS5markers):
         if smark == "s5" or newchapter:
             mayTerminateLastSentence(punct)
             state.usfm.writeUsfm("s5")
@@ -316,7 +318,7 @@ def takeID(id):
 def takeP(tag, value, nexttoken):
     if nexttoken.type == 'v':
         mayInsertS5()
-        if not state.pAlready(current=False):
+        if not state.pAlreadyPreviousVerse():
             state.addP(state.bridge+1)
             state.usfm.writeUsfm(tag, value)
     else:
@@ -324,8 +326,8 @@ def takeP(tag, value, nexttoken):
         state.usfm.writeUsfm(tag, value)
 
 def takeS5():
-    # global removes5markers
-    if not state.s5Already() and not removes5markers:
+    # global removeS5markers
+    if not state.s5Already() and not removeS5markers:
         state.usfm.writeUsfm("s5", None)
         state.addS5()
     else:
@@ -357,10 +359,11 @@ vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 def takeV(v):
     global nChanges
+    global mark_every_verse
 
     mayInsertS5()
     state.addVerse(v)
-    if not state.pAlready(current=True) and removes5markers:
+    if not state.pAlreadyCurrentVerse() and removeS5markers and not mark_every_verse:
         (pmark, punct) = state.pmarkInModel()
         if pmark and (copy_nb or pmark not in {'nb', 'b', 'm'}):
             if punct and not isPoetryMark(pmark):
@@ -369,9 +372,13 @@ def takeV(v):
                 state.usfm.writeUsfm(pmark)
                 state.addP(state.verse)
                 nChanges += 1
-    # occasioned by chapter or section heading, or when removes5markers is False
-    if not state.pAlready(current=True) and state.needP() == state.verse:
+    # occasioned by chapter or section heading
+    if not state.pAlreadyCurrentVerse() and state.needP() == state.verse:
         state.usfm.writeUsfm("p")
+        state.addP(state.verse)
+        nChanges += 1
+    if not state.pAlreadyCurrentVerse() and mark_every_verse:
+        state.usfm.writeUsfm("m")
         state.addP(state.verse)
         nChanges += 1
     state.usfm.writeUsfm("v", v)
@@ -741,14 +748,15 @@ def main(app = None):
     gui = app
     global nChanges
     nChanges = 0
-    global removes5markers
+    global removeS5markers
     global s5_to_p
+    global mark_every_verse
     # global sentence_sensitive
     global copy_nb
     global punctuate
 
     config = ToolsConfigManager()
-    removes5markers = config.getboolean('MarkParagraphs', 'removeS5markers')
+    removeS5markers = config.getboolean('MarkParagraphs', 'removeS5markers')
     s5_to_p = config.getboolean('MarkParagraphs', 's5_to_p')
     # sentence_sensitive = config.getboolean('MarkParagraphs', 'sentence_sensitive')
     copy_nb = config.getboolean('MarkParagraphs', 'copy_nb')

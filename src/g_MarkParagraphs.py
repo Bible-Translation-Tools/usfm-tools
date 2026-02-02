@@ -131,10 +131,10 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         copy_nb_Tip = Hovertip(copy_nb_checkbox, hover_delay=500,
              text=r"Copy \m, \nb and \b markers from model text? (Not usually recommended)")
 
-        self.remove_s5_checkbox = ttk.Checkbutton(self, text=r'Eliminate \s5', variable=self.remove_s5,
+        remove_s5_checkbox = ttk.Checkbutton(self, text=r'Eliminate \s5', variable=self.remove_s5,
                                              onvalue=True, offvalue=False)
-        self.remove_s5_checkbox.grid(row=8, column=2, sticky=W)
-        remove_s5_Tip = Hovertip(self.remove_s5_checkbox, hover_delay=500,
+        remove_s5_checkbox.grid(row=8, column=2, sticky=W)
+        remove_s5_Tip = Hovertip(remove_s5_checkbox, hover_delay=500,
              text=r"No \s5 in target text. (Always recommended except for GLs)")
 
         # self.s5_only_checkbox = ttk.Checkbutton(self, text='\\s5 only',
@@ -143,18 +143,17 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
         # s5_only_Tip = Hovertip(self.s5_only_checkbox, hover_delay=500,
         #      text="Mark chunks only, not paragraphs.")
 
-        self.s5_to_p_checkbox = ttk.Checkbutton(self, text='\\s5 --> \\p', variable=self.s5_to_p,
+        s5_to_p_checkbox = ttk.Checkbutton(self, text='\\s5 --> \\p', variable=self.s5_to_p,
                                              onvalue=True, offvalue=False)
-        self.s5_to_p_checkbox.grid(row=8, column=3, sticky=W)
-        s5_to_p_Tip = Hovertip(self.s5_to_p_checkbox, hover_delay=500,
+        s5_to_p_checkbox.grid(row=8, column=3, sticky=W)
+        s5_to_p_Tip = Hovertip(s5_to_p_checkbox, hover_delay=500,
              text="Make each chunk a paragaph.")
 
         mark_every_verse_checkbox = ttk.Checkbutton(self, text='Mark every verse',
                                                       variable=self.mark_every_verse, onvalue=True, offvalue=False)
         mark_every_verse_checkbox.grid(row=8, column=4, sticky=W)
-        mark_every_verse_checkbox.state(['disabled'])
         mark_every_verse_Tip = Hovertip(mark_every_verse_checkbox, hover_delay=500,
-             text=r"(Future) Insert \m before every verse that isn't preceded by \p.")
+             text=r"Insert \m before every verse that isn't preceded by \p.")
 
         # punctuate_checkbox = ttk.Checkbutton(self, text='Punctuate',
         #                                     variable=self.punctuate, onvalue=True, offvalue=False)
