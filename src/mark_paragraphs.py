@@ -28,9 +28,9 @@ from yaml.parser import ParserError
 # import cProfile
 
 gui = None
-# s5_only = False   # s5_only is the inverse of removes5markers
 removes5markers = True
 s5_to_p = True
+mark_every_verse = False
 sentence_sensitive = True   # this is no longer configurable via the config file
 copy_nb = False
 punctuate = True
@@ -38,7 +38,6 @@ nChanges = 0  # number of changes made
     # includes paragraphs, sections, and terminating punctuation copied from model,
     # and the number of \s5 markers removed.
 issuesFile = None
-sections_file = None
 
 class State:
     def __init__(self):
@@ -281,8 +280,6 @@ def mayTerminateLastSentence(punctuation):
 # Inserts \s5 mark if needed
 def mayInsertS5(newchapter=False):
     if not removes5markers and not state.s5Already():
-        # global s5_only
-
         smark = punct = ''
         if not newchapter:
             (smark, punct) = state.smarkInModel()
@@ -348,10 +345,7 @@ def csv(s):
     return s
 
 def takeS(tag, value:str):
-    if sections_file:
-        record_section_statistics(value, sDistance())
-    else:
-        state.usfm.writeUsfm(tag, value)
+    state.usfm.writeUsfm(tag, value)
     state.addS(tag)
 
 # Returns the number of verses since the previous section title in the same chapter.
@@ -359,35 +353,10 @@ def takeS(tag, value:str):
 def sDistance():
     return state.verse - state.sVerse if state.sChapter == state.chapter else 1000
 
-# This function can be removed when section titles changes are done.
-def record_section_statistics(value, distance):
-        hd = csv(value)
-        thresh = section_titles_new._titlecase_threshold(value)
-        firstword = sentences.firstword(value)
-        caps1 = 1 if firstword.isupper() or section_titles_new._isCapitalized(firstword) else 0
-        lastword = sentences.lastword(value)
-        capsN = 1 if section_titles_new._isCapitalized(lastword) or lastword.isupper() else 0
-        pctCap = section_titles_new.percentTitleOrCaps(value)
-        qual = 0 if section_titles_new.disqualified(value) else 1
-        prob = section_titles_new.prob_heading(value)
-        quotes = 1 if section_titles_new.quotes_re.search(value) else 0
-        endss = 1 if sentences.endsSentence(value) else 0
-        nchars = len(value)
-        nwords = len(value.split())
-        nsents = sentences.sentenceCount(value)
-        (smark, punc) = state.smarkInModel()
-        inSource = 1 if smark in {'s','s1','s2','sr','r','d','sp'} else 0
-        npunct = section_titles_new.nPunctuationChars(value)
-        row = f"{state.ID},{state.chapter},{state.verse},{hd},{thresh},{caps1},{capsN},{pctCap}"
-        row += f",{qual},{prob},{distance},{quotes},{endss},{nchars},{nwords},{nsents},{inSource},{npunct}"
-        if sections_file:
-            sections_file.write(f"{row}\n")
-
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 
 def takeV(v):
     global nChanges
-    global s5_only
 
     mayInsertS5()
     state.addVerse(v)
@@ -599,28 +568,6 @@ def closeFiles():
     if issuesFile:
         issuesFile.close()
         issuesFile = None
-    global sections_file
-    if sections_file:
-        sections_file.close()
-        sections_file = None
-
-# This function can be removed when section title changes are done.
-def open_sections_file():
-    global sections_file
-
-    if not sections_file:
-        lang = ToolsConfigManager().get('MarkParagraphs', 'language_code')
-        path = os.path.join(r'C:\DCS\Test\sections', f"sections_{lang}.csv")
-        try:
-            sections_file = io.open(path, "tw", encoding='utf-8-sig')
-            row = "Book,Chap,Verse,Heading,Thresh,1stWordCaps,LastWordCaps,% Title,qual_old,qual"
-            row += ",Prob,possible,dist,quotes,endsSentence"
-            row += ",Chars,Words,Sentences,inSource,nPunct"
-            sections_file.write(f"{row}\n")
-        except PermissionError as e:
-            reportError("Permission error opening sections.csv")
-            sections_file = None
-            sys.exit(-1)
 
 # Writes message to stderr and to issues.mark_paragraphs.txt.
 def reportError(msg, realIssue=True):
@@ -794,7 +741,6 @@ def main(app = None):
     gui = app
     global nChanges
     nChanges = 0
-    # global s5_only
     global removes5markers
     global s5_to_p
     # global sentence_sensitive
@@ -802,16 +748,14 @@ def main(app = None):
     global punctuate
 
     config = ToolsConfigManager()
-    # s5_only = config.getboolean('MarkParagraphs', 's5_only')
     removes5markers = config.getboolean('MarkParagraphs', 'removeS5markers')
     s5_to_p = config.getboolean('MarkParagraphs', 's5_to_p')
     # sentence_sensitive = config.getboolean('MarkParagraphs', 'sentence_sensitive')
     copy_nb = config.getboolean('MarkParagraphs', 'copy_nb')
     punctuate = config.getboolean('MarkParagraphs', 'punctuate')
+    mark_every_verse = config.getboolean('MarkParagraphs', 'mark_every_verse')
     identifyModel(config.get('MarkParagraphs', 'model_dir'))
     work_dir = getWorkDir()
-    if config.getboolean('MarkParagraphs', 'diagnostics'):
-        open_sections_file()
 
     file = config.get('MarkParagraphs', 'filename')
     if file:
