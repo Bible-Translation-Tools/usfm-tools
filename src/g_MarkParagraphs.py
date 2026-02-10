@@ -288,9 +288,9 @@ then you don't need to run this process.")
             objections.append("Specify location of files to be marked.")
         if not model_dir:
             objections.append("Specify location of model files.")
-        if dir and not os.path.isdir(dir):
+        if dir and (not os.path.isdir(dir) or dir.endswith('.')):   # Windows strips trailing period, so don't allow it on any platform
             objections.append(f"{dir} is not a valid folder.")
-        if model_dir and not os.path.isdir(model_dir):
+        if model_dir and (not os.path.isdir(model_dir) or model_dir.endswith('.')):    # Windows strips trailing period, so don't allow it on any platform
             objections.append(f"Model text folder ({model_dir}) is invalid.")
         if namedfile:
             filepath = os.path.join(dir, namedfile)
@@ -345,5 +345,6 @@ then you don't need to run this process.")
 
     def _set_button_status(self, *args):
         if not self.changingVars:
-            self.controller.enablebutton(4, os.path.isdir(self.work_dir.get()))
+            work_dir = self.work_dir.get()
+            self.controller.enablebutton(4, os.path.isdir(work_dir) and not work_dir.endswith('.'))
             self.controller.enablebutton(2, len(self.invalidInputs()) == 0)
