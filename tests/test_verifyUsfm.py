@@ -146,20 +146,25 @@ def test_parseChapterLabel(s, nchapter, expname):
 def test_decimalvalue(s, expected):
     assert verifyUSFM.decimal_value(s) == expected
 
-@pytest.mark.parametrize('text, reference, expTrigger',
+@pytest.mark.parametrize('text, expTrigger',
     [
-        ('pslm 103:1', "MAT 6:14", '103:1'),
+        ('pslm 103:1', ':'),
         # The following test needs more setup: set conpare_dir config value, and call load_source() first.
         # ('nyo konin (kanng Liyar ati nyo).', "MAT 6:13", '('),  # MAT 6:13 is a likely footnote location
-        ('nyo konin (kanng Liyar ati nyo).', "MAT 6:14", None),
-        ('ahka, (A khё püng nünah thüm ming sheh.)', "MAT 24:15", None),
-        ('nyo konin [kanng Liyar ati nyo].', "MAT 6:13", '['),
-        ('nyo konin [kanng Liyar ati nyo].', "MAT 6:14", '['),
-        ('nyo konin kanng Liyar ati nyo.', "MAT 6:14", None),
-        ('a hundred thousand (100,000)', "MAT 6:13", None),
+        ('nyo konin (kanng Liyar ati nyo).', '('),
+        ('ahka, (A khё püng nünah thüm ming sheh.)', '('),
+        ('nyo konin [kanng Liyar ati nyo].', '['),
+        ('nyo konin [kanng Liyar ati nyo].', '['),
+        ('nyo konin kanng Liyar ati nyo.', None),
+        ('a hundred thousand (100,000)', None),
+        ('first  (second ) third', None),
+        ('first [ second ] third', None),
+        ('first (second third)', '('),
+        ('[11:12]', ':'),
+        ('(Jer.13:14) asdf', ':')
     ])
-def test_findFootnote(text, reference, expTrigger):
-    assert verifyUSFM.findFootnote(text, reference) == expTrigger
+def test_findFootnote(text, expTrigger):
+    assert verifyUSFM.findFootnote(text) == expTrigger
 
 @pytest.mark.parametrize('text, expected',
     [

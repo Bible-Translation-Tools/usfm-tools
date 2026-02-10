@@ -521,7 +521,7 @@ def reportIssues():
     for issue in sorted(issues.items(), key=lambda kv: kv[1][1], reverse=True):
         total += issue[1][1]
         if issue[1][1] == 1:
-            issuesfile.write(f"{issue[1][0]}:  1 occurrence.\n")
+            issuesfile.write(f"{issue[1][0]}\n")
         else:
             issuesfile.write(f"{issue[1][0]}...:  {issue[1][1]} occurrences{issue[1][2]}.\n")
     issuesfile.write(f"\n{total} issues reported.\n")
@@ -998,26 +998,31 @@ reference_re = re.compile(r'[\d]+[\s]*:[\s]*[\d]+', re.UNICODE)
 bracketed_re = re.compile(r'\[ *([^\]]+) *\]', re.UNICODE)
 parenNumber_re = re.compile(r'\([\d, ]{0,11}\)')
 parenAmen_re = re.compile(r'\( *[AE]m[ei]+n[aei\. ]*\)')
+bracket1word_re = re.compile(r'\[ ?[^\d ]+ ?\]')
+paren1word_re = re.compile(r'\( ?[^\d ]+ ?\)')
 
 # Returns None if nothing looking like a footnote occurs in the specified verse text.
-# In a verse that often has footnotes, even the presence of parens is flagged.
-# Returns the flag character or string that starts the possible footnote.
-def findFootnote(text, reference):
+# In a verse that often has footnotes, even the presence of parens is reported.
+# Exception: a single word in parens or brackets is not reported.
+# Returns the flag character starts the possible footnote, or colon if a verse reference.
+def findFootnote(text):
     global footnotedVerses
     flag = None
-    if ref := reference_re.search(text):
-        flag = ref.group(0)
-    elif ('(' in text or ')' in text) and (usfm_verses.isOptional(reference) or\
-          reference in footnotedVerses or reference in footnotedVerses_en_ulb):
-        # Don't suspect numbers in parens as being a footnote
+    if reference_re.search(text):
+        flag = ':'
+    elif ('(' in text or ')' in text):  # and (usfm_verses.isOptional(reference) or reference in footnotedVerses or reference in footnotedVerses_en_ulb):
         matches1 = parenNumber_re.findall(text)
         matches2 = parenAmen_re.findall(text)
-        if text.count('(') > len(matches1) + len(matches2):  # not every paren includes a simple number
+        if text.count('(') > len(matches1) + len(matches2) :  # not every paren includes a simple number
             flag = '('
+            if text.count('(') == text.count(')') == 1 and paren1word_re.search(text):
+                flag = None
     elif "[" in text:
         fn = bracketed_re.search(text)
         if not fn or ' ' in fn.group(1):    # orphan [, or more than one word between brackets
             flag = '['
+            if text.count('[') == text.count(']') == 1 and bracket1word_re.search(text):
+                flag = None
     return flag
 
 # Returns True if the text contains a single, matching pair of brackets, with
@@ -1034,17 +1039,17 @@ def validBracketedFootnote(text):
 def reportFootnotes(text):
     global footnotedVerses
     reference = state.reference
-    if trigger := findFootnote(text, reference):
-        if ':' in trigger:
+    if trigger := findFootnote(text):
+        if trigger == ':':
             if not validBracketedFootnote(text):
-                reportIssue(f"Probable chapter:verse reference ({trigger}) at {reference} belongs in a footnote", 43)
+                reportIssue(f"Probable chapter:verse reference at {reference} belongs in a footnote", 43)
         if reference in footnotedVerses:
             reportIssue(f"Bracket or parens in {reference} ({state.source_id} has a footnote there)", 43.1)
         elif usfm_verses.isOptional(reference):
             reportIssue(f"Bracket or parens in {reference} may indicate optional or alternative text", 43.2)
         elif reference in footnotedVerses_en_ulb:
             reportIssue(f"Bracket or parens in {reference} (footnotes are common there)", 43.3)
-        else:
+        elif trigger != '(':
             reportIssue(f"Optional text or untagged footnote at {reference}", 43.4)
 
 # Warns when the specified string is supposed to start a sentence but the first word is not capitalized.
