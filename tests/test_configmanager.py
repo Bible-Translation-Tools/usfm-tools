@@ -70,26 +70,29 @@ def test_all():
     assert mgr.get('TESTSECTION', 'badoption') == ""
     assert mgr.getboolean('X', 'testoption') == False
     assert mgr.getboolean('TESTSECTION', 'x') == False
+    mgr.set('TESTSECTION', 'testoption', False)
+    assert mgr.get('TESTSECTION', 'testoption') == 'False'
+    assert mgr.getboolean('TESTSECTION', 'testoption') == False
     mgr.save()
 
-    assert mgr.get('TESTSECTION', 'testoption') == 'True'
+    assert mgr.get('TESTSECTION', 'testoption') == 'False'
 
     values = {'option1': 'value1', 'option2': 'value2'}
     mgr.set_section('TESTSECTION', values)
     assert mgr.get('TESTSECTION', 'option1') == 'value1'
     assert mgr.get('TESTSECTION', 'option2') == 'value2'
-    assert mgr.get('TESTSECTION', 'testoption') == 'True'
+    assert mgr.get('TESTSECTION', 'testoption') == 'False'
     mgr.save()
 
-    values = {'option1': 'newvalue', 'option2': 'value2', 'testoption': False}
+    values = {'option1': 'newvalue', 'option2': 'value2', 'testoption': True}
     mgr.set_section('TESTSECTION', values)
     assert mgr.get('TESTSECTION', 'option1') == 'newvalue'
     assert mgr.get('TESTSECTION', 'option2') == 'value2'
-    assert mgr.get('TESTSECTION', 'testoption') == 'False'
+    assert mgr.getboolean('TESTSECTION', 'testoption') == True
     # Do not save these values
 
-    mgr._reread()     # to read what was saved; lose the current state
-    assert mgr.get('TESTSECTION', 'testoption') == 'True'
+    mgr._reread()     # read last saved value; lose the current in-memory values
+    assert mgr.getboolean('TESTSECTION', 'testoption') == False
     assert mgr.get('TESTSECTION', 'option1') == 'value1'
     assert mgr.get('TESTSECTION', 'option2') == 'value2'
     restore_keeper_ini()
