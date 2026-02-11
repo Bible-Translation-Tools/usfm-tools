@@ -159,9 +159,9 @@ class Step_Frame(ttk.Frame, ABC):
     # Displays any reasons why the current step cannot be executed.
     def _onCheckInputs(self, *args):
         objections = self.invalidInputs()
+        self.clear_messages()
         if len(objections) > 0:
             self.controller.enablebutton(2, False)
-            self.clear_messages()
             for objection in objections:
                 self.message_area.insert('end', f"{objection}\n")
 
