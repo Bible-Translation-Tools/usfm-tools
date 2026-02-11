@@ -241,7 +241,7 @@ widowv_re = re.compile(r'\s*\\v +[^1-9]')
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 vmarker_whole_re = re.compile(r'\s*\\v +([1-9][0-9\-]*)')
 
-# Inserts missing verse marker or bridge at the beginning or end of a string.
+# Inserts missing verse marker or bridge at the beginning of a string.
 def insertMissingVerseMarkers(text, verserange):
     vnumbers_found = find_vnumbers(text)
     miss = -1
@@ -269,10 +269,6 @@ def insertMissingVerseMarkers(text, verserange):
         if insertpos >= 0:
             vtag = '\\v ' if insertpos == 0 else ' \\v '
             text = text[0:insertpos].rstrip() + vtag + insert + ' ' + text[remainpos:].lstrip()
-
-    # If last verse in range is missing, append it to the text
-    if verserange and verserange[-1] not in find_vnumbers(text):
-        text = text.rstrip() + " \\v " + verserange[-1]
     return text
 
 vnumbers_re = re.compile(r'\\v ([1-9][0-9\-]*)')
