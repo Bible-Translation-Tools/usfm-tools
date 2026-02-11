@@ -10,6 +10,7 @@ import section_titles
 import section_titles_new
 import pytest
 
+# Remove this test when the old section_titles is gone.
 @pytest.mark.parametrize('str, expected',
     [('Sentence 1. Sentence 2.', False),
     ('( Sentence 1 Sentence Two )', True),
@@ -84,6 +85,7 @@ import pytest
 def test_is_heading(str, expected):
     assert section_titles.is_heading(str) == expected
 
+# Remove this test when the old section_titles is gone.
 @pytest.mark.parametrize('str, expected',
     [('Sentence 1. Sentence 2.', False),
     ('The 12 Apostles', True),
@@ -208,23 +210,25 @@ def test_find_parenthesized_heading_new(line, expected):
     assert s == expected
 
 @pytest.mark.parametrize('line, expected',
-    [('', None),
+    [('', ""),
      ('Hukum Taurat wan kitab para nabi. Lalah Baampah Kahidupan', 'Lalah Baampah Kahidupan'),
-     ('First Part. Lalah Baampah kahidupan', None),
+     ('First Part. Lalah Baampah kahidupan', "Lalah Baampah kahidupan"),
      ('Next Line! Lalah Baampah.', 'Lalah Baampah.'),
-     ('Line Four-! Lalah a Baampah.', None),
+     ('Line Four-! Lalah a Baampah.', "Lalah a Baampah."),
      ('Line Four+? Lalah a Baampah', 'Lalah a Baampah'),
      ('Line Five. Lalah a La Baampah.', 'Lalah a La Baampah.'),
      ('Only One Sentence On This Line.', 'Only One Sentence On This Line.'),
      ('Line Six. (Parens Heading)', '(Parens Heading)'),
-     ('\\v 7 Line Seven. (Parens Heading).', '(Parens Heading).'),
-     ('  . "', None),
-     ('First A Sentence! Phrase,', None),
-    #  ('\\v 17 ਸੋ ਤੱਕ ਚੌਦਾਂ । ਯਿਸੂ ਦਾ ਜਨਮ', 'ਯਿਸੂ ਦਾ ਜਨਮ'), # actual GURMUKHI eol heading, but is not supported
+     ('\\v 7 Line Seven. (Parens Heading).', ''),
+     ('  . "', ""),
+     ('First A Sentence! Phrase,', ""),
+     ('First A Sentence! Phrase:', "Phrase:"),
+    ('\\v 17 ਸੋ ਤੱਕ ਚੌਦਾਂ । ਯਿਸੂ ਦਾ ਜਨਮ', 'ਯਿਸੂ ਦਾ ਜਨਮ'),
     ])
 def test_find_eol_heading(line, expected):
-    assert section_titles.find_eol_heading(line) == expected
+    assert section_titles_new.find_eol_heading(line, 0.100) == expected
 
+# Remove this test when the old section_titles is gone.
 @pytest.mark.parametrize('s, expected',
     [('Sentence 1.', 8/10),
      ('numbers 1 2', 7/9),
@@ -249,6 +253,7 @@ def test_find_eol_heading(line, expected):
 def test_percentAlpha(s, expected):
     assert section_titles.percentAlpha(s) == expected
 
+# Remove this test when the old section_titles is gone.
 @pytest.mark.parametrize('s, expected',
     [('Sentence 1. Sentence 2.', 1.0),
      ('numbers 1 2', 0),
@@ -257,8 +262,8 @@ def test_percentAlpha(s, expected):
      ('(Newline In\nParenthesized Heading)', 1),
      ('.;-%  ', 0),
      ('" Sentence With Quotes"  ', 1.0),
-     ('A sentence XYZ; a phrase!A sentence-dash?    Another sentence  ', 0.25),
-     ('\\v 3 Verse Three.', 0.5),
+     ('A sentence XYZ; a phrase!A sentence-dash?    Another sentence  ', 3/8),
+     ('\\v 3 Verse Three.', 2/4),
      ('', 0),
      ('\\c 2 St      \\v 2 asdfasdf', 1/6),
      ('Title MiXed lower', 1/3),              # @todo we may honor capitalized, mixed case words later
@@ -278,7 +283,7 @@ def test_percentAlpha(s, expected):
     ("Single Quotes' Don't Count as Internal 'Quotes", 6/7)
     ])
 def test_percentTitleCase(s, expected):
-    assert section_titles.percentTitlecase(s) == expected
+    assert section_titles_new.percentTitleOrCaps(s) == expected
 
 @pytest.mark.parametrize('s, expected',
     [('N’amamera', True),
@@ -308,7 +313,7 @@ def test_percentTitleCase(s, expected):
      ('After-all', True),
     ])
 def test_isCapitalized(s, expected):
-    assert section_titles._isCapitalized(s) == expected
+    assert section_titles_new._isCapitalized(s) == expected
 
 # @pytest.mark.parametrize('s, expected',
 #     [('మొదటి ప్రార్థన (మార్కు 14:35. లూకా 22:41;42)', 0.555),
@@ -344,5 +349,5 @@ def test_insert_heading(preheading, heading, postheading, expected):
      ('  « Begins A Quote.', 4),
     ])
 def test_wordcount(s, expected):
-    result = section_titles._wordcount(s)
+    result = section_titles_new._wordcount(s)
     assert result == expected
