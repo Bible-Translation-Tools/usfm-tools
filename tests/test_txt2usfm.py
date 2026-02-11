@@ -25,43 +25,40 @@ def test_mark_chunk(section, newstr):
         newstr = section
     assert txt2USFM.mark_chunk(section) == newstr
 
-@pytest.mark.parametrize('section, newstr',
+@pytest.mark.parametrize('chunk, newstr',
     [
         ('', ''),
-        ('This Fine House', '\\s This Fine House\n\\p\n'),
-        ('   Spaces ', '\\s Spaces\n\\p\n'),
+        ('This Fine House', ''),
+        ('   Spaces ', ''),
         ('\\c 1 \\v 1 this is a verse', ''),
-        ('\\c 2 St      \\v 2 asdfasdf', ''),
-        ('\\c 3 Hashed Mark #1 \\v 3', ''),
-        ('\\c 3 Two-Thirds Case #1 \\v 3', ''),
-        ('\\c 3 Three-Fourths New Case #1 \\v 3', '\\c 3\n\\s Three-Fourths New Case #1\n\\p\n\\v 3'),
-        ('\\c 4\nCommon Case\n\\v 4', '\\c 4\n\\s Common Case\n\\p\n\\v 4'),
-        ('\\c 5\nCommon Case With Space \n\\v 5', '\\c 5\n\\s Common Case With Space\n\\p\n\\v 5'),
-        ('Start section Weak possibility \\v 5', ''),
-        ('\\c 6 Strong Possibility    ', '\\c 6\n\\s Strong Possibility\n\\p\n'),
-        ('\\c 7 Weak possibility', ''),
+        ('\\c 2 St      \\v 1 asdfasdf', '\\c 2\n\\s St\n\\p\n\\v 1 asdfasdf'),
+        ('\\c 3 Hashed Mark #1 \\v 1', '\\c 3\n\\s Hashed Mark #1\n\\p\n\\v 1'),
+        ('\\c 4\nCommon Case Verse 1\n\\v 1', '\\c 4\n\\s Common Case Verse 1\n\\p\n\\v 1'),
+        ('\\c 4\nCommon Case Verse 2\n\\v 2', ''),
+        ('\\c 5\nCommon Case With Space \n\\v 1', '\\c 5\n\\s Common Case With Space\n\\p\n\\v 1'),
+        ('Start section Good possibility \\v 5', '\\s Start section Good possibility\n\\p\n\\v 5'),
+        ('\\c 6 Strong Possibility    ', ''),
         ('   \\v 8 No Possibility', ''),
         ('Before Chapter \\c 9 \\v 9 verse. After Verse', ''),
-        ('  Strong Possibility   \\v 9 No Possibility \\c 9', '\\s Strong Possibility\n\\p\n\\v 9 No Possibility \\c 9'),
+        ('  Strong Possibility   \\v 9 No Possibility \\c 9', ''),
         ('  Don''t Want This To Be a Heading  \\c 1', ''),
         ('Don''t Want This To Be a Heading  \\c 2 ', ''),
         ('\\c 3 \\s Could Be a Heading  \\v 3 ', ''),
         ('\\c 4 Interference By \\p Heading  \\v 4 ', ''),
         ('Orig Heading\n\\v 5 asdf', '\\s Orig Heading\n\\p\n\\v 5 asdf'),
-        ('\\c 6 Sane Possibility', '\\c 6\n\\s Sane Possibility\n\\p\n'),
-        ('\\c 7 (Parenthesized Heading) \\v 7', '\\c 7\n\\s Parenthesized Heading\n\\p\n\\v 7'),
-        ('\\c 8 (Parens Last lowcase) \\v 8', ''),
-        ('\\c 9 Talalu Kalimana Halege (Kawungana)', '\\c 9\n\\s Talalu Kalimana Halege (Kawungana)\n\\p\n'),
+        ('\\c 7 (Parenthesized Heading) \\v 1', '\\c 7\n\\s Parenthesized Heading\n\\p\n\\v 1'),
+        ('\\c 8 (Parens Heading) \\v 8', ''),
+        ('\\c 9 Talalu Kalimana Halege (Kawungana)', ''),
         ('\\c 20\nOlukaado Lwabakhosi Mu Ndalo. \n\n\\v 1 “Khulwokhuba ', '\\c 20\n\\s Olukaado Lwabakhosi Mu Ndalo.\n\\p\n\\v 1 “Khulwokhuba '),
-        ('\\c 5\nOkhuwuulira Khu lugulu\n\\v 1 Yesu ni kawona ', ''),   # last word uncapitalized
+        ('\\c 5\nOkhuwuulira Khu lugulu\n\\v 1 Yesu ni kawona ', '\\c 5\n\\s Okhuwuulira Khu lugulu\n\\p\n\\v 1 Yesu ni kawona '),
         ('\\c 1 Silsilah Yesus Kristus \\v 1 Kitab silsilah Yesus', '\\c 1\n\\s Silsilah Yesus Kristus\n\\p\n\\v 1 Kitab silsilah Yesus')
     ])
-def test_mark_heading_bos(section, newstr):
+def test_mark_heading_bos(chunk, newstr):
     if not newstr:
-        newstr = section
-    assert txt2USFM.mark_section_heading_bos(section) == newstr
+        newstr = chunk
+    assert txt2USFM.mark_section_heading_bos(chunk) == newstr
 
-@pytest.mark.parametrize('section, wanted',
+@pytest.mark.parametrize('chunk, wanted',
     [
         ('', ''),
         ('This Fine House', '\\s This Fine House\n\\p\n'),
@@ -84,15 +81,15 @@ def test_mark_heading_bos(section, newstr):
         ('  Don''t Want This To Be a Heading  \\c 1', ''),
         ('Don''t Want This To Be a Heading  \\c 2 ', ''),
         ('\\c 3 \\s Heading Already Marked  \\v 3 ', ''),
-        ('\\v 4 Is a verse. Could Be a \\ Heading', '\\v 4 Is a verse.\n\\s Could Be a \\ Heading\n\\p\n'),
-        ('\\v 3 Here is a verse. Here Is A Candidate \\f + \\ft Footnote \\f*', ''),
+        ('\\v 4 Is a verse. Could Be a \\ Heading', ''),
+        ('\\v 3 Here is a verse. Here Is A Candidate\\f + \\ft Footnote \\f*', ''),
         ('mu syaki syange.’” Olukaado Lw’omuyofu', 'mu syaki syange.’”\n\\s Olukaado Lw’omuyofu\n\\p\n'),
         ('\\f + \\ft Footnote.\\f* Postfootnote', ''),  # only one sentence after last usfm marker
     ])
-def test_mark_heading_eos(section, wanted):
+def test_mark_heading_eos(chunk, wanted):
     if not wanted:
-        wanted = section
-    assert txt2USFM.mark_section_heading_eos(section) == wanted
+        wanted = chunk
+    assert txt2USFM.mark_section_heading_eos(chunk) == wanted
 
 @pytest.mark.parametrize('section, expected',
     [
@@ -137,7 +134,7 @@ def test_mark_heading_lbi_2(section, expected):
     result = txt2USFM.mark_section_heading_lbi(section, 'REV 22:9', False)
     assert result == expected
 
-@pytest.mark.parametrize('section, newstr',
+@pytest.mark.parametrize('chunk, newstr',
     [
         ('', ''),
         ('This Fine House', '\\s This Fine House\n\\p\n'),
@@ -151,72 +148,70 @@ def test_mark_heading_lbi_2(section, expected):
         ('This Fine House', '\\s This Fine House\n\\p\n'),
         ('\\c 1 \\v 1 This is Apostle Paul', ''),
         ('\\c 2 St      \\v 2 asdfasdf', ''),
-        ('\\c 3 Common Case One \\v 3', '\\c 3\n\\s Common Case One\n\\p\n\\v 3'),
+        ('\\c 3 Common Case One \\v 1', '\\c 3\n\\s Common Case One\n\\p\n\\v 1'),
         ('\\c 3 Lower Case #3 \\v 3', ''),
         ('\\c 4\nCommon Case\n\\v 4', '\\c 4\n\\s Common Case\n\\p\n\\v 4'),
         ('\\c 5\nCommon Case With Space \n\\v 5', '\\c 5\n\\s Common Case With Space\n\\p\n\\v 5'),
-        ('Start section Weak possibility \\v 5', ''),
-        ('\\c 6 Strong Possibility    ', '\\c 6\n\\s Strong Possibility\n\\p\n'),
+        ('Start section Weak possibility \\v 5', '\\s Start section Weak possibility\n\\p\n\\v 5'),
+        ('\\c 6 Strong Possibility But No Verse Marker   ', ''),
         ('\\c 7 Weak possibility', ''),
         ('   \\v 8 No Possibility', ''),
         ('\\c 9\nWord One\nWord Two\n\\v 9 asdf', '\\c 9\n\\s Word One\n\\p\nWord Two\n\\v 9 asdf'),
         ('Before Chapter\n\\c 9 \\v 9 verse. After Verse', 'Before Chapter\n\\c 9 \\v 9 verse.\n\\s After Verse\n\\p\n'),
-        ('  Strong Possibility   \\v 9 No Possibility \\c 9', '\\s Strong Possibility\n\\p\n\\v 9 No Possibility \\c 9'),
+        ('  Strong Possibility   \\v 9 No Possibility \\c 9', ''),
         ('  Don''t Want This To Be a Heading  \\c 1', ''),
         ('Don''t Want This To Be a Heading  \\c 2 ', ''),
         ('\\c 3 \\s Could Be a Heading\n\\p\n\\v 3 ', ''),
         ('\\c 4 Interference By \\p Heading  \\v 4 ', ''),
         ('Orig Heading\n\\v 5 asdf', '\\s Orig Heading\n\\p\n\\v 5 asdf'),
-        ('\\c 33 Before Verse \\v 33 After Verse', '\\c 33\n\\s Before Verse\n\\p\n\\v 33 After Verse'),
-        ('\\c 34 Before Verse \\v 34 After Verse. Better Choice', '\\c 34\n\\s Before Verse\n\\p\n\\v 34 After Verse.\n\\s Better Choice\n\\p\n'),
+        ('\\c 33 Before Verse \\v 1 After Verse', '\\c 33\n\\s Before Verse\n\\p\n\\v 1 After Verse'),
+        ('\\c 34 Before Verse \\v 34 After Verse. Better Choice', '\\c 34 Before Verse \\v 34 After Verse.\n\\s Better Choice\n\\p\n'),
         ('\\v 35 This is A Verse. \\v 35 Another Verse. Better Choice', '\\v 35 This is A Verse. \\v 35 Another Verse.\n\\s Better Choice\n\\p\n'),
         ('\\v 36 Sentence One. Sentence Two. \\v 36 Another Verse. Better Choice', '\\v 36 Sentence One. Sentence Two. \\v 36 Another Verse.\n\\s Better Choice\n\\p\n'),
         ('\\v 37 Sentence One. Sentence Two. \\v 36 Another Verse Bad Choice', ''),
-        ('Weak possibility \\v 5', ''),
-        ('\\c 6 Sane Possibility', '\\c 6\n\\s Sane Possibility\n\\p\n'),   # only one sentence after last usfm marker
-        ('\\c 7 Sane Possibility.', '\\c 7\n\\s Sane Possibility.\n\\p\n'),
+        ('Weak possibility \\v 5', '\\s Weak possibility\n\\p\n\\v 5'),
+        ('\\c 6 Sane Possibility', ''),
+        ('\\c 7 Sane Possibility.', ''),
         ('\\c 3\n\\s Heading Already Marked\n\\p\n\\v 3 ', ''),
-        ('\\v 4 Is a verse. Could Be a \\ Heading', '\\v 4 Is a verse.\n\\s Could Be a \\ Heading\n\\p\n'),
+        ('\\v 4 Is a verse. Not Quite a \\ Heading', ''),
         ('at the end of a verse. Amen.', ''),
         ('\\v 5 Kiru YâkoboEsepo. (Christ).', ''),
         ('\\v 6 Kiru YâkoboEsepo! (Jesus Christ).', ''),
         ('\\v 7 Kiru YâkoboEsepo? (Jesus Christ)', '\\v 7 Kiru YâkoboEsepo?\n\\s Jesus Christ\n\\p\n'),
     ])
 # Call mark_section_headings() with the lastchunk parameter False
-def test_mark_section_headings_1(section, newstr):
+def test_mark_section_headings_1(chunk, newstr):
     if not newstr:
-        newstr = section
-    assert txt2USFM.mark_section_headings(section, 'REV 22:8', False) == newstr
+        newstr = chunk
+    assert txt2USFM.mark_section_headings(chunk, 'REV 22:8', False) == newstr
 
-@pytest.mark.parametrize('section, newstr',
+@pytest.mark.parametrize('chunk, newstr',
     [
         ('', ''),
-        ('This Fine House', '\\s This Fine House\n\\p\n'),
-        ('   Spaces ', '\\s Spaces\n\\p\n'),
+        ('This Fine House', ''),
         ('\\v 3 verse three.\n This Is A Section.  \n\\v 4', '\\v 3 verse three.\n\\s This Is A Section.\n\\p\n\\v 4'),
         (' This Fine House\n\\v 4 asdf', '\\s This Fine House\n\\p\n\\v 4 asdf'),
         ('Heading One\n\\v 5 asdf\nHeading Two\nHeading Three', '\\s Heading One\n\\p\n\\v 5 asdf\nHeading Two\nHeading Three'),
         (' This Fine \\ House\n\\v 6 asdf', '\\s This Fine \\ House\n\\p\n\\v 6 asdf'),
-        ('\\v 7 asdf\n  Heading At End ', ''),
-        ('This Fine House', '\\s This Fine House\n\\p\n'),
-        ('Start section Weak possibility \\v 5', ''),
+        ('\\v 7 asdf\n  Heading At End ', ''),  # not marked when lastchunk is True or REV 22:9
+        ('Start section Weak possibility \\v 5', '\\s Start section Weak possibility\n\\p\n\\v 5'),
         ('   \\v 8 No Possibility', ''),
         ('Orig Heading\n\\v 5 asdf', '\\s Orig Heading\n\\p\n\\v 5 asdf'),
-        ('\\v 35 This is A Verse. \\v 35 Another Verse. Better Choice', ''),
-        ('\\v 36 Sentence One. Sentence Two. \\v 36 Another Verse. Better Choice', ''),
+        ('\\v 35 This is A Verse. \\v 35 Another Verse. Better Choice', ''),  # not marked when lastchunk is True or REV 22:9
+        ('\\v 36 Sentence One. Sentence Two. \\v 36 Another Verse. Better Choice', ''), # not marked when lastchunk is True or REV 22:9
         ('\\v 37 Sentence One. Sentence Two. \\v 36 Another Verse Bad Choice', ''),
-        ('Weak possibility \\v 5', ''),
-        ('\\v 4 Is a verse. Could Be a \\ Heading', ''),
+        ('Weak possibility \\v 5', '\\s Weak possibility\n\\p\n\\v 5'),     # not marked when lastchunk is True or REV 22:9
+        ('\\v 4 Is a verse. Could Be A \\ Heading', ''),  # not marked when lastchunk is True or REV 22:9
         ('at the end of a verse.\nAmen Amen.', '')
     ])
 # Call mark_section_headings() with the lastchunk parameter True,
 # in which case, mark_section_headings() doesn't look for section heading at end of section.
-def test_mark_section_headings_2(section, newstr):
+def test_mark_section_headings_2(chunk, newstr):
     if not newstr:
-        newstr = section
-    result = txt2USFM.mark_section_headings(section, 'REV 22:8', True)
+        newstr = chunk
+    result = txt2USFM.mark_section_headings(chunk, 'REV 22:8', True)
     assert result == newstr
-    result = txt2USFM.mark_section_headings(section, 'REV 22:9', False)
+    result = txt2USFM.mark_section_headings(chunk, 'REV 22:9', False)   # REV 22:9 is excluded from end-of-chunk checks
     assert result == newstr
 
 @pytest.mark.parametrize('s, expected',
