@@ -395,24 +395,27 @@ def remove_parens(str):
         str = str.strip(' ()\n')
     return str
 
-chapter_re = re.compile(r'\\c\s+([0-9]+)[\s]*', re.UNICODE)
+chapter_re = re.compile(r'\\c\s+([0-9]+)[\s]*')
+verse1_re = re.compile(r'\\v\s+1(\s|$)')
 
 # Searches for likely section heading at the beginning of a chunk,
 # before the first verse marker.
+# If chunk includes a \c markers, section title must come before \v 1.
 # Inserts \s before unmarked section heading, if found.
 def mark_section_heading_bos(strChunk):
-    chap = chapter_re.search(strChunk)   # valid chapter marker
-    cendpos = chap.end() if chap else 0
     vpos = strChunk.find("\\v")
-    if vpos < 0:
-        vpos = len(strChunk)
-    if cendpos > vpos:
-        cendpos = 0
-    candidate = strChunk[cendpos:vpos] if vpos == len(strChunk) else strChunk[cendpos:vpos-1]
-    candidate = remove_parens(candidate)
-    if section_titles_new.prob_heading(candidate) >= 0.1:
-        heading = candidate.rstrip('.\u0964\u0965\u1362\u06D4')
-        strChunk = section_titles_new.insert_heading(strChunk[0:cendpos], heading, strChunk[vpos:])
+    if vpos >= 0:
+        chap = chapter_re.search(strChunk)   # valid chapter marker
+        cendpos = chap.end() if chap else 0
+        if cendpos > 0:
+            verse1 = verse1_re.search(strChunk)
+            vpos = verse1.start() if verse1 else 0
+    if vpos >= 0 and vpos >= cendpos:
+        candidate = strChunk[cendpos:vpos] if vpos == len(strChunk) else strChunk[cendpos:vpos-1]
+        candidate = remove_parens(candidate)
+        if section_titles_new.prob_heading(candidate) >= 0.1:
+            heading = candidate.rstrip('.\u0964\u0965\u1362\u06D4')
+            strChunk = section_titles_new.insert_heading(strChunk[0:cendpos], heading, strChunk[vpos:])
     return strChunk
 
 anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
