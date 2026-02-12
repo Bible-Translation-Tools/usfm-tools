@@ -209,13 +209,13 @@ def usfm_move_pq(str):
 # losepq_re = re.compile(r'\\[pqm][i1-9]? *\n*(\\[^v])')
 losepq_re = re.compile(r'\\[pqm][i1-9]? *\n*(\\[a-z][a-z1-5]*\*?)')
 
-# Remove paragraph markers not followed by verse marker or \rem.
+# Remove paragraph markers not followed by verse marker or \s5 or \rem.
 # Other markers that follow a paragraph marker invalidate the paragraph marker.
 def usfm_remove_pq(str):
     newstr = ""
     found = losepq_re.search(str)
     while found:
-        if found.group(1) not in {'\\v', '\\rem'}:
+        if found.group(1) not in {'\\v', '\\rem', '\\s5'}:
             newstr += str[:found.start()] + found.group(1)
         else:
             newstr += str[:found.end()]
@@ -503,7 +503,7 @@ def find_section_heading(line, chap, verse, prevline, sentenceended):
 
 chap_re = re.compile(r'\\c +([0-9]+)')
 verse_re = re.compile(r'\\v +([0-9]+)')
-section_re = re.compile(r'\\s[1-4]? +')
+section_re = re.compile(r'\\s[1-4]? +(.+)$')
 
 # Called for every line in the file, if section titles fixes are enabled.
 # If the specified line is a section heading, returns (True, line), the line being modified.
@@ -517,16 +517,20 @@ def mark_sections(line):
         mark_sections.sentenceended = True
         mark_sections.lasttitleverse = 0
 
+    changed = False
     if c := chap_re.search(line):
         mark_sections.chapter = int(c.group(1))
         mark_sections.verse = 0
         mark_sections.lasttitleverse = -1
     if v := verse_re.search(line):
         mark_sections.verse = int(v.group(1))
-    elif section_re.match(line):
+    elif headingline := section_re.match(line):
         mark_sections.lasttitleverse = mark_sections.verse
+        heading = headingline.group(1).rstrip(". \\।\n")  # strip trailing spaces, periods, backslashes and danda
+        if heading != headingline.group(1):
+            line = line[:headingline.start(1)] + heading
+            changed = True
 
-    changed = False
     pheading = ""
     if mark_sections.chapter > 0 and mark_sections.lasttitleverse != mark_sections.verse:
         pheading = find_section_heading(line, mark_sections.chapter, mark_sections.verse, mark_sections.prevline, mark_sections.sentenceended)
