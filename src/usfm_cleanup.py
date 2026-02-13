@@ -524,12 +524,11 @@ def mark_sections(line):
         mark_sections.lasttitleverse = -1
     if v := verse_re.search(line):
         mark_sections.verse = int(v.group(1))
-    elif headingline := section_re.match(line):
+    elif section_re.match(line):
         mark_sections.lasttitleverse = mark_sections.verse
-        heading = headingline.group(1).rstrip(". \\।\n")  # strip trailing spaces, periods, backslashes and danda
-        if heading != headingline.group(1):
-            line = line[:headingline.start(1)] + heading
-            changed = True
+        origlen = len(line)
+        line = line.rstrip(". \\।\n")  # strip trailing spaces, periods and danda
+        changed = (len(line) < origlen)
 
     pheading = ""
     if mark_sections.chapter > 0 and mark_sections.lasttitleverse != mark_sections.verse:
