@@ -1126,7 +1126,7 @@ def reportPunctuation(text):
     if '=' in text:
         reportIssue(f"Equals sign (=) in {state.getReference()}", 52.3)
 
-numberembed_re = re.compile(r'[^\s,:\."\d\(\[\-]+\d+[^\s,;\."\d\)\]]+')
+numberembed_re = re.compile(r'[^\s,:\."\'‘\d\(\[\-]+\d+[^\s,;\."\'’\d\)\]]+')
 numberprefix_re = re.compile(r'[^\s,\."\d\(\[]\d+', re.UNICODE)
 numbersuffix_re = re.compile(r'\d+[^\s,;:."\-?!"\d\)\]]', re.UNICODE)
 unsegmented_re = re.compile(r'\d\d\d\d+')
