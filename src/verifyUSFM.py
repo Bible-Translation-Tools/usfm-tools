@@ -511,7 +511,7 @@ def reportSuppressedIssues():
         if suppress[12]:
             issuesfile.write(f"    Mixed case words.\n")
     if ID_CONFLICTS in issues:
-        issuesfile.write(f"    Most issues involving translation conflicts.\n")
+        openIssuesFile().write(f"    Most issues involving translation conflicts.\n")
 
 # Write summary of issues to issuesFile
 def reportIssues():
