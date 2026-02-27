@@ -23,12 +23,15 @@ class LanguageInfo:
                 assert 'source_translations' in self.info
                 if not 'source_dir' in self.info:
                     self.info['source_dir'] = ""
+                if not 'standard_chapter_title' in self.info:
+                    self.info['standard_chapter_title'] = ""
                 if not 'said_words' in self.info:
                     self.info['said_words'] = {}
         if not self.info:
             self.info = {'language': {'id': language_code, 'name': ""},
                         'source_translations': [],
                         'source_dir': "",
+                        'standard_chapter_title': "",
                         'said_words': {} }
 
     def __repr__(self):
@@ -82,6 +85,12 @@ class LanguageInfo:
                 found = source
                 break
         return found
+
+    def addChapterTitle(self, title):
+        self.info['standard_chapter_title'] = title
+    def getChapterTitle(self):
+        assert 'standard_chapter_title' in self.info
+        return self.info['standard_chapter_title']
 
     def setSourceDir(self, source_dir):
         self.info['source_dir'] = source_dir

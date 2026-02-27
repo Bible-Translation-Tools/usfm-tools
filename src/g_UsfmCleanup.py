@@ -59,6 +59,7 @@ class UsfmCleanup(g_step.Step):
 class UsfmCleanup_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
+        self.changingVars = False
 
         self.language_code = StringVar()
         self.work_dir = StringVar()
@@ -180,8 +181,8 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self.language_code.set(code)
         self.work_dir.set(dir)
         self.filename.set(self.getOption('filename'))
-        self.set_compare_dir(code, dir)
         self.std_titles.set(self.getOption('standard_chapter_title'))
+        self.set_language_fields(code, dir)     # this may overwrite chapter title
         for i in range(len(self.enable)):
             configvalue = f"enable{i}"
             self.enable[i].set(self.getBooleanOption(configvalue))
@@ -195,19 +196,19 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         # self.controller.bindButtonEvent(4, "<Enter>", self._onCheckInputs)
         self.controller.showbutton(5, ">>>", self._onNext, tip="Next step")
 
-        self.language_code.trace_add("write", self._set_button_status)
-        self.std_titles.trace_add("write", self._onChangeTitles)
+        self.language_code.trace_add("write", self._onChangeLanguage)
         self.work_dir.trace_add("write", self._onChangeWorkDir)
         self.filename.trace_add("write", self._set_button_status)
         self.compare_dir.trace_add("write", self._set_button_status)
         self.enable[3].trace_add("write", self._onChangeQuotes)
         self.enable[4].trace_add("write", self._onChangeQuotes)
         self._set_button_status()
-        self._onChangeTitles()
 
     # Called when Step is activated, and when the source dir or language code changes.
     # Sets compare_dir, based on existence of project info, if any.
-    def set_compare_dir(self, code, dir):
+    # May set standard chapter title, based on project info, if any.
+    def set_language_fields(self, code, dir):
+        projectInfo = None
         if dir and code:
             projectInfo = ProjectInfo(dir, code)
             cmp = projectInfo.getSourceDir()
@@ -225,6 +226,10 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
             cmp = ""
         self.compare_dir.set(cmp)   # calls _set_button_status() implicitly
         self.clear_show("")     # clears the previous source text hints, if any
+
+        if projectInfo:
+            title = projectInfo.getStandardChapterTitle()
+            self.std_titles.set(title)
 
     def onScriptEnd(self):
         self.message_area['state'] = DISABLED   # prevents insertions to message area
@@ -249,7 +254,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         value = self.compare_dir.get()
         values['compare_dir'] = "" if value.startswith("(locate") else value
         values['standard_chapter_title'] = self.std_titles.get()
-        for si in [2,3,4,5,7]:
+        for si in [2,3,4,7]:
             configvalue = f"enable{si}"
             values[configvalue] = str(self.enable[si].get())
         values['enable1'] = "True" # Spaces
@@ -294,10 +299,18 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         return objections
 
     def save_project_info(self):
+        projectInfo = None
         compare_dir = self.compare_dir.get()
         if compare_dir and not compare_dir.startswith("(locate"):
             projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
             projectInfo.setSourceDir(compare_dir)
+            projectInfo.save()
+
+        std_titles = self.std_titles.get()
+        if not projectInfo:
+            projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
+        if std_titles != projectInfo.getStandardChapterTitle():
+            projectInfo.setStandardChapterTitle(std_titles)
             projectInfo.save()
 
     def _onFindWorkDir(self, *args):
@@ -313,15 +326,27 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self._save_values()
         self.controller.executeInventoryLabels()
 
+    # Called when the language code changes.
+    def _onChangeLanguage(self, *args):
+        code = self.language_code.get()
+        if code:
+            self.set_language_fields(code, self.work_dir.get())
+        else:
+            self.std_titles.set("")
+            self._set_button_status()
+
     def _onChangeWorkDir(self, *args):
+        self.changingVars = True
         dir = self.work_dir.get()
         if os.path.isdir(dir):
             my = ManifestYaml()
             my.load(dir)
             language_code = my.getLanguageId()
             if language_code != self.language_code.get():   # to avoid xs callbacks
-                self.language_code.set(language_code)
-                self.std_titles.set("")
+                self.language_code.set(language_code)       # will invoke _onChangeLanguage
+            else:
+                self.set_language_fields(language_code, dir)
+        self.changingVars = False
         self._set_button_status()
 
     def _onOpenWorkDir(self, *args):
@@ -351,17 +376,11 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
             self.controller.revertChanges()
             self.controller.enablebutton(4, False)
 
-    # When there is no standard chapter title, disable the 'Fix chapter titles" button.
-    def _onChangeTitles(self, *args):
-        dolabels = True if self.std_titles.get() else False
-        self.enable[8].set(dolabels)
-        # self.enable8_checkbox.state(['!disabled'] if self.std_titles.get() else ['disabled'])
-
     def _set_button_status(self, *args):
-        work_dir = self.work_dir.get()
-        good_workdir = os.path.isdir(work_dir)
-        self.controller.enablebutton(3, good_workdir)
+        if not self.changingVars:
+            good_workdir = os.path.isdir( self.work_dir.get() )
+            self.controller.enablebutton(3, good_workdir)
 
-        self.cleanup_ready = not self.invalidInputs()
-        self.controller.enablebutton(2, self.cleanup_ready)
-        self.controller.enablebutton(4, self.cleanup_ready)
+            self.cleanup_ready = not self.invalidInputs()
+            self.controller.enablebutton(2, self.cleanup_ready)
+            self.controller.enablebutton(4, self.cleanup_ready)

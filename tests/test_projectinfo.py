@@ -1,7 +1,7 @@
 # pytest unit tests for functions in projectinfo.py
 # Before running all the tests as a whole:
 #   Manifest.yaml in test_dir should have valid language info.
-#   Manifest.yaml should each have one valid source.
+#   Manifest.yaml should have one valid source.
 #   remove "said_words" from test.json, or set it to an empty dict -- {}
 
 import os
@@ -245,6 +245,15 @@ def test_addSourceDir():
     assert pi.getSourceDir() == sourcedir
     pi.save()
     assert pi.getSourceDir() == sourcedir
+
+def test_addChapterTitle():
+    workdir = r'C:\DCS\Test\test_reg'
+    title = 'sample chapter title'
+    pi = ProjectInfo(workdir, 'test')
+    pi.setStandardChapterTitle(title)
+    assert pi.getStandardChapterTitle() == title
+    pi.save()
+    assert pi.getStandardChapterTitle() == title
 
 def savedSaidWords():
     pi = ProjectInfo(test_dir, language_code)

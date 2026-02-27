@@ -12,45 +12,45 @@ src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 from languageinfo import LanguageInfo
 
-dir = r'C:\DCS\Matengo\work'
+testdir = r'C:\DCS\Test\test_reg'
 language_code = 'mgv'
 language_name = 'Matengo'
 
 def test_init_newfile():
     # This test function backs up the existing .json file before deleting it.
-    path = os.path.join(dir, language_code+'.json')
+    path = os.path.join(testdir, language_code+'.json')
     bakpath = path + ".bak"
     if os.path.exists(path):
         if not os.path.exists(bakpath):
             os.rename(path, bakpath)
         else:
             os.remove(path)
-    li = LanguageInfo(dir, language_code)
+    li = LanguageInfo(testdir, language_code)
     assert li.getLanguageCode() == language_code
     li.save()
     assert li.getLanguageCode() == language_code
 
 def test_init_badid():
     newcode = 'xyz'
-    li = LanguageInfo(dir, newcode)
+    li = LanguageInfo(testdir, newcode)
     assert li.getLanguageCode() == newcode
 
 def test_init_noid():
     newcode = ''
-    li = LanguageInfo(dir, newcode)
+    li = LanguageInfo(testdir, newcode)
     assert li.getLanguageCode() == newcode
     li.save()
-    li = LanguageInfo(dir, newcode)
+    li = LanguageInfo(testdir, newcode)
     assert li.getLanguageCode() == newcode
 
 def test_init_oldfile():
-    li = LanguageInfo(dir, language_code)
+    li = LanguageInfo(testdir, language_code)
     assert li.getLanguageCode() == language_code
-    li = LanguageInfo(dir, '')
+    li = LanguageInfo(testdir, '')
     assert li.getLanguageCode() == ''
 
 def test_language_name():
-    li = LanguageInfo(dir, language_code)
+    li = LanguageInfo(testdir, language_code)
     li.setLanguageName(language_name)
     li.save()
     assert li.getLanguageName() == language_name
@@ -63,7 +63,7 @@ def test_language_name():
     ])
 def test_addsource(lang, rsrc, ver):
     badrsrc = rsrc + 'X'
-    li = LanguageInfo(dir, language_code)
+    li = LanguageInfo(testdir, language_code)
     li.save()
     # sources = li.getSources()
     # assert findSource(sources, lang, badrsrc, ver) == None
@@ -99,15 +99,15 @@ def test_addsource(lang, rsrc, ver):
 # Before running this test, sort the sources_translations in mgv.json randomly,
 # and make version 7.6 the version with the highest count.
 def test_getMainSource():
-    li = LanguageInfo(dir, language_code)
+    li = LanguageInfo(testdir, language_code)
     source = li.getMainSource()
     assert source['version'] == "7.6"
 
 # Before running this, remove "said_words" from test.json.
 # Or, set it to an empty dict -- {}
 def test_saidwords():
-    global dir
-    dir = r'C:\DCS\Test\test_reg'
+    global testdir
+    testdir = r'C:\DCS\Test\test_reg'
     global language_code
     language_code = 'test'
 
@@ -119,12 +119,12 @@ def test_saidwords():
     # savedSaidWords( )
 
 def nowords():
-    li = LanguageInfo(dir, language_code)
+    li = LanguageInfo(testdir, language_code)
     words = li.getWords()
     assert words == []
 
 def addwords():
-    li = LanguageInfo(dir, language_code)
+    li = LanguageInfo(testdir, language_code)
     li.addWord('aaa', 2)
     li.addWord('bbb', 3)
     li.addWord('ccc', 1)
@@ -137,14 +137,14 @@ def addwords():
 
 # Run this test after running test_addwords()
 def savedwords():
-    li = LanguageInfo(dir, language_code)
+    li = LanguageInfo(testdir, language_code)
     words = li.getWords(mincount=1)
     assert words == ['aaa', 'bbb', 'ccc']
     words = li.getWords(mincount=2)
     assert words == ['aaa', 'bbb']
 
 def add_to_savedwords():
-    li = LanguageInfo(dir, language_code)
+    li = LanguageInfo(testdir, language_code)
     li.addWord('bbb', 1)    # no effect
     li.addWord('ccc', 3)
     words = li.getWords(mincount=2)
@@ -159,3 +159,12 @@ def test_addSourceDir():
     assert li.getSourceDir() == sourcedir
     li.save()
     assert li.getSourceDir() == sourcedir
+
+def test_addChapterTitle():
+    workdir = r'C:\DCS\Test\test_reg'
+    title = 'Test Chapter Title'
+    li = LanguageInfo(workdir, 'test')
+    li.addChapterTitle(title)
+    assert li.getChapterTitle() == title
+    li.save()
+    assert li.getChapterTitle() == title

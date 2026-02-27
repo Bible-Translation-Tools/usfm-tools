@@ -179,9 +179,9 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         dir = self.getWorkDirConfigValue()
         self.work_dir.set(dir)
         self.language_code.set(code)
-        self.set_compare_dir(code, dir)
         self.filename.set(self.getOption('filename'))
         self.std_titles.set(self.getOption('standard_chapter_title'))
+        self.set_language_fields(code, dir)     # this may overwrite chapter title
         for si in range(len(self.suppress)):
             configname = f"suppress{si}"
             self.suppress[si].set(self.getBooleanOption(configname))
@@ -197,7 +197,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.controller.showbutton(5, ">>>", self._onNext, tip=tip)
         self._set_button_status()
         self.language_code.trace_add("write", self._onChangeLanguage)
-        self.work_dir.trace_add("write", self._onChangeSourceDir)
+        self.work_dir.trace_add("write", self._onChangeWorkDir)
         self.filename.trace_add("write", self._set_button_status)
         self.compare_dir.trace_add("write", self._set_button_status)
         self._onChangeQuotes()
@@ -206,7 +206,9 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
 
     # Called when Step is activated, and when the source dir or language code changes.
     # Sets compare_dir, based on existence of project info, if any.
-    def set_compare_dir(self, code, dir):
+    # May set standard chapter title, based on project info, if any.
+    def set_language_fields(self, code, dir):
+        projectInfo = None
         if dir and code:
             projectInfo = ProjectInfo(dir, code)
             cmp = projectInfo.getSourceDir()
@@ -224,6 +226,10 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             cmp = ""
         self.compare_dir.set(cmp)   # calls _set_button_status() implicitly
         self.clear_show("")     # clears the previous source text hints, if any
+
+        if projectInfo:
+            title = projectInfo.getStandardChapterTitle()
+            self.std_titles.set(title)
 
     def onScriptEnd(self):
         issuespath = os.path.join(self.getWorkDirConfigValue(), "issues.txt")
@@ -289,12 +295,20 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         return objections
 
     def save_project_info(self):
+        projectInfo = None
         compare_dir = self.compare_dir.get()
         if compare_dir and not compare_dir.startswith("(locate"):
             projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
             if compare_dir != projectInfo.getSourceDir():
                 projectInfo.setSourceDir(compare_dir)
                 projectInfo.save()
+
+        std_titles = self.std_titles.get()
+        if not projectInfo:
+            projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
+        if std_titles != projectInfo.getStandardChapterTitle():
+            projectInfo.setStandardChapterTitle(std_titles)
+            projectInfo.save()
 
     # Executes a script that inventories the existing chapter labels
     def _onInventoryLabels(self, *args):
@@ -335,11 +349,11 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.std_titles.set("")
         code = self.language_code.get()
         if code:
-            self.set_compare_dir(code, self.work_dir.get())
+            self.set_language_fields(code, self.work_dir.get())
         else:
             self._set_button_status()
 
-    def _onChangeSourceDir(self, *args):
+    def _onChangeWorkDir(self, *args):
         self.changingVars = True
         dir = self.work_dir.get()
         code = self.language_code.get()
@@ -350,7 +364,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             if code != self.language_code.get():
                 self.language_code.set(code)    # this will invoke _onChangeLanguage()
             else:
-                self.set_compare_dir(code, dir)
+                self.set_language_fields(code, dir)
         self.changingVars = False
         self._set_button_status()
 

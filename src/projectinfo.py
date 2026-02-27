@@ -125,6 +125,10 @@ class ProjectInfo:
         self.languageInfo.setSourceDir(source_dir)
     def getSourceDir(self):
         return self.languageInfo.getSourceDir()
+    def setStandardChapterTitle(self, title):
+        self.languageInfo.addChapterTitle(title)
+    def getStandardChapterTitle(self):
+        return self.languageInfo.getChapterTitle()
 
     def setResourceType(self, id):
         if self.manifest:
