@@ -1,3 +1,7 @@
+# A hard-coded, fully in memory, Scripture Burrito validator.
+# Current as of 3/11/26.
+# To load schema from disk instead, use validate.py in https://github.com/Bible-Translation-Tools/scripture-burrito/
+
 import json
 from jsonschema import ValidationError, Draft7Validator
 import referencing.exceptions
@@ -5,83 +9,56 @@ from referencing import Registry, Resource
 
 main_schema = {
     "$schema": "http://json-schema.org/draft-07/schema",
-    "$id": "https://burrito.bible/schema/source_metadata.schema.json",
-    "$$target": "source_metadata.schema.json",
-    "title": "Metadata (Default)",
+    "$id": "https://burrito.bible/schema/metadata.schema.json",
+    "$$target": "metadata.schema.json",
+    "title": "Metadata",
     "type": "object",
-    "description": "Scripture Burrito source kinda-variant root.",
+    "description": "Scripture Burrito root metadata object.",
     "properties": {
-        "format": {
-            "type": "string",
-            "enum": ["scripture burrito"]
-        },
         "meta": {
-            "$ref": "source_meta.schema.json"
-        },
-        "idAuthorities": {
-            "$ref": "id_authorities.schema.json"
-        },
-        "identification": {
-            "$ref": "identification.schema.json"
-        },
-        "common": {
-            "$ref": "common.schema.json"
-        },
-        "confidential": {
-            "$ref": "confidential.schema.json"
-        },
-        "type": {
-            "$ref": "type.schema.json"
-        },
-        "relationships": {
-            "$ref": "relationships.schema.json"
-        },
-        "languages": {
-            "$ref": "languages.schema.json"
-        },
-        "targetAreas": {
-            "$ref": "target_areas.schema.json"
-        },
-        "agencies": {
-            "$ref": "agencies.schema.json"
-        },
-        "copyright": {
-            "$ref": "copyright.schema.json"
-        },
-        "ingredients": {
-            "$ref": "ingredients.schema.json"
-        },
-        "localizedNames": {
-            "$ref": "localized_names.schema.json"
-        },
-        "progress": {
-            "$ref": "progress.schema.json"
+            "type": "object",
+            "properties": {
+                "category": {
+                    "enum": ["source", "derived", "template"]
+                }
+            }
         }
     },
-    "required": ["format", "meta", "idAuthorities", "identification", "confidential", "type", "copyright", "ingredients"],
-    "additionalProperties": False,
-    "allOf": [
-        {
-            "if": {
+    "if": {
+        "properties": {
+            "meta": {
+                "type": "object",
                 "properties": {
-                    "type": {
-                        "type": "object",
-                        "properties": {
-                            "flavorType": {
-                                "enum": ["scripture", "gloss"]
-                            }
+                    "category": {
+                        "const": "source"
+                    }
+                }
+            }
+        }
+    },
+    "then": {
+        "$ref": "source_metadata.schema.json"
+    },
+    "else": {
+        "if": {
+            "properties": {
+                "meta": {
+                    "type": "object",
+                    "properties": {
+                        "category": {
+                            "const": "derived"
                         }
                     }
                 }
-            },
-            "then": {
-                "required": ["languages"]
             }
         },
-        {
-            "$ref": "copyright_constraints.schema.json"
+        "then": {
+            "$ref": "derived_metadata.schema.json"
+        },
+        "else": {
+            "$ref": "template_metadata.schema.json"
         }
-    ]
+    }
 }
 
 agencies = Resource.from_contents({
@@ -600,6 +577,114 @@ copyright_constraints = Resource.from_contents({
         }
     }
 })
+derived_meta = Resource.from_contents({
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://burrito.bible/schema/derived_meta.schema.json",
+    "$$target": "derived_meta.schema.json",
+    "title": "Meta (Derived)",
+    "type": "object",
+    "description": "Information about the Scripture Burrito metadata file.",
+    "properties": {
+        "category": {
+            "const": "derived"
+        },
+        "dateCreated": {
+            "$ref": "meta_date_created.schema.json"
+        },
+        "version": {
+            "$ref": "meta_version.schema.json"
+        },
+        "generator": {
+            "$ref": "software_and_user_info.schema.json",
+            "description": "Information about the program and user who generated this burrito."
+        },
+        "defaultLocale": {
+            "$ref": "meta_default_language.schema.json"
+        },
+        "normalization": {
+            "$ref": "normalization.schema.json"
+        },
+        "comments": {
+            "$ref": "meta_comments.schema.json"
+        }
+    },
+    "required": ["version", "category", "dateCreated", "defaultLocale"],
+    "additionalProperties": False
+})
+derived_metadata = Resource.from_contents({
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://burrito.bible/schema/derived_metadata.schema.json",
+    "$$target": "derived_metadata.schema.json",
+    "title": "Metadata (Derived)",
+    "type": "object",
+    "description": "Scripture Burrito derived variant root.",
+    "properties": {
+        "format": {
+            "type": "string",
+            "enum": ["scripture burrito"]
+        },
+        "meta": {
+            "$ref": "derived_meta.schema.json"
+        },
+        "idAuthorities": {
+            "$ref": "id_authorities.schema.json"
+        },
+        "identification": {
+            "$ref": "identification.schema.json"
+        },
+        "confidential": {
+            "$ref": "confidential.schema.json"
+        },
+        "type": {
+            "$ref": "type.schema.json"
+        },
+        "relationships": {
+            "$ref": "relationships.schema.json"
+        },
+        "languages": {
+            "$ref": "languages.schema.json"
+        },
+        "targetAreas": {
+            "$ref": "target_areas.schema.json"
+        },
+        "agencies": {
+            "$ref": "agencies.schema.json"
+        },
+        "copyright": {
+            "$ref": "copyright.schema.json"
+        },
+        "promotion": {
+            "$ref": "promotion.schema.json"
+        },
+        "ingredients": {
+            "$ref": "ingredients.schema.json"
+        },
+        "localizedNames": {
+            "$ref": "localized_names.schema.json"
+        },
+        "recipe": {
+            "$ref": "recipe.schema.json"
+        }
+    },
+    "required": ["format", "meta", "idAuthorities", "identification", "confidential", "copyright", "type", "recipe"],
+    "additionalProperties": False,
+    "if": {
+        "properties": {
+            "type": {
+                "type": "object",
+                "properties": {
+                    "flavorType": {
+                        "enum": ["scripture", "gloss"]
+                    }
+                }
+            }
+        }
+    },
+    "then": {
+        "required": ["languages"]
+    }
+}
+)
 embossed_braille_scripture = Resource.from_contents({
     "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "https://burrito.bible/schema/scripture/embossed_braille_scripture.schema.json",
@@ -1180,6 +1265,49 @@ progress = Resource.from_contents({
     "minProperties": 1,
     "additionalProperties": False
 })
+promotion = Resource.from_contents({
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://burrito.bible/schema/promotion.schema.json",
+    "$$target": "promotion.schema.json",
+    "title": "Promotional Statements",
+    "type": "object",
+    "description": "Contains promotional statements for the burrito.",
+    "properties": {
+        "statementPlain": {
+            "$ref": "common.schema.json#/definitions/localizedText"
+        },
+        "statementRich": {
+            "$ref": "common.schema.json#/definitions/localizedRichText"
+        }
+    },
+    "required": [],
+    "additionalProperties": False
+})
+recipe = Resource.from_contents({
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://burrito.bible/schema/recipe.schema.json",
+    "$$target": "recipe.schema.json",
+    "title": "Recipes",
+    "type": "array",
+    "description": "Scripture Burrito recipes.",
+    "items": {
+        "type": "object",
+        "properties": {
+            "idAuthority": {
+                "type": "string"
+            },
+            "operation": {
+                "type": "string"
+            },
+            "data": {
+                "type": "object"
+            }
+        },
+        "required": ["idAuthority", "operation", "data"],
+        "additionalProperties": False
+    },
+    "minItems": 1
+})
 relationship = Resource.from_contents({
     "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "https://burrito.bible/schema/relationship.schema.json",
@@ -1527,6 +1655,86 @@ source_meta = Resource.from_contents({
     "required": ["version", "category", "dateCreated", "defaultLocale"],
     "additionalProperties": False
 })
+source_metadata = Resource.from_contents({
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://burrito.bible/schema/source_metadata.schema.json",
+    "$$target": "source_metadata.schema.json",
+    "title": "Metadata (Default)",
+    "type": "object",
+    "description": "Scripture Burrito source kinda-variant root.",
+    "properties": {
+        "format": {
+            "type": "string",
+            "enum": ["scripture burrito"]
+        },
+        "meta": {
+            "$ref": "source_meta.schema.json"
+        },
+        "idAuthorities": {
+            "$ref": "id_authorities.schema.json"
+        },
+        "identification": {
+            "$ref": "identification.schema.json"
+        },
+        "common": {
+            "$ref": "common.schema.json"
+        },
+        "confidential": {
+            "$ref": "confidential.schema.json"
+        },
+        "type": {
+            "$ref": "type.schema.json"
+        },
+        "relationships": {
+            "$ref": "relationships.schema.json"
+        },
+        "languages": {
+            "$ref": "languages.schema.json"
+        },
+        "targetAreas": {
+            "$ref": "target_areas.schema.json"
+        },
+        "agencies": {
+            "$ref": "agencies.schema.json"
+        },
+        "copyright": {
+            "$ref": "copyright.schema.json"
+        },
+        "ingredients": {
+            "$ref": "ingredients.schema.json"
+        },
+        "localizedNames": {
+            "$ref": "localized_names.schema.json"
+        },
+        "progress": {
+            "$ref": "progress.schema.json"
+        }
+    },
+    "required": ["format", "meta", "idAuthorities", "identification", "confidential", "type", "copyright", "ingredients"],
+    "additionalProperties": False,
+    "allOf": [
+        {
+            "if": {
+                "properties": {
+                    "type": {
+                        "type": "object",
+                        "properties": {
+                            "flavorType": {
+                                "enum": ["scripture", "gloss"]
+                            }
+                        }
+                    }
+                }
+            },
+            "then": {
+                "required": ["languages"]
+            }
+        },
+        {
+            "$ref": "copyright_constraints.schema.json"
+        }
+    ]
+})
 target_area = Resource.from_contents({
     "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "https://burrito.bible/schema/target_area.schema.json",
@@ -1633,7 +1841,101 @@ text_translation = Resource.from_contents({
     "required": ["name", "projectType", "translationType", "audience", "usfmVersion"],
     "additionalProperties": False
 })
-type = Resource.from_contents({
+template_metadata = Resource.from_contents({
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://burrito.bible/schema/template_metadata.schema.json",
+    "$$target": "template_metadata.schema.json",
+    "title": "Metadata (Template)",
+    "type": "object",
+    "description": "Scripture Burrito Template root.",
+    "properties": {
+        "format": {
+            "type": "string",
+            "enum": ["scripture burrito"]
+        },
+        "meta": {
+            "$ref": "template_meta.schema.json"
+        },
+        "idAuthorities": {
+            "$ref": "id_authorities.schema.json"
+        },
+        "identification": {
+            "$ref": "identification.schema.json"
+        },
+        "confidential": {
+            "$ref": "confidential.schema.json"
+        },
+        "type": {
+            "$ref": "type.schema.json"
+        },
+        "relationships": {
+            "$ref": "relationships.schema.json"
+        },
+        "languages": {
+            "$ref": "languages.schema.json"
+        },
+        "targetAreas": {
+            "$ref": "target_areas.schema.json"
+        },
+        "agencies": {
+            "$ref": "agencies.schema.json"
+        },
+        "copyright": {
+            "$ref": "copyright.schema.json"
+        },
+        "ingredients": {
+            "$ref": "ingredients.schema.json"
+        },
+        "localizedNames": {
+            "$ref": "localized_names.schema.json"
+        }
+    },
+    "required": ["format", "meta", "copyright"],
+    "additionalProperties": False,
+    "allOf": [
+        {
+            "$ref": "copyright_constraints.schema.json"
+        }
+    ]
+})
+template_meta = Resource.from_contents({
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://burrito.bible/schema/template_meta.schema.json",
+    "$$target": "template_meta.schema.json",
+    "title": "Meta (Template)",
+    "type": "object",
+    "description": "Information about the Scripture Burrito metadata file.",
+    "properties": {
+        "category": {
+            "const": "template"
+        },
+        "templateName": {
+            "$ref": "common.schema.json#/definitions/localizedText"
+        },
+        "dateCreated": {
+            "$ref": "meta_date_created.schema.json"
+        },
+        "version": {
+            "$ref": "meta_version.schema.json"
+        },
+        "generator": {
+            "$ref": "software_and_user_info.schema.json",
+            "description": "Information about the program and user who generated this burrito."
+        },
+        "defaultLocale": {
+            "$ref": "meta_default_language.schema.json"
+        },
+        "normalization": {
+            "$ref": "normalization.schema.json"
+        },
+        "comments": {
+            "$ref": "meta_comments.schema.json"
+        }
+    },
+    "required": ["version", "category", "defaultLocale", "dateCreated", "templateName"],
+    "additionalProperties": False
+})
+typeschema = Resource.from_contents({
     "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "https://burrito.bible/schema/type.schema.json",
     "$$target": "type.schema.json",
@@ -2123,11 +2425,6 @@ x_flavor = Resource.from_contents({
     "additionalProperties": True
 })
 
-# Create a resolver for subschemas
-# resolver = RefResolver.from_schema(main_schema, store={
-#     "confidential.schema.json": confidential,
-# })
-
 def validate_burrito(burrito_json):
     """
     Validates a Scripture Burrito JSON against the official schema.
@@ -2157,6 +2454,8 @@ def validate_burrito(burrito_json):
              ("confidential.schema.json", confidential),
              ("copyright.schema.json", copyright),
              ("copyright_constraints.schema.json", copyright_constraints),
+             ("derived_meta.schema.json", derived_meta),
+             ("derived_metadata.schema.json", derived_metadata),
              ("id_authorities.schema.json", id_authorities),
              ("identification.schema.json", identification),
              ("ingredient.schema.json", ingredient),
@@ -2173,15 +2472,20 @@ def validate_burrito(burrito_json):
              ("normalization.schema.json", normalization),
              ("numbering_system.schema.json", numbering_system),
              ("progress.schema.json", progress),
+             ("promotion.schema.json", promotion),
+             ("recipe.schema.json", recipe),
              ("relationship.schema.json", relationship),
              ("relationships.schema.json", relationships),
              ("role.schema.json", role),
              ("software_and_user_info.schema.json", software_and_user_info),
              ("scope.schema.json", scope),
              ("source_meta.schema.json", source_meta),
+             ("source_metadata.schema.json", source_metadata),
              ("target_area.schema.json", target_area),
              ("target_areas.schema.json", target_areas),
-             ("type.schema.json", type),
+             ("template_meta.schema.json", template_meta),
+             ("template_metadata.schema.json", template_metadata),
+             ("type.schema.json", typeschema),
              ("unm49.schema.json", unm49),
              ("x_flavor.schema.json", x_flavor),
              ("gloss/text_stories.schema.json", text_stories),
