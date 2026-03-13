@@ -586,5 +586,5 @@ def _reportError(msg):
 # Saves the current list of footnoted verses to the specified file location.
 # Note: JSON can't directly save a set, so save as a list.
 def _saveReferences(fvpath):
-    with io.open(fvpath, 'w') as json_file:
+    with io.open(fvpath, 'w', newline='\n') as json_file:
         json.dump( sorted(list(state.footnoteRefs)), json_file, indent=2)

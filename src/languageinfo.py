@@ -40,7 +40,7 @@ class LanguageInfo:
     # Saves the current information in the json file.
     def save(self):
         self.info['source_translations'].sort(reverse=True, key=operator.itemgetter('count'))    # sorts in place
-        with io.open(self.jsonpath, 'w') as json_file:
+        with io.open(self.jsonpath, 'w', newline='\n') as json_file:
             json.dump(self.info, json_file, indent=4)
 
     def setLanguageName(self, name):
