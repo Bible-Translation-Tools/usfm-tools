@@ -43,7 +43,7 @@ def reportStatus(msg):
 def makeUsfmFilename(bookId):
     fname = ""
     try:
-        num = usfm_verses.verseCounts[bookId]['usfm_number']
+        num = usfm_verses.verseCounts[bookId.upper()]['usfm_number']
         fname = num + '-' + bookId + '.usfm'
     except KeyError as e:
         reportError(f"Invalid book ID: {bookId}")
@@ -90,15 +90,7 @@ def get_bookId(path:Path):
 # Ultimately adds to manifest.yaml.
 def appendToProjects(bookId, bookTitle):
     global projectInfo
-    category = 'bible-nt'
-    if usfm_verses.verseCounts[bookId]['sort'] < 40:
-        category = 'bible-ot'
-    elif usfm_verses.verseCounts[bookId]['sort'] > 66:
-        category = "periph"
-    project = { "title": bookTitle, "identifier": bookId.lower(), "sort": usfm_verses.verseCounts[bookId]["sort"], \
-                "path": "./" + makeUsfmFilename(bookId), "categories": [ category ],
-                 'versification': 'ufw' }
-    projectInfo.addProject(project)
+    projectInfo.addProject(bookTitle, bookId, "./" + makeUsfmFilename(bookId))
 
 def copyfile(path, newpath):
     content = None

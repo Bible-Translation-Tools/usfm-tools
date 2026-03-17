@@ -141,9 +141,9 @@ class ProjectInfo:
                     self.manifest.addContributor(contributor)
 
     # Adds or replaces the project information in the manifest.
-    def addProject(self, project):
+    def addProject(self, bookTitle, bookId, path):
         if self.manifest:
-            self.manifest.addProject(project)
+            self.manifest.addProject(bookTitle, bookId, path)
 
     # Adds or updates the specified word in ProjectInfo.
     def addWord(self, word, count):

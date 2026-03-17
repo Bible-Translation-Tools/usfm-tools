@@ -14,6 +14,7 @@ import codecs
 import operator
 from yaml.scanner import ScannerError
 from yaml.parser import ParserError
+from usfm_verses import verseCounts
 
 class ManifestYaml:
     def __init__(self):
@@ -188,9 +189,24 @@ class ManifestYaml:
             self.contents['dublin_core']['contributor'].append(candidate)
 
     # Appends or replaces the specified project
-    def addProject(self, project):
+    def addProject(self, bookTitle, bookId, path):
+        project = { "title": bookTitle, "identifier": bookId.lower(), "path": path}
+        if bookId.upper() in verseCounts:
+            category = 'bible-nt'
+            sort = verseCounts[bookId.upper()]['sort']
+            if sort < 40:
+                category = 'bible-ot'
+            elif sort > 66:
+                category = "periph"
+            project["sort"] = sort
+            project["categories"] = [category]
+        else:
+            project["sort"] = 0
+            project["categories"] = ["periph"]
+        project["versification"] = "ufw"
+
         for i,proj in enumerate(self.contents['projects']):
-            if proj['identifier'] == project['identifier']:
+            if proj['identifier'] == bookId.lower():
                 self.contents['projects'].pop(i)
         self.contents['projects'].append(project)
 

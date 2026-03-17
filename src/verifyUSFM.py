@@ -1484,16 +1484,7 @@ def peripheral(fname):
 # Resets state for next file.
 def close_book(filename):
     if state.ID:
-        category = 'bible-nt'
-        sort = usfm_verses.verseCounts[state.ID]['sort']
-        if sort < 40:
-            category = 'bible-ot'
-        elif sort > 66:
-            category = "periph"
-        project = { "title": bookTitle(), "identifier": state.ID.lower(), "sort": sort,
-                    "path": "./" + filename, "categories": [ category ],
-                    'versification': 'ufw' }
-        manifestyaml.addProject(project)
+        manifestyaml.addProject(bookTitle(), state.ID,  "./" + filename)
     state.addID("")
     sys.stderr.flush()
 

@@ -702,18 +702,9 @@ def getBookTitle(folder, bookId):
 # Ultimately adds to manifest.yaml.
 def appendToProjects(bookId, bookTitle):
     global projectInfo
-    bookId = bookId.upper()
-    category = 'bible-nt'
-    if usfm_verses.verseCounts[bookId]['sort'] < 40:
-        category = 'bible-ot'
-    elif usfm_verses.verseCounts[bookId]['sort'] > 66:
-        category = "periph"
-    project = { "title": bookTitle, "identifier": bookId.lower(), "sort": usfm_verses.verseCounts[bookId]["sort"], \
-                "path": "./" + makeUsfmFilename(bookId), "categories": [ category ],
-                 'versification': 'ufw' }
     assert projectInfo
     projectInfo.useManifest(docreate=True)  # Needed if this is the first project to be added
-    projectInfo.addProject(project)
+    projectInfo.addProject(bookTitle, bookId, "./" + makeUsfmFilename(bookId))
 
 def shortname(longpath):
     source_dir = ToolsConfigManager().get('Txt2USFM', 'source_dir')
@@ -757,7 +748,7 @@ def convertFolder(folder):
 
 # Returns file name for usfm file in current folder
 def makeUsfmFilename(bookId):
-    num = usfm_verses.verseCounts[bookId]['usfm_number']
+    num = usfm_verses.verseCounts[bookId.upper()]['usfm_number']
     filename = num + '-' + bookId + '.usfm'
     return filename
 

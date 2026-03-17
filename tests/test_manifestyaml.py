@@ -45,10 +45,7 @@ def init_newfile():
     my.setLanguageName(language_name)
     my.setLanguageDirection('rtl')
     my.save()
-    project = { "title": "1 Corinthians", "identifier": "1co", "sort": 46, \
-            "path": "./47-1CO.usfm", "categories": [ 'bible-nt' ],
-                'versification': 'ufw' }
-    my.addProject(project)  # added but not saved
+    my.addProject("1 Corinthians", "1co", "./47-1CO.usfm")  # added but not saved
     my.load(dir)
     projects = my.getProjects()
     assert len(projects) == 1
@@ -175,9 +172,9 @@ def addProjects():
             'sort': 40, 'path': './41-MAT.usfm', 'categories': [ 'bible-nt' ] }
     proj2 = {'title': 'Mark', 'versification': 'ufw', 'identifier': 'mrk',
             'sort': 41, 'path': './42-MRK.usfm', 'categories': [ 'bible-nt' ] }
-    my.addProject(proj66)
-    my.addProject(proj1)
-    my.addProject(proj2)
+    my.addProject('Revelation', 'rev', './67-REV.usfm')
+    my.addProject('Matthew', 'Mat', './41-MAT.usfm')
+    my.addProject('Mark', 'MRK', './42-MRK.usfm')
     my.save()
     my2 = ManifestYaml()
     my2.load(dir)
@@ -188,7 +185,7 @@ def addProjects():
     proj2a = {'title': 'Markus', 'versification': 'ufw', 'identifier': 'mrk',
             'sort': 41, 'path': './42-MRK.usfm', 'categories': [ 'bible-nt' ] }
     assert my2.contents['projects'][1] != proj2a
-    my2.addProject(proj2a)
+    my2.addProject('Markus', 'mrk', './42-MRK.usfm')
     assert len(my2.contents['projects']) == 3
     my2.save()
     my.load(dir)
