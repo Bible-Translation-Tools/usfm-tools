@@ -1,5 +1,21 @@
 # Usfm Wizard Version history
 
+## 1.4.5 - 3/24/26
+* txt2Usfm - section title recognition improved.
+* txt2Usfm - generate Scripture Burrito metadata.
+* usfm_cleanup - utilize source text for better cleanup results.
+* usfm_cleanup - section title recognition improved; redesigned based largely on source text.
+* usfm_cleanup - remove periods at end of section titles.
+* usfm_cleanup - cache chapter title for automatic recall
+* better support for caseless scripts and mixed case words.
+* verifyUsfm - detect mismatched parens and brackets within verses.
+* verifyUsfm - don't report single word in parens or brackets as a possible footnote.
+* verifyUsfm - cache chapter title for automatic recall
+* mark_paragraphs - added "mark every verse" option and functionality.
+* paratext2usfm - support copy/rename for not just paratext files.
+* paratext2usfm - generate Scripture Burrito metadata.
+* bug fixes and other minor improvements
+
 ## 1.4.4 - 11/5/25
 * Updated the online user manual.
 * txt2Usfm - supply correct \c when missing from text files.
@@ -15,13 +31,14 @@
 * verifyUsfm - eliminate redundant "back to back marker" warnings.
 * verifyusfm - refine wordlist and mixed case words identification.
 * verifyUsfm - use source text to compare verse counts per chapter.
-* verifyUsfm - don't require capitalization for Gurmukhi script (affects section title recognition only, at this point)
+* verifyUsfm - don't require capitalization for Gurmukhi script.
 * verifyUsfm - support verse bridges when checking for very short translations.
 * usfm_cleanup - eliminate space before \f.
 * mark_paragraphs - new option: translate chunk markers to \p.
 * mark_paragraphs - generate separate issues file, including missing end-of-paragraph punctuation.
 * plaintext2usfm - handle more types of invalid inputs.
 * all tools - observe Arabic full stop character.
+* all tools - rename config.ini parameters for clarity and maintainability.
 * other minor enhancements and bug fixes.
 
 ## 1.4.3 - 8/11/25

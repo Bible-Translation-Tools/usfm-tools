@@ -35,7 +35,7 @@ from usx2usfm import main
 from verifyManifest import main
 from word2text import main
 
-app_version = "1.4.4"
+app_version = "1.4.5"
 
 class UsfmWizard(tkinter.Tk):
     def __init__(self):
@@ -239,7 +239,7 @@ class Buttons_Frame(tkinter.Frame):
             self.button[psn] = ttk.Button(self, text=text, command=cmd)
             self.button[psn].grid(row=1, column=psn, sticky=stky, padx=padx, pady=10, ipady=ipady)
             if tip:
-                buttonTip = Hovertip(self.button[psn], hover_delay=500, text=tip)
+                Hovertip(self.button[psn], hover_delay=500, text=tip)
 
     def hide(self, psn):
         try:
