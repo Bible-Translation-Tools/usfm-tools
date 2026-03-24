@@ -2,6 +2,7 @@
 # Current as of 3/11/26.
 # To load schema from disk instead, use validate.py in https://github.com/Bible-Translation-Tools/scripture-burrito/
 
+import os
 import json
 from jsonschema import ValidationError, Draft7Validator
 import referencing.exceptions
@@ -2430,7 +2431,7 @@ def validate_burrito(burrito_json):
     Validates a Scripture Burrito JSON against the official schema.
 
     Args:
-        burrito_json: Dictionary or JSON string to validate
+        burrito_json: Dictionary, or JSON string to validate, or path to a .json file
 
     Returns:
         Tuple of (is_valid: bool, message: str)
@@ -2438,7 +2439,7 @@ def validate_burrito(burrito_json):
     try:
         # Parse if string
         if isinstance(burrito_json, str):
-            if burrito_json.endswith('.json'):
+            if burrito_json.endswith('.json') and os.path.isfile(burrito_json):
                 with open(burrito_json, 'r') as f:
                     data = json.load(f)
             else:
@@ -2512,7 +2513,7 @@ def validate_burrito(burrito_json):
 
 if __name__ == "__main__":
     # Example usage
-    sample_burrito = r"C:\DCS\Dusun Pepas\merged-duw-x-dusunpepas\metadata.json"
+    sample_burrito = r"C:\DCS\usfm-tools\misc\metadata.json"
 
     is_valid, message = validate_burrito(sample_burrito)
     print(f"Valid: {is_valid}")
