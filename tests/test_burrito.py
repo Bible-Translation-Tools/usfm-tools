@@ -26,19 +26,154 @@ def test_validate():
     burrito = Burrito(testdir)
     assert burrito.load()
 
-def test_init_newfile():
+# Create a minimal, WA-specific Burrito.
+def test_init_burrito():
     backup()
     burrito = Burrito(testdir)
     burrito.create()
     assert burrito.contents != {}
-    assert burrito.save()   # proves that the contents are valid
+    burrito.addProject("COL", os.path.join(testdir, "52-COL.usfm"))
+    is_valid, msg = burrito.save()
+    if not is_valid:
+        print(msg)
+    assert is_valid
 
 def test_rewrite():
     backup()
     burrito = Burrito(testdir)
     assert burrito.load()
     content1 = burrito.contents
-    burrito.save()
+    is_valid, msg = burrito.save()
+    assert is_valid
     assert burrito.load()
     content2 = burrito.contents
     assert content1 == content2
+
+def test_change_generator():
+    backup()
+    burrito = Burrito(testdir)
+    assert burrito.load()
+    origname = burrito.contents['meta']['generator']['softwareName'] if 'generator' in burrito.contents['meta'] else None
+    origversion = burrito.contents['meta']['generator']['softwareVersion'] if 'generator' in burrito.contents['meta'] else None
+    name = "Another Generator"
+    version = "2.0"
+    burrito.setGenerator(name, version)
+    assert 'generator' in burrito.contents['meta']
+    assert burrito.contents['meta']['generator']['softwareName'] == name
+    assert burrito.contents['meta']['generator']['softwareVersion'] == version
+    is_valid, msg = burrito.save()
+    assert is_valid
+    if origname and origversion and (origname != name or origversion != version):
+        burrito.setGenerator(origname, origversion)
+        assert burrito.contents['meta']['generator']['softwareName'] == origname
+        assert burrito.contents['meta']['generator']['softwareVersion'] == origversion
+        is_valid, msg = burrito.save()
+        assert is_valid
+    else:
+        name = "Test Generator"
+        version = "1.0"
+        burrito.setGenerator("Test Generator", "1.0")
+        assert burrito.contents['meta']['generator']['softwareName'] == name
+        assert burrito.contents['meta']['generator']['softwareVersion'] == version
+        is_valid, msg = burrito.save()
+        assert is_valid
+
+def test_change_identification():
+    backup()
+    burrito = Burrito(testdir)
+    assert burrito.load()
+    repo = "https://content.bibletranslationtools.org/Tech_Advance/auh_reg"
+    burrito.setIdentification(repo)
+    assert 'wacs' in burrito.contents['identification']['primary']
+    assert repo in burrito.contents['identification']['primary']['wacs']
+    assert burrito.contents['identification']['primary']['wacs'][repo]['revision'] == "latest"
+    assert 'timestamp' in burrito.contents['identification']['primary']['wacs'][repo]
+    is_valid, msg = burrito.save()
+    if not is_valid:
+        print(msg)
+    assert is_valid
+
+def test_set_language():
+    backup()
+    burrito = Burrito(testdir)
+    assert burrito.load()
+    tag = "fr"
+    locale = "en"
+    name = "French"
+    direction = "ltr"
+    burrito.setLanguage(tag, locale, name, direction)
+    found = 0
+    for language in burrito.contents["languages"]:
+        if language["tag"] == tag:
+            assert language['name'][locale] == name
+            assert language['scriptDirection'] == direction
+            found += 1
+    assert found == 1
+    is_valid, msg = burrito.save()
+    assert is_valid
+
+def test_add_names():
+    backup()
+    burrito = Burrito(testdir)
+    assert burrito.load()
+    obj = "REV"
+    locale = "en"
+    shortname = "Revelation"
+    longname = "Book of Revelation"
+    abbr = "REV"
+    burrito.addName(obj, locale, shortname, longname, abbr=abbr)
+    assert 'localizedNames' in burrito.contents
+    assert obj in burrito.contents['localizedNames']
+    assert burrito.contents['localizedNames'][obj]['short'][locale] == shortname
+    assert burrito.contents['localizedNames'][obj]['long'][locale] == longname
+    assert burrito.contents['localizedNames'][obj]['abbr'][locale] == abbr
+
+    obj = "COL"
+    locale = "en"
+    shortname = "Colossians"
+    longname = "Book of Colossians"
+    abbr = "COL"
+    burrito.addName(obj, locale, shortname, longname, abbr=abbr)
+    assert obj in burrito.contents['localizedNames']
+    assert len(burrito.contents['localizedNames']) >= 2
+    assert burrito.contents['localizedNames'][obj]['short'][locale] == shortname
+    assert burrito.contents['localizedNames'][obj]['long'][locale] == longname
+    assert burrito.contents['localizedNames'][obj]['abbr'][locale] == abbr
+
+    is_valid, msg = burrito.save()
+    if not is_valid:
+        print(msg)
+    assert is_valid
+
+def test_add_projects():
+    backup()
+    burrito = Burrito(testdir)
+    assert burrito.load()
+    bookId = "COL"
+    filename = "52-COL.usfm"
+    path = os.path.join(testdir, filename)
+    # if not "ingredients" in burrito.contents or not filename in burrito.contents['ingredients'] if 'ingredients' in burrito.contents else []:
+    burrito.addProject(bookId, path)
+    assert 'ingredients' in burrito.contents
+    assert filename in burrito.contents['ingredients']
+    assert burrito.contents['ingredients'][filename]['scope'] == {bookId: []}
+
+    bookId = "PHP"
+    filename = "51-PHP.usfm"
+    path = os.path.join(testdir, filename)
+    burrito.addProject(bookId, path)
+    assert filename in burrito.contents['ingredients']
+    assert burrito.contents['ingredients'][filename]['scope'] == {bookId: []}
+
+    bookId = "MAT"
+    filename = "41-MAT.usfm"
+    path = os.path.join(testdir, filename)
+    burrito.addProject(bookId, path)
+    assert filename in burrito.contents['ingredients']
+    assert burrito.contents['ingredients'][filename]['scope'] == {bookId: []}
+    assert len(burrito.contents['ingredients']) >= 3
+
+    is_valid, msg = burrito.save()
+    if not is_valid:
+        print(msg)
+    assert is_valid

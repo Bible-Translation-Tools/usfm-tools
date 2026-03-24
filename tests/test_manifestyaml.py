@@ -172,9 +172,9 @@ def addProjects():
             'sort': 40, 'path': './41-MAT.usfm', 'categories': [ 'bible-nt' ] }
     proj2 = {'title': 'Mark', 'versification': 'ufw', 'identifier': 'mrk',
             'sort': 41, 'path': './42-MRK.usfm', 'categories': [ 'bible-nt' ] }
-    my.addProject('Revelation', 'rev', './67-REV.usfm')
-    my.addProject('Matthew', 'Mat', './41-MAT.usfm')
-    my.addProject('Mark', 'MRK', './42-MRK.usfm')
+    my.addProject('Revelation', 'rev', os.path.join(dir, '67-REV.usfm'))
+    my.addProject('Matthew', 'Mat', os.path.join(dir, '41-MAT.usfm'))
+    my.addProject('Mark', 'MRK', os.path.join(dir, '42-MRK.usfm'))
     my.save()
     my2 = ManifestYaml()
     my2.load(dir)
@@ -185,7 +185,7 @@ def addProjects():
     proj2a = {'title': 'Markus', 'versification': 'ufw', 'identifier': 'mrk',
             'sort': 41, 'path': './42-MRK.usfm', 'categories': [ 'bible-nt' ] }
     assert my2.contents['projects'][1] != proj2a
-    my2.addProject('Markus', 'mrk', './42-MRK.usfm')
+    my2.addProject('Markus', 'mrk', os.path.join(dir, '42-MRK.usfm'))
     assert len(my2.contents['projects']) == 3
     my2.save()
     my.load(dir)

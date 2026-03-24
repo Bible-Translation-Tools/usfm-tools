@@ -1484,7 +1484,8 @@ def peripheral(fname):
 # Resets state for next file.
 def close_book(filename):
     if state.ID:
-        manifestyaml.addProject(bookTitle(), state.ID,  "./" + filename)
+        usfmPath = os.path.join(getWorkDir(), filename)
+        manifestyaml.addProject(bookTitle(), state.ID,  usfmPath)
     state.addID("")
     sys.stderr.flush()
 

@@ -6,6 +6,21 @@ import io
 import json
 import scripture_burrito_validator
 
+def strNow():
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat()
+
+def size_and_checksum(path):
+    import hashlib
+    size = 0
+    hash_md5 = hashlib.md5()
+    with open(path, 'rb') as f:  # Open in binary read mode
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+            size += len(chunk)
+    md5_hash = hash_md5.hexdigest()
+    return size, md5_hash
+
 class Burrito:
     def __init__(self, resource_dir):
         self.resource_dir = resource_dir
@@ -33,9 +48,11 @@ class Burrito:
             msg = f"File not found: {path}"
         return is_valid, msg
 
-    # Creates a minimal Scripture Burrito in memory.
+    # Creates the skeleton of a WA-specific Scripture Burrito in memory.
+    # It is not a valid Burrito until an ingredient is added.
     def create(self):
-        self.contents = {"format":"scripture burrito","meta":{"version":"1.0.0","category":"source","defaultLocale":"en","dateCreated":"2026-03-13"},"idAuthorities":{"wycliffeassociates":{"id":"https://www.wycliffeassociates.org","name":{"en":"Wycliffe Associates"}}},"identification":{"primary":{"wycliffeassociates":{"-":{"revision":"0.1","timestamp":"2026-03-13"}}},"name":{"en":"Bible"}},"confidential":False,"languages":[{"tag":"xx","name":{"en":"Placeholder"},"scriptDirection":"ltr"}],"type":{"flavorType":{"name":"scripture","flavor":{"name":"textTranslation","projectType":"standard","translationType":"firstTranslation","audience":"common","usfmVersion":"3.0"},"currentScope":{"REV":[]}}},"copyright":{"licenses":[{"ingredient":"LICENSE.md"}]},"ingredients":{"67-REV.usfm":{"mimeType":"text/x-usfm","size":0}}}
+        # self.contents = {"format":"scripture burrito","meta":{"version":"1.0.0","category":"source","defaultLocale":"en","dateCreated":strNow()},"idAuthorities":{"wycliffeassociates":{"id":"https://www.wycliffeassociates.org","name":{"en":"Wycliffe Associates"}}},"identification":{"primary":{"wacs":{"Tech_Advance:":{"revision":"latest","timestamp":strNow()}}},"name":{"en":"Bible"}},"confidential":False,"languages":[{"tag":"xx","name":{"en":"Placeholder"},"scriptDirection":"ltr"}],"type":{"flavorType":{"name":"scripture","flavor":{"name":"textTranslation","projectType":"standard","translationType":"newTranslation","audience":"common","usfmVersion":"3.0"}}},"copyright":{"licenses":[{"ingredient":"LICENSE.md"}]}}
+        self.contents = {"format":"scripture burrito","meta":{"version":"1.0.0","category":"source","defaultLocale":"en","dateCreated":strNow()},"idAuthorities":{"wycliffeassociates":{"id":"https://www.wycliffeassociates.org","name":{"en":"Wycliffe Associates"}}},"identification":{"primary":{"wacs":{"Tech_Advance:":{"revision":"latest","timestamp":strNow()}}},"name":{"en":"Bible"}},"confidential":False,"type":{"flavorType":{"name":"scripture","flavor":{"name":"textTranslation","projectType":"standard","translationType":"newTranslation","audience":"common","usfmVersion":"3.0"}}},"copyright":{"licenses":[{"ingredient":"LICENSE.md"}]}}
 
     # Saves the current contents to metadata.json. Overwrites file if it exists.
     # Returns Tuple of (is_valid: bool, message: str)
@@ -49,3 +66,50 @@ class Burrito:
                 with io.open(path, 'w', newline='\n') as json_file:
                     json.dump(self.contents, json_file, indent=2)
         return (is_valid, msg)
+
+    def setGenerator(self, name, version):
+        if name and version:
+            self.contents['meta']['generator'] = {"softwareName": name, "softwareVersion": version}
+
+    def setIdentification(self, repo, rev="latest"):
+        if repo:
+            primaryrepo = {repo: {"revision": rev, "timestamp": strNow()}}
+            self.contents['identification']['primary']['wacs'] = primaryrepo
+
+    # Per WA rules, there should only be one language, but this allows for adding more if needed.
+    def setLanguage(self, tag, locale, name, direction):
+        section = "languages"
+        if not section in self.contents:
+            self.contents[section] = []
+        for language in self.contents["languages"]:
+            if language["tag"] == tag:
+                language["name"][locale] = name
+                language["scriptDirection"] = direction
+                return
+        self.contents["languages"].append({"tag": tag, "name": {locale: name}, "scriptDirection": direction})
+
+    def addName(self, bookId, locale, shortname, longname="", abbr=""):
+        section = "localizedNames"
+        if not section in self.contents:
+            self.contents[section] = {}
+        localized_names = self.contents[section]
+        localized_names[bookId] = {"short": {locale: shortname}}
+        if longname:
+            localized_names[bookId]["long"] = {locale: longname}
+        if abbr:
+            localized_names[bookId]["abbr"] = {locale: abbr}
+
+    def addProject(self, bookId, path):
+        section = "ingredients"
+        if section not in self.contents:  # create() doesn't create this section
+            self.contents[section] = {}
+        filename = os.path.basename(path)
+        size, checksum = size_and_checksum(path)
+        md5 = {"md5": checksum}
+        bookId = bookId.upper()
+        self.contents[section][filename] = {"checksum": md5, "mimeType": "text/x-usfm", "size": size, "scope":{bookId: []}}
+
+        section = "currentScope"
+        if section not in self.contents['type']['flavorType']:
+            self.contents['type']['flavorType'][section] = {}
+        self.contents['type']['flavorType'][section][bookId] = []

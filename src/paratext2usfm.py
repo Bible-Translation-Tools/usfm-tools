@@ -90,7 +90,8 @@ def get_bookId(path:Path):
 # Ultimately adds to manifest.yaml.
 def appendToProjects(bookId, bookTitle):
     global projectInfo
-    projectInfo.addProject(bookTitle, bookId, "./" + makeUsfmFilename(bookId))
+    usfmPath = os.path.join(getWorkDir(), makeUsfmFilename(bookId))
+    projectInfo.addProject(bookTitle, bookId, usfmPath)
 
 def copyfile(path, newpath):
     content = None
@@ -171,6 +172,7 @@ def main(app = None):
     global projectInfo
     projectInfo = ProjectInfo(usfm_dir, config.get('Paratext2Usfm', 'language_code'))
     projectInfo.useManifest(docreate=True)
+    projectInfo.setGenerator("paratext2usfm", config.get('UsfmWizard', 'version'))
 
     if filename:
         count = convertFile(Path(ptx_dir, filename), usfm_dir)

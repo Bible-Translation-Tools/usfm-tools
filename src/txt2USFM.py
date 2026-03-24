@@ -704,7 +704,8 @@ def appendToProjects(bookId, bookTitle):
     global projectInfo
     assert projectInfo
     projectInfo.useManifest(docreate=True)  # Needed if this is the first project to be added
-    projectInfo.addProject(bookTitle, bookId, "./" + makeUsfmFilename(bookId))
+    usfmPath = os.path.join(getWorkDir(), makeUsfmFilename(bookId))
+    projectInfo.addProject(bookTitle, bookId, usfmPath)
 
 def shortname(longpath):
     source_dir = ToolsConfigManager().get('Txt2USFM', 'source_dir')
@@ -875,14 +876,18 @@ def main(app = None):
     projectInfo = ProjectInfo(work_dir, config.get('Txt2USFM', 'language_code'))
     projectInfo.useManifest(docreate=False)
     projectInfo.resetSources()
+    projectInfo.setGenerator("txt2USFM", config.get('UsfmWizard', 'version'))
 
     if config.getboolean('Txt2USFM', 'diagnostics'):
         open_diagnostic_files()
 
     convert(config.get('Txt2USFM', 'source_dir'))
     if nConverted > 0:
-        projectInfo.save()
-        reportStatus("\nDone.")
+        is_valid, msg = projectInfo.save()
+        if not is_valid:
+            reportError(f"Error saving project info: {msg}")
+        else:
+            reportStatus("\nDone.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 

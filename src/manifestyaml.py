@@ -190,6 +190,8 @@ class ManifestYaml:
 
     # Appends or replaces the specified project
     def addProject(self, bookTitle, bookId, path):
+        if not path.startswith("./"):
+            path = "./" + os.path.basename(path)
         project = { "title": bookTitle, "identifier": bookId.lower(), "path": path}
         if bookId.upper() in verseCounts:
             category = 'bible-nt'

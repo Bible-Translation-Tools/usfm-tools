@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 # Manages project-specific information, including language-specific information.
 # Changes to the project info are held in memory until save() is called.
-# ProjectInfo is a composite class, using LanguageInfo and ManifestYaml.
+# ProjectInfo is a composite class, using LanguageInfo, ManifestYaml, and Burrito.
 # The SaidWords class is also implemented in this module, since it also uses LanguageInfo.
 
 from manifestyaml import ManifestYaml
 from languageinfo import LanguageInfo
+from scripture_burrito import Burrito
 
 import os
 
@@ -13,6 +14,10 @@ class ProjectInfo:
     def __init__(self, project_dir, language_code):
         self.project_dir = project_dir
         self.languageInfo = LanguageInfo(project_dir, language_code)
+        self.burrito = Burrito(project_dir)
+        is_valid, msgs = self.burrito.load()
+        if not is_valid:
+            self.burrito.create()
         self.manifest = None
 
     def __repr__(self):
@@ -75,19 +80,26 @@ class ProjectInfo:
     def knownSource(self, language_id, resource_id, version):
         return self.languageInfo.findSource(language_id, resource_id, version) is not None
 
-    # Saves the current information in the project json file.
+    # Saves the current information in the project json file and burrito metadata file.
     # Also saves the manifest info in the manifest.yaml, if it is in use.
     def save(self):
         self.languageInfo.save()
+        is_valid, msg = self.burrito.save()
         if self.manifest:
             # Utilize this opportunity to set version if missing
             if self.manifest.getVersion() == "":
                 if mainsource := self.getMainSource():
                     self.manifest.setVersion(mainsource['version'] + ".1")
             self.manifest.save()
+        return is_valid, msg
+
+    # Sets the generator information in the burrito metadata.
+    def setGenerator(self, name, version):
+        self.burrito.setGenerator(name, version)
 
     def setLanguage(self, name, direction=""):
         self.languageInfo.setLanguageName(name)
+        self.burrito.setLanguage(self.getLanguageCode(), locale='en', name=name, direction=direction)
         if my := self.manifest:
             my.setLanguageId(self.getLanguageCode())
             if name:
@@ -143,7 +155,9 @@ class ProjectInfo:
     # Adds or replaces the project information in the manifest.
     def addProject(self, bookTitle, bookId, path):
         if self.manifest:
-            self.manifest.addProject(bookTitle, bookId, path)
+            relpath = "./" + os.path.basename(path)
+            self.manifest.addProject(bookTitle, bookId, relpath)
+        self.burrito.addProject(bookId, path)
 
     # Adds or updates the specified word in ProjectInfo.
     def addWord(self, word, count):
