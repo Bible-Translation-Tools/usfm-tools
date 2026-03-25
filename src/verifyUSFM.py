@@ -1131,7 +1131,7 @@ numbersuffix_re = re.compile(r'\d+[^\s,;:."\-?!"\d\)\]]', re.UNICODE)
 unsegmented_re = re.compile(r'\d\d\d\d+')
 numberformat_re = re.compile(r'[\d]+[.,]?\s[.,]?[\d]+')    # space between digits
 leadingzero_re = re.compile(r'\s0[0-9,]*', re.UNICODE)
-number_re = re.compile(r'[^\d(](\d+)[^\d,]')       # possible verse number in text
+number_re = re.compile(r'[^\d(:\-](\d+)[^\d,:\-]')       # possible verse number in text
 numcombo_re = re.compile(r'(\d+)([:\-])(\d+)')
 
 def reportNumbers(t, footnote):
@@ -1142,7 +1142,7 @@ def reportNumbers(t, footnote):
             reportIssue("Verse number in text: " + state.getReference(), 59)
             verseflag = True
         elif v := number_re.search(t):
-            while v:
+            while v and not verseflag:
                 vn = int(v.group(1))
                 if vn == state.verse or vn == state.verse + 1 or state.isVerseInBridge(vn):
                     reportIssue(f"Possible verse number ({v.group(1)}) in text at {state.getReference()}", 59.1)
