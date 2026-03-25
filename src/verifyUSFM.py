@@ -1040,10 +1040,9 @@ def reportFootnotes(text):
     global footnotedVerses
     reference = state.reference
     if trigger := findFootnote(text):
-        if trigger == ':':
-            if not validBracketedFootnote(text):
-                reportIssue(f"Probable chapter:verse reference at {reference} belongs in a footnote", 43)
-        if reference in footnotedVerses:
+        if trigger == ':' and not validBracketedFootnote(text):
+            reportIssue(f"Probable chapter:verse reference at {reference} belongs in a footnote", 43)
+        elif reference in footnotedVerses:
             reportIssue(f"Bracket or parens in {reference} ({state.source_id} has a footnote there)", 43.1)
         elif usfm_verses.isOptional(reference):
             reportIssue(f"Bracket or parens in {reference} may indicate optional or alternative text", 43.2)
@@ -1133,7 +1132,7 @@ unsegmented_re = re.compile(r'\d\d\d\d+')
 numberformat_re = re.compile(r'[\d]+[.,]?\s[.,]?[\d]+')    # space between digits
 leadingzero_re = re.compile(r'\s0[0-9,]*', re.UNICODE)
 number_re = re.compile(r'[^\d(](\d+)[^\d,]')       # possible verse number in text
-chapverse_re = re.compile(r'(\d+)([:\-])(\d+)')
+numcombo_re = re.compile(r'(\d+)([:\-])(\d+)')
 
 def reportNumbers(t, footnote):
     verseflag = False
@@ -1150,12 +1149,14 @@ def reportNumbers(t, footnote):
                     verseflag = True
                 v = number_re.search(t, v.end()-1)
         if not verseflag:
-            chapverse = chapverse_re.search(t)
-            while chapverse:
-                if chapverse.group(2) == ":" or int(chapverse.group(3)) > int(chapverse.group(1)):
-                    reportIssue(f"Likely verse reference ({chapverse.group(0)}) in text at {state.getReference()}", 59.2)
+            numcombo = numcombo_re.search(t)
+            while numcombo and not verseflag:
+                if numcombo.group(2) == ':':
+                    verseflag = True    # because reportFootnotes() already flagged it
+                elif int(numcombo.group(3)) > int(numcombo.group(1)):
+                    reportIssue(f"Possible verse reference ({numcombo.group(0)}) in text at {state.getReference()}", 59.2)
                     verseflag = True
-                chapverse = chapverse_re.search(t, chapverse.end())
+                numcombo = numcombo_re.search(t, numcombo.end())
     if embed := numberembed_re.search(t):
         reportIssue(f"Embedded number in word: {embed.group(0)} at {state.getReference()}", 60)
     elif not verseflag:
