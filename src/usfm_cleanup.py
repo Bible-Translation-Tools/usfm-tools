@@ -591,8 +591,10 @@ def nextblock(path):
 
 # Rewrites the file line by line, making changes to individual lines
 # Returns True if any changes are made
-def convert_by_line(inputpath, path):
+def convert_by_line(path):
     state.initBook()
+    inputpath = path + ".tmp2"
+    shutil.copyfile(path, inputpath)
     output = usfmWriter.usfmWriter(path)
     changedfile = False
     changed3 = False
@@ -606,6 +608,7 @@ def convert_by_line(inputpath, path):
             changedfile = True
         output.writeStr(block)
     output.close()
+    os.remove(inputpath)
     return (changedfile)
 
 def takeFootnote(key, value, usfm):
@@ -725,7 +728,7 @@ def convertFile(path):
     changed1 = convert_wholefile(path)
     changed2 = changed4 = False
     if not corrupt_file:
-        changed2 = convert_by_line(tmppath, path)  # marks section titles, etc.
+        changed2 = convert_by_line(path)  # marks section titles, etc.
         if enable[7] and changed2:   # sections may have been added
             convert_wholefile(path)   # rerun
         changed4 = False
