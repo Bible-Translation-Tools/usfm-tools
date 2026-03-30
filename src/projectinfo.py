@@ -158,6 +158,7 @@ class ProjectInfo:
             relpath = "./" + os.path.basename(path)
             self.manifest.addProject(bookTitle, bookId, relpath)
         self.burrito.addProject(bookId, path)
+        self.burrito.addName(bookId, self.getLanguageCode(), bookTitle)
 
     # Adds or updates the specified word in ProjectInfo.
     def addWord(self, word, count):

@@ -92,6 +92,7 @@ class Burrito:
         section = "localizedNames"
         if not section in self.contents:
             self.contents[section] = {}
+        bookId = bookId.upper()
         localized_names = self.contents[section]
         localized_names[bookId] = {"short": {locale: shortname}}
         if longname:
