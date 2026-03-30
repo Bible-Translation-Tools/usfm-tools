@@ -82,7 +82,8 @@ def unicodeBlock(text):
         for char in text:
             if char not in " \n\\vcpq*-0123456789":
                 block_name = unicodedata.name(char, "Unknown").split()[0]
-                blocks[block_name] = blocks.get(block_name, 0) + 1
+                if block_name != "ZERO":    # ignore \u200c and \u200d, and possibly other zero-width punctuation characters
+                    blocks[block_name] = blocks.get(block_name, 0) + 1
         if blocks:
             primary_block = max(blocks, key=lambda key: blocks[key])
     return primary_block
