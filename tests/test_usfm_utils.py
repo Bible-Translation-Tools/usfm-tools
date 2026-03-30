@@ -73,6 +73,8 @@ def test_unicodeBlock(text, expectedblock):
         ("देकमिओ छावनछा", True),  # Rai
         ("দ্বিতীয় দিন ", True),     # Assamese
         ("ເປັນເມັດ", True),       # Lao
+        ("अमो‍‌‍‌‌‍‌न", True),     # Bhojpuri corrupted word with \i200c and d characters
+        ("रहलन", True),    # Bhojpuri
     ])
 def test_isCaseless(text, expected):
     result = usfm_utils.isCaseless(text)

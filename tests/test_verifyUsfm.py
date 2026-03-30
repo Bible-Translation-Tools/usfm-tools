@@ -68,6 +68,8 @@ def test_nChapters(str, result):
         ("देकमिओ छावनछा", False),  # Rai
         ("দ্বিতীয় দিন ", False),     # Assamese
         ("ເປັນເມັດ", False),      # Lao
+        ("अमो‍‌‍‌‌‍‌न", False),     # Bhojpuri corrupted word with \i200c and d characters
+        ("रहलन", False),    # Bhojpuri
     ])
 def test_isMixed(word, expected):
     assert verifyUSFM.isMixed(word) == expected
