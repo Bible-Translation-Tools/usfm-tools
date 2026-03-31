@@ -14,7 +14,9 @@ To get the graphical interface, you can run `usfm_wizard.py` in the `src/` direc
 
 You should be able to install the libraries with:
 > pip install python-docx
+
 > pip install pyyaml
+
 and so on.
 
 ### Virtual Environments
