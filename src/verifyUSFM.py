@@ -1193,9 +1193,15 @@ def takeText(t, footnote=False):
         if ("<" in t) ^ (">" in t) and not ">>>" in t:
             reportIssue("Unmatched angle bracket at " + state.getReference(), 56)
         if t.count("[") != t.count("]"):
-            reportIssue("Mismatched square brackets at " + state.getReference(), 56.1)
+            if t.count("[") + t.count("]") == 1:
+                reportIssue("Unmatched square bracket at " + state.getReference(), 56.1)
+            else:
+                reportIssue("Mismatched square brackets at " + state.getReference(), 56.2)
         if t.count("(") != t.count(")"):
-            reportIssue("Mismatched parentheses at " + state.getReference(), 56.2)
+            if t.count("(") + t.count(")") == 1:
+                reportIssue("Unmatched parenthesis at " + state.getReference(), 56.3)
+            else:
+                reportIssue("Mismatched parentheses at " + state.getReference(), 56.4)
     if "Conflict Parsing Error" in t:
         reportIssue("BTT Writer artifact in " + state.getReference(), 57)
     if not suppress[3] and not state.aligned_usfm:    # report punctuation issues
