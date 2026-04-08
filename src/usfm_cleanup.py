@@ -637,7 +637,9 @@ def fix_chapter_label(label, schapter):
     if lab:
         part1 = std_title + " " if len(lab.group(1)) > 0 else ""
         part2 = schapter if lab.group(2).isascii() else lab.group(2)
-        if len(lab.group(3)) > 0 and len(lab.group(1)) > 0:
+        if lab.group(3) == '.':
+            part3 = ""
+        elif len(lab.group(3)) > 0 and len(lab.group(1)) > 0:
             part3 = lab.group(3)
         else:
             part3 = " " + std_title if len(lab.group(3)) > 0 else ""
