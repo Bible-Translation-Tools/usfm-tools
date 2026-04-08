@@ -883,33 +883,23 @@ id_authorities = Resource.from_contents({
     "$$target": "id_authorities.schema.json",
     "title": "idAuthorities",
     "type": "object",
-    "description": "Declares the single identity authority used by this burrito. Online burritos use WACS; offline burritos use the app that created them.",
-    "propertyNames": {
-        "$ref": "common.schema.json#/definitions/idAuthorityLabel"
-    },
-        "additionalProperties": {
+    "description": "Declares one or more identity authorities which may later be referred to using identifier prefixes.",
+    "additionalProperties": {
         "type": "object",
         "properties": {
             "id": {
-                "oneOf": [
-                    {
-                        "$ref": "common.schema.json#/definitions/url"
-                    },
-                    {
-                        "type": "string",
-                        "pattern": "^(?!.*://)\\S+$"
-                    }
-                ],
-                "description": "The authority URL when content is online, or an offline app slug when content is created locally."            },
+                "$ref": "common.schema.json#/definitions/url"
+            },
             "name": {
                 "$ref": "common.schema.json#/definitions/localizedText"
             }
         },
-        "required": ["id", "name"],
-        "additionalProperties": False
+        "propertyNames": {
+            "$ref": "common.schema.json#/definitions/idAuthorityLabel"
+        },
+        "minProperties": 1
     },
-    "minProperties": 1,
-    "maxProperties": 1
+    "minProperties": 1
 })
 identification = Resource.from_contents({
     "$schema": "http://json-schema.org/draft-07/schema",
@@ -921,40 +911,7 @@ identification = Resource.from_contents({
     "definitions": {
         "revisionString": {
             "type": "string",
-            "const": "latest"
-        },
-        "repositoryPath": {
-            "type": "string",
-            "pattern": "^[^\\s/]+/[^\\s/]+$"
-        },
-        "repositoryRevision": {
-            "type": "object",
-            "properties": {
-                "revision": {
-                    "$ref": "#/definitions/revisionString"
-                }
-            },
-            "required": ["revision"],
-            "additionalProperties": False
-        },
-        "authorityRepositories": {
-            "type": "object",
-            "minProperties": 1,
-            "maxProperties": 1,
-            "propertyNames": {
-                "$ref": "common.schema.json#/definitions/idAuthorityLabel"
-            },
-            "additionalProperties": {
-                "type": "object",
-                "minProperties": 1,
-                "maxProperties": 1,
-                "propertyNames": {
-                    "$ref": "#/definitions/repositoryPath"
-                },
-                "additionalProperties": {
-                    "$ref": "#/definitions/repositoryRevision"
-                }
-            }
+            "pattern": "^[0-9A-Za-z]([0-9A-Za-z_.:\\-]{0,62}[0-9A-Za-z])?$"
         }
     },
     "properties": {
@@ -968,15 +925,46 @@ identification = Resource.from_contents({
             "$ref": "common.schema.json#/definitions/localizedText"
         },
         "primary": {
-            "$ref": "#/definitions/authorityRepositories",
+            "type": "object",
+            "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "object",
+                    "revision": {
+                        "$ref": "common.schema.json#/definitions/revisionString"
+                    },
+                    "timestamp": {
+                        "$ref": "common.schema.json#/definitions/timestamp"
+                    },
+                    "required": ["revision", "timestamp"]
+                }
+            },
+            "minProperties": 1,
+            "maxProperties": 1,
             "description": "Contains the primary authority and identification information."
         },
         "upstream": {
-            "$ref": "#/definitions/authorityRepositories",
+            "type": "object",
+            "additionalProperties": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "revision": {
+                            "$ref": "common.schema.json#/definitions/revisionString"
+                        },
+                        "timestamp": {
+                            "$ref": "common.schema.json#/definitions/timestamp"
+                        },
+                        "required": ["revision", "timestamp"]
+                    }
+                }
+            },
             "description": "Contains the upstream authority and identification information."
         }
     },
-    "required": ["name", "abbreviation", "primary"],
+    "required": ["name", "primary"],
     "additionalProperties": False
 })
 ingredients = Resource.from_contents({
@@ -1056,20 +1044,7 @@ language = Resource.from_contents({
             "examples": ["hi", "es-419"]
         },
         "name": {
-           "allOf": [
-                {
-                    "$ref": "common.schema.json#/definitions/localizedText"
-                },
-                {
-                    "type": "object",
-                    "required": ["en"],
-                    "properties": {
-                        "en": {
-                            "$ref": "common.schema.json#/definitions/trimmedText"
-                        }
-                    }
-                }
-            ]
+            "$ref": "common.schema.json#/definitions/localizedText"
         },
         "numberingSystem": {
             "$ref": "numbering_system.schema.json"
@@ -1082,7 +1057,7 @@ language = Resource.from_contents({
             "enum": ["ltr", "rtl"]
         }
     },
-    "required": ["tag", "name", "scriptDirection"],
+    "required": ["tag", "name"],
     "additionalProperties": False
 })
 languages = Resource.from_contents({
@@ -1095,8 +1070,7 @@ languages = Resource.from_contents({
         "$ref": "language.schema.json"
     },
     "minItems": 1,
-    "maxItems": 1,
-    "description": "A list of all the languages of the contents of this burrito. Wycliffe Associates burritos allow exactly one language entry."
+    "description": "A list of all the languages of the contents of this burrito."
 })
 localized_name = Resource.from_contents({
     "$schema": "http://json-schema.org/draft-07/schema",
@@ -1828,16 +1802,23 @@ text_translation = Resource.from_contents({
         "projectType": {
             "type": "string",
             "enum": [
-                "standard"
+                "standard",
+                "daughter",
+                "studyBible",
+                "studyBibleAdditions",
+                "backTranslation",
+                "auxiliary",
+                "transliterationManual",
+                "transliterationWithEncoder"
             ]
         },
         "translationType": {
             "type": "string",
-            "enum": ["newTranslation"]
+            "enum": ["firstTranslation", "newTranslation", "revision", "studyOrHelpMaterial"]
         },
         "audience": {
             "type": "string",
-            "enum": ["common"]
+            "enum": ["basic", "common", "common-literary", "literary", "liturgical", "children"]
         },
         "usfmVersion": {
             "type": "string",
@@ -2446,7 +2427,7 @@ x_flavor = Resource.from_contents({
     "additionalProperties": True
 })
 
-# Validates a Scripture Burrito JSON against the schema.
+# Validates a Scripture Burrito JSON against the official schema.
 # burrito_json may be a Dictionary, or JSON string to validate, or path to a .json file.
 # Returns Tuple of (is_valid: bool, message: str)
 def validate(burrito_json):
