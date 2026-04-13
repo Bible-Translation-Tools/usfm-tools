@@ -87,7 +87,10 @@ class ManifestYaml:
     # Does nothing if contents is not initialized.
     def save(self):
         if self.path and self.contents:
-            self.contents['projects'].sort(key=operator.itemgetter('sort'))
+            try:
+                self.contents['projects'].sort(key=operator.itemgetter('sort'))
+            except Exception as e:
+                pass
             self.contents['dublin_core']['contributor'].sort()
             with io.open(self.path, "tw", encoding='utf-8', newline='\n') as file:
                 yaml.safe_dump(self.contents, stream=file, allow_unicode=True, sort_keys=False)

@@ -366,13 +366,13 @@ def nChapters(id):
 
 # Returns the number of verses that the specified chapter contains in the NIV.
 def nVerses_niv(id, chap):
-    chaps = usfm_verses.verseCounts[id]['verses']
+    chaps = usfm_verses.verseCounts[id]['verses'] if id in usfm_verses.verseCounts else []
     n = 0 if chap > len(chaps) else chaps[chap-1]
     return n
 
 # Returns the English title for the specified book
 def bookTitleEnglish(id):
-    return usfm_verses.verseCounts[id]['en_name']
+    return usfm_verses.verseCounts[id]['en_name'] if id in usfm_verses.verseCounts else ""
 
 def shortname(longpath):
     workdir = Path(getWorkDir())

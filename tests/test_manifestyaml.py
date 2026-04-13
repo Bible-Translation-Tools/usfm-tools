@@ -22,6 +22,17 @@ def test_nonexistent_manifest():
     assert not my.contents
     assert my.getLanguageId() == ""
 
+def test_invalid_manifest():
+    dir = r'C:\DCS\Test'
+    my = ManifestYaml()
+    try:
+        errors = my.load(dir, "invalid_manifest.yaml")
+    except Exception as e:
+        print(str(e))
+        assert False    # exceptions should be caught in load() and returned as error strings
+    assert errors
+    print(errors)
+
 def test_all():
     init_newfile()
     addContributors()
