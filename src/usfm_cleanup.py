@@ -367,7 +367,7 @@ def find_matching_closequote(line: str, pos: int, all, double):
             if opens == 0:
                 closepos = i
                 break
-    elif quotes.is_straight(quote, all):
+    elif quotes.is_straight(quote, all) and line[pos+1:].count(quote) % 2 == 1:
         closepos = line.find(quote, pos+1)
         for i in range(pos, closepos-1): # exclude straight pairs which have a directional quote between them
             if line[i] in '«“‘»”’':
@@ -392,10 +392,10 @@ def find_matching_openquote(line: str, pos: int, singles):
             if closes == 0:
                 openpos = i
                 break
-    elif quotes.is_straight(quote, singles):
+    elif quotes.is_straight(quote, singles) and line[0:pos].count(quote) % 2 == 1:
         openpos = line.rfind(quote, 0, pos)
-        for i in range(openpos, pos-1): # exclude straight pairs which have a directional quote between them
-            if line[i] in '«“‘»”’':
+        for i in range(openpos, pos-1):
+            if line[i] in '«“‘»”’':    # exclude straight pairs which have a directional quote between them
                 openpos = -1
                 break
     return openpos
@@ -414,7 +414,7 @@ def change_quote_medial(line, singles):
 
     bad = quotemedial_re.search(line)
     while bad:
-        pos = bad.end(1) + 1
+        pos = bad.end(1) + 1        # before the quote mark
         if bad.group(1) in saidwords and (quotes.is_straight(line[pos], singles) or quotes.is_open(line[pos])):
             line = line[:pos] + ' ' + line[pos:]
         else:
