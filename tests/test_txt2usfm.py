@@ -287,10 +287,10 @@ def test_makeVerseRange(chunkno, chapter, expected):
         ('\\v 10\tEna teno. \\v 11\t40 ti deno.', '\\v 10 Ena teno. \\v 11 40 ti deno.'),
         ('\\v 1\tIV) Mana Yomi bami. \\v 2\t2 usukeka', '\\v 1 IV) Mana Yomi bami. \\v 2 2 usukeka'),
     ])
-def test_addSpaceAfterVerseNo(text, expected):
+def test_spaceVerseNo(text, expected):
     if not expected:
         expected = text
-    result = txt2USFM.addSpaceAfterVerseNo(text)
+    result = txt2USFM.spaceVerseNo(text)
     assert result == expected
 
 @pytest.mark.parametrize('text, expected',
@@ -318,9 +318,10 @@ def test_addSpaceAfterVerseNo(text, expected):
         (r'\v5 Bara nene acine. \v7 Andi aleli ba.', r'\v 5 Bara nene acine. \v 7 Andi aleli ba.'),
         (r'\v 8Afo eni. \v 9 Newarafi', r'\v 8 Afo eni. \v 9 Newarafi'),
         (r'\v 8 \v 10 ۔ادٕہ کران۔_ \v 9 ۔یتھ  ساتؠٕ۔_ ۔بلکہ سجایِن', r''),
-        (r'\c 1 \v 1 \V1 Shitabu Abrahamu.2 \v 2 Abrahamu; \v 3 3 Yuda .', r'\c 1 \v 1 Shitabu Abrahamu.2 \v 2 Abrahamu; \v 3 3 Yuda .'),
+        (r'\v 4 4 asdf', r'\v 4 asdf'),
+        (r'\c 1 \v 1 \V1 Shitabu Abrahamu.2 \v 2 Abrahamu; \v 3 3 Yuda .', r'\c 1 \v 1 Shitabu Abrahamu.2 \v 2 Abrahamu; \v 3 Yuda .'),
         (r'\v 4 \v 5 \v 6 \V6 Yesu, "tsii:\V5 Shichila.\V6 Ali inzi."', r'\v 4 \v 5 \v 6 Yesu, "tsii: \v 5 Shichila. \v 6 Ali inzi."'),
-        (r'\v 4 \v 5 \v 6 \V6 Yesu, "tsii:\V5 Shichila.\V6 Ali inzi."', r'\v 4 \v 5 \v 6 Yesu, "tsii: \v 5 Shichila. \v 6 Ali inzi."'),
+        (r'\v 14\V14Yesu, "tsii:\V15 15 Shichila.\V16 16Ali inzi."', r'\v 14 Yesu, "tsii: \v 15 Shichila. \v 16 Ali inzi."'),
     ])
 def test_fixVerseMarkers(text, expected):
     if not expected:
@@ -551,7 +552,7 @@ def test_fixVerseOrder(text, verserange, expected):
         (r'\v 7 \v 5 یەشوای \v 6 لەسەر زەوی۔', range5, r'\v 5 یەشوای \v 6 لەسەر زەوی۔ \v 7'),
         (r'\v 5 \v 4 Tenti kandauko,', range4, r'\v 4-5 Tenti kandauko,'),
         ('\\v 10\tEna teno. \\v 11\t40 ti deno.', range10, '\\v 10 Ena teno. \\v 11 40 ti deno.'),
-        ('\\v 1\tIV) Mana Yomi bami. \\v 2\t2 usukeka', ['1','2'], '\\c 8 \\v 1 IV) Mana Yomi bami. \\v 2 2 usukeka'),
+        ('\\v 1\tIV) Mana Yomi bami. \\v 2\t2 usukeka', ['1','2'], '\\c 8 \\v 1 IV) Mana Yomi bami. \\v 2 usukeka'),
         (r'\v 19 \v 17 Na. \v 18 Aua na.\n\19 	Aua o isi? \v 20 .	Aua o', range17, r'\v 19 \v 17 Na. \v 18 Aua na.\n\19 	Aua o isi? \v 20 Aua o'),
         (r'\v 11 \v 10 Aua na.', range10, r'\v 10-11 Aua na.'),
     ])

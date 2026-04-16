@@ -143,9 +143,10 @@ sub1_re = re.compile(r'\S\\v ')     # non-space character before \v
 sub3_re = re.compile(r'(\\v [1-9][0-9\-]*)[^0-9\- ]')    # nonspace character after verse number
 sub4_re = re.compile(r'(\\v [0-9\-]+ +)\\v +[^1-9]')   # \v 10 \v The...
 sub5_re = re.compile(r'\\v\s*(\\v [0-9\-]+ +)')         # \v \v 10
-sub6_re = re.compile(r'(\\v [1-9][0-9\-]*)\s*(\\v [1-9][0-9\-]*)')   # duplicate verse markers
+sub6_re = re.compile(r'(\\v [1-9][0-9\-]*)\s*(\\v [1-9][0-9\-]*)')   # \v 10 \v 10
 sub7_re = re.compile(r'(^|\s+)v [1-9]')              # missing backslash
 sub8_re = re.compile(r'(^|.)\s*(\\v [0-9\-]+ +)([.!?,:;)])')   # Punctuation after verse marker
+sub9_re = re.compile(r'\\v ([1-9][0-9\-]*)\s+([1-9][0-9\-]*)')   # \v 10 10
 
 # Ensures single space after the verse number.
 def spaceVerseNo(text):
@@ -204,6 +205,13 @@ def fixVerseMarkers(text):
             before_backslash = text[0:found.start()+1] + " "    # just delete the stray punctuation
         text = before_backslash + found.group(2) + text[found.end():].lstrip()
         found = sub8_re.search(text, found.end()-1)
+
+    found = sub9_re.search(text)
+    while found:
+        if found.group(1) == found.group(2):
+            pos = found.end()+1 if text[found.end()] == ' ' else found.end()
+            text = text[0:found.start(2)] + text[pos:]
+        found = sub9_re.search(text, found.end(1))
 
     return text
 
