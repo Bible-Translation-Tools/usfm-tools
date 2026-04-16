@@ -138,22 +138,20 @@ def fixStrandedTag(text, vstr):
         text = text[0:orphanv_pos] + '\\v ' + text[orphanv_pos:]
     return text
 
-sub0_re = re.compile(r'[\\/]+ *[vV] *[1-9]')
+sub0_re = re.compile(r'[\\/]+ *[vV] *[1-9]')    # should match every plausible verse marker
 sub1_re = re.compile(r'\S\\v ')     # non-space character before \v
-sub3_re = re.compile(r'\\v\s*([1-9][0-9\-]*)([^0-9\- ])')    # no space after verse number
-sub4_re = re.compile(r'(\\v +[0-9\-]+ +)\\v +[^1-9]')   # \v 10 \v The...
-sub5_re = re.compile(r'\\v\s*(\\v +[0-9\-]+ +)')         # \v \v 10
+sub3_re = re.compile(r'(\\v [1-9][0-9\-]*)[^0-9\- ]')    # nonspace character after verse number
+sub4_re = re.compile(r'(\\v [0-9\-]+ +)\\v +[^1-9]')   # \v 10 \v The...
+sub5_re = re.compile(r'\\v\s*(\\v [0-9\-]+ +)')         # \v \v 10
+sub6_re = re.compile(r'(\\v [1-9][0-9\-]*)\s*(\\v [1-9][0-9\-]*)')   # duplicate verse markers
 sub7_re = re.compile(r'(^|\s+)v [1-9]')              # missing backslash
 sub8_re = re.compile(r'(^|.)\s*(\\v [0-9\-]+ +)([.!?,:;)])')   # Punctuation after verse marker
 
-# Fix missing space after any marked verse numbers.
-def addSpaceAfterVerseNo(text):
+# Ensures single space after the verse number.
+def spaceVerseNo(text):
     found = sub3_re.search(text)
     while found:
-        if found.group(2):
-            text = text[0:found.start()] + "\\v " + found.group(1) + " " + text[found.end()-1:].lstrip()
-        else:
-            text = text[0:found.start()] + "\\v " + found.group(1)
+        text = text[0:found.start()] + found.group(1) + " " + text[found.end()-1:].lstrip()
         found = sub3_re.search(text, found.end()+1)
     return text
 
@@ -169,7 +167,7 @@ def fixVerseMarkers(text):
         text = text[0:found.start()+1] + " " + text[found.end()-3:]
         found = sub1_re.search(text, found.start()+3)
 
-    text = addSpaceAfterVerseNo(text)
+    text = spaceVerseNo(text)
 
     found = sub4_re.search(text)
     while found:
@@ -180,6 +178,12 @@ def fixVerseMarkers(text):
     while found:
         text = text[0:found.start()] + found.group(1) + text[found.end():]
         found = sub5_re.search(text)
+
+    found = sub6_re.search(text)
+    while found:
+        if found.group(1) == found.group(2):
+            text = text[0:found.start()] + found.group(1) + text[found.end():]
+        found = sub6_re.search(text, found.start()+4)
 
     found = sub7_re.search(text)
     while found:
@@ -358,7 +362,7 @@ def fixVerseOrder(text, chap, verserange):
         text = insertMissingVerseMarkers(text, verserange)
         text = moveEmpty(text, verserange)
         text = reorderVerseMarkers(text)
-        text = addSpaceAfterVerseNo(text)
+        text = spaceVerseNo(text)
 
     if postcleanup_file:
         postcleanup_file.write(text + '\n')

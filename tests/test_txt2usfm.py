@@ -317,7 +317,10 @@ def test_addSpaceAfterVerseNo(text, expected):
         ('\\V10 Kimal akara. \nHeading\n\\v11 Kiti nani.',  '\\v 10 Kimal akara. \nHeading\n\\v 11 Kiti nani.'),
         (r'\v5 Bara nene acine. \v7 Andi aleli ba.', r'\v 5 Bara nene acine. \v 7 Andi aleli ba.'),
         (r'\v 8Afo eni. \v 9 Newarafi', r'\v 8 Afo eni. \v 9 Newarafi'),
-        (r'\v 8 \v 10 ۔ادٕہ کران۔_ \v 9 ۔یتھ  ساتؠٕ۔_ ۔بلکہ سجایِن', r'')
+        (r'\v 8 \v 10 ۔ادٕہ کران۔_ \v 9 ۔یتھ  ساتؠٕ۔_ ۔بلکہ سجایِن', r''),
+        (r'\c 1 \v 1 \V1 Shitabu Abrahamu.2 \v 2 Abrahamu; \v 3 3 Yuda .', r'\c 1 \v 1 Shitabu Abrahamu.2 \v 2 Abrahamu; \v 3 3 Yuda .'),
+        (r'\v 4 \v 5 \v 6 \V6 Yesu, "tsii:\V5 Shichila.\V6 Ali inzi."', r'\v 4 \v 5 \v 6 Yesu, "tsii: \v 5 Shichila. \v 6 Ali inzi."'),
+        (r'\v 4 \v 5 \v 6 \V6 Yesu, "tsii:\V5 Shichila.\V6 Ali inzi."', r'\v 4 \v 5 \v 6 Yesu, "tsii: \v 5 Shichila. \v 6 Ali inzi."'),
     ])
 def test_fixVerseMarkers(text, expected):
     if not expected:
