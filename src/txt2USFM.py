@@ -312,7 +312,7 @@ def firstInt(vstr):
         vn = 0
     return vn
 
-emptyv_re = re.compile(r'\\v\s+[1-9][0-9]*\s*(\\|$)')
+emptyv_re = re.compile(r'\\v\s+[1-9][0-9\-]*\s*(\\|$)')
 
 # Makes the verses numbers in ascending order.
 # Does nothing if the text is beyond repair.
@@ -326,10 +326,6 @@ def reorderVerseMarkers(text):
         return text
     if emptyv_re.search(text):
         return text
-    # numbers_re = re.compile(r'\d{1,3}')
-    # numbers_orig = numbers_re.findall(text)
-    # if len(numbers_orig) > len(vnumbers_orig):
-    #     return text
 
     if sorted_list != vnumbers_orig:
         i = len(sorted_list) - 1

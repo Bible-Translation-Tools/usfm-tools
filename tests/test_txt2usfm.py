@@ -421,6 +421,7 @@ def test_fixStrandedTag(text, vstr, expected):
 range1 = ['1', '2', '3', '4']
 range3 = ['3', '4']
 range4 = ['4', '5']
+range456 = ['4','5','6']
 range5 = ['5', '6', '7']
 range8 = ['8', '9']
 range8b = ['8', '9', '10']
@@ -462,6 +463,7 @@ def test_insertMissingVerseMarkers(text, verserange, expected):
         (r'\v 18 \v 16 Afo  bacpaci. \v 17 Yeni', range16, r'\v 16 Afo  bacpaci. \v 17 Yeni \v 18'),
         (r'\v 16 Afo  bacpaci. \v 18 \v 17 Yeni', range16, r'\v 16 Afo  bacpaci. \v 17 Yeni \v 18'),
         (r'\v 5 \v 4 Tenti kandauko,', range4, r'\v 4-5 Tenti kandauko,'),
+        (r'\v 4 \v 5 \v 6 Yesu, "tsii: \v 5 Shichila. \v 6 Ali inzi."', range456, r'\v 4-5 \v 6 Yesu, "tsii: \v 5 Shichila. \v 6 Ali inzi."'),
     ])
 def test_moveEmpty(text, verserange, expected):
     if not expected:
@@ -484,6 +486,7 @@ def test_moveEmpty(text, verserange, expected):
         (r'\v 28 Iwa e masu . \v 12 Gwana b. \v 13 Anit vat.', r''),
         # (r'\v 6 \v 7 \v 5 Kubi ko na iwa zuro kiti kirum', r'\v 5-7 Kubi ko na iwa zuro kiti kirum'),  # future
         (r'\v 19 \v 18 Aua na.', r''),  # reorder rejects strings with empty verses
+        (r'\v 4-5 \v 6 Yesu, "tsii: \v 5 Shichila. \v 6 Ali inzi."', r''),
     ])
 def test_reorderVerseMarkers(text, expected):
     if not expected:
