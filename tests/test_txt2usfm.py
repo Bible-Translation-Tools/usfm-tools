@@ -322,6 +322,7 @@ def test_spaceVerseNo(text, expected):
         (r'\c 1 \v 1 \V1 Shitabu Abrahamu.2 \v 2 Abrahamu; \v 3 3 Yuda .', r'\c 1 \v 1 Shitabu Abrahamu.2 \v 2 Abrahamu; \v 3 Yuda .'),
         (r'\v 4 \v 5 \v 6 \V6 Yesu, "tsii:\V5 Shichila.\V6 Ali inzi."', r'\v 4 \v 5 \v 6 Yesu, "tsii: \v 5 Shichila. \v 6 Ali inzi."'),
         (r'\v 14\V14Yesu, "tsii:\V15 15 Shichila.\V16 16Ali inzi."', r'\v 14 Yesu, "tsii: \v 15 Shichila. \v 16 Ali inzi."'),
+        (r'\v 8 \v 9 \v 10 \V8 Petro, \V9 Niiva, \V10  Neenya', r'\v 8 \v 9 \v 10 \v 8 Petro, \v 9 Niiva, \v 10  Neenya'),
     ])
 def test_fixVerseMarkers(text, expected):
     if not expected:
@@ -423,9 +424,9 @@ range1 = ['1', '2', '3', '4']
 range3 = ['3', '4']
 range4 = ['4', '5']
 range456 = ['4','5','6']
-range5 = ['5', '6', '7']
+range567 = ['5', '6', '7']
 range8 = ['8', '9']
-range8b = ['8', '9', '10']
+range8910 = ['8', '9', '10']
 range10 = ['10','11']
 range16 = ['16','17','18']
 range17 = ['17','18','19','20']
@@ -444,7 +445,7 @@ range41 = ['41']
         (r'Usetano akhambula, \v 5 "Ingave uveve', range3, r'\v 3-4 Usetano akhambula, \v 5 "Ingave uveve'),
         (r'Usetano akhambula, \v 4 "Ingave uveve', range3, r'\v 3 Usetano akhambula, \v 4 "Ingave uveve'),
         (r'5 Usetano akhambula, "Ingave uveve', range3, r'\v 3-4 5 Usetano akhambula, "Ingave uveve'),
-        (r'\v 9-10 Bara ba. Bara nani.', range8b, r''),  # leave alone if verse bridge is present
+        (r'\v 9-10 Bara ba. Bara nani.', range8910, r''),  # leave alone if verse bridge is present
         (r'\c 2 Nan Kutelle. \v 4 Bara mine.', range1, r'\c 2 \v 1-3 Nan Kutelle. \v 4 Bara mine.'),
     ])
 def test_insertMissingVerseMarkers(text, verserange, expected):
@@ -460,11 +461,12 @@ def test_insertMissingVerseMarkers(text, verserange, expected):
         (r'\v 8   9 Newarafi', range8, r'\v 8-9 Newarafi'),
         (r'\c 1 \v 1 \v 2 Teni Jut weci', range1, r'\c 1 \v 1-2 Teni Jut weci' ),
         (r'\c 1 \v 1 \v 2 Teni \v 3 Jut \v 4 weci', range1, r'\c 1 \v 1-2 Teni \v 3 Jut \v 4 weci' ),
-        (r'\v 5 یەشوای \v 6 \v 7 لەسەر زەوی.', range5, r'\v 5 یەشوای \v 6-7 لەسەر زەوی.'),
+        (r'\v 5 یەشوای \v 6 \v 7 لەسەر زەوی.', range567, r'\v 5 یەشوای \v 6-7 لەسەر زەوی.'),
         (r'\v 18 \v 16 Afo  bacpaci. \v 17 Yeni', range16, r'\v 16 Afo  bacpaci. \v 17 Yeni \v 18'),
         (r'\v 16 Afo  bacpaci. \v 18 \v 17 Yeni', range16, r'\v 16 Afo  bacpaci. \v 17 Yeni \v 18'),
         (r'\v 5 \v 4 Tenti kandauko,', range4, r'\v 4-5 Tenti kandauko,'),
         (r'\v 4 \v 5 \v 6 Yesu, "tsii: \v 5 Shichila. \v 6 Ali inzi."', range456, r'\v 4-5 \v 6 Yesu, "tsii: \v 5 Shichila. \v 6 Ali inzi."'),
+        # (r'\v 8 \v 9 \v 10 \v 8 Petro, \v 9 Niiva, \v 10 Neenya', range8910, r'\v 8-10 \v 8 Petro, \v 9 Niiva, \v 10 Neenya'),  # future, issue 277
     ])
 def test_moveEmpty(text, verserange, expected):
     if not expected:
@@ -499,9 +501,9 @@ def test_reorderVerseMarkers(text, expected):
     [
         (r'\v 3 Usetano akhambula, "Ingave uveve', range3,
          r'\v 3 Usetano akhambula, "Ingave uveve'),
-        (r'\v 6 Ufihelelelage  \v 5 Nuwohakika.  \v 7 Ulyahova.', range5,
+        (r'\v 6 Ufihelelelage  \v 5 Nuwohakika.  \v 7 Ulyahova.', range567,
          r'\v 5 Ufihelelelage  \v 6 Nuwohakika.  \v 7 Ulyahova.'),
-        (r'\v 5 \v 6 Naho Daada.  \v 6 Ululino nalwo. \v 7 Ulu nalwo.', range5,
+        (r'\v 5 \v 6 Naho Daada.  \v 6 Ululino nalwo. \v 7 Ulu nalwo.', range567,
          r'\v 5-6 Naho Daada.  \v 6 Ululino nalwo. \v 7 Ulu nalwo.'),    # Not ideal, but an improvement
         (r'\v 17 Pwu ula. \v 16 Akhata. \v 18 Pwu."', range16,
          r'\v 16 Pwu ula. \v 17 Akhata. \v 18 Pwu."'),
@@ -513,25 +515,25 @@ def test_reorderVerseMarkers(text, expected):
         (r'\v 8 \v 9 nin li. 9  Yisinan uremere.', range8,
          r'\v 8-9 nin li. 9  Yisinan uremere.'),
         (r'\v 10 Kimal akara. \v 11 Kiti nani. 12', range10, r''),
-        (r'Nan Kutelle. \v 7 Bara mine.', range5, r'\v 5-6 Nan Kutelle. \v 7 Bara mine.'),
-        (r'\v 6 Nan Kutelle. \v 7 Bara mine.', range5, r'\v 5-6 Nan Kutelle. \v 7 Bara mine.'),
+        (r'Nan Kutelle. \v 7 Bara mine.', range567, r'\v 5-6 Nan Kutelle. \v 7 Bara mine.'),
+        (r'\v 6 Nan Kutelle. \v 7 Bara mine.', range567, r'\v 5-6 Nan Kutelle. \v 7 Bara mine.'),
         (r'\c 2 Nan Kutelle. \v 4 Bara mine.', range1, r'\c 2 \v 1-3 Nan Kutelle. \v 4 Bara mine.'),
-        (r'\v Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono', range5, r'\v 5 Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono'),
-        (r'\v 5 Kuwu ati. \v Umong nsono." \v Bara nono', range5, r'\v 5 Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono'),
+        (r'\v Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono', range567, r'\v 5 Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono'),
+        (r'\v 5 Kuwu ati. \v Umong nsono." \v Bara nono', range567, r'\v 5 Kuwu ati. \v 6 Umong nsono." \v 7 Bara nono'),
         (r'\v 10 Iwa, kube. \n 11 Bara na ', range10,
          r'\v 10 Iwa, kube. \n \v 11 Bara na '),
-        (r'\v 10 Iwa, kube. \n Bara na ', range10,
-         r'\v 10 Iwa, kube. \n Bara na '),
+        (r'\v 10 Iwa, kube. \n Bara na ', range10, r''),
         (r'1 \v Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf', range1, r'\v 1 Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf'),
         (r'end. 1 \v Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf', range1, r'end. \v 1 Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf'),
         (r'\c 1 1 \v Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf', range1, r'\c 1 \v 1 Yesu nlira. \v 2 A aworo \v 3 nan \v 4 asdf'),
-        (r'Usetano akhambula, "Ingave uveve', range5, r'\v 5-7 Usetano akhambula, "Ingave uveve'),
+        (r'Usetano akhambula, "Ingave uveve', range567, r'\v 5-7 Usetano akhambula, "Ingave uveve'),
         (r'Usetano akhambula, "Ingave uveve', range41, r'\v 41 Usetano akhambula, "Ingave uveve'),
-        (r'\v 8 Bara ba. \v 9 Bara nani.', range8b,
+        (r'\v 8 Bara ba. \v 9 Bara nani.', range8910,
          r'\v 8 Bara ba. \v 9 Bara nani.'),
         (r'\v 3 Bara nene acine. \v 5 Andi aleli ba.', range4, r''),
         (r'\v 3 Bara nene acine. \v 5 Andi aleli ba.', range3, r''),
-        # (r'\v 6 \v 7 \v 5 Kubi ko na iwa zuro kiti kirum', range5, r'\v 5 Kubi ko na iwa zuro kiti kirum')  # future
+        (r'\v 6 \v 7 \v 5 Kubi ko na iwa zuro kiti kirum', range567, r'\v 6-7 \v 5 Kubi ko na iwa zuro kiti kirum'),
+        # (r'\v 8 \v 9 \v 10 \v 8 Petro, \v 9 Niiva, \v 10 Neenya', range8910, r'\v 8-10 \v 8 Petro, \v 9 Niiva, \v 10 Neenya'), # future issue #277
     ])
 def test_fixVerseOrder(text, verserange, expected):
     if not expected:
@@ -547,9 +549,9 @@ def test_fixVerseOrder(text, verserange, expected):
         (r'\c 1 \v 1 \v 2 Teni Jut weci', ['1','2'], r'\c 1 \v 1-2 Teni Jut weci' ),
         (r'\c 1 \v 1 \v 2 Teni \v 3 Jut \v 4 weci', range3, ''),
         (r'\v 1 \v 2 Teni \v 3 Jut \v 4 weci', range1, r'\c 8 \v 1-2 Teni \v 3 Jut \v 4 weci' ),
-        (r'\v 5 یەشوای \v 6 \v 7 لەسەر زەوی.', range5, r'\v 5 یەشوای \v 6-7 لەسەر زەوی۔'),
-        (r'\v 5 یەشوای \v 7 \v 6 لەسەر زەوی.', range5, r'\v 5 یەشوای \v 6 لەسەر زەوی۔ \v 7'),
-        (r'\v 7 \v 5 یەشوای \v 6 لەسەر زەوی۔', range5, r'\v 5 یەشوای \v 6 لەسەر زەوی۔ \v 7'),
+        (r'\v 5 یەشوای \v 6 \v 7 لەسەر زەوی.', range567, r'\v 5 یەشوای \v 6-7 لەسەر زەوی۔'),
+        (r'\v 5 یەشوای \v 7 \v 6 لەسەر زەوی.', range567, r'\v 5 یەشوای \v 6 لەسەر زەوی۔ \v 7'),
+        (r'\v 7 \v 5 یەشوای \v 6 لەسەر زەوی۔', range567, r'\v 5 یەشوای \v 6 لەسەر زەوی۔ \v 7'),
         (r'\v 5 \v 4 Tenti kandauko,', range4, r'\v 4-5 Tenti kandauko,'),
         ('\\v 10\tEna teno. \\v 11\t40 ti deno.', range10, '\\v 10 Ena teno. \\v 11 40 ti deno.'),
         ('\\v 1\tIV) Mana Yomi bami. \\v 2\t2 usukeka', ['1','2'], '\\c 8 \\v 1 IV) Mana Yomi bami. \\v 2 usukeka'),
