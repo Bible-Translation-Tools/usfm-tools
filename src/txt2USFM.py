@@ -145,8 +145,9 @@ sub4_re = re.compile(r'(\\v [0-9\-]+ +)\\v +[^1-9]')   # \v 10 \v The...
 sub5_re = re.compile(r'\\v\s*(\\v [0-9\-]+ +)')         # \v \v 10
 sub6_re = re.compile(r'(\\v [1-9][0-9\-]*)\s*(\\v [1-9][0-9\-]*)')   # \v 10 \v 10
 sub7_re = re.compile(r'(^|\s+)v [1-9]')              # missing backslash
-sub8_re = re.compile(r'(^|.)\s*(\\v [0-9\-]+ +)([.!?,:;)])')   # Punctuation after verse marker
+sub8_re = re.compile(r'(.*\s*)(\\v [0-9\-]+ +)([.!?,:;)])')   # Punctuation after verse marker
 sub9_re = re.compile(r'\\v ([1-9][0-9\-]*)\s+([1-9][0-9\-]*)')   # \v 10 10
+vatend_re = re.compile(r'\\v [1-9][0-9\-]*$')   # \v 10 at end of string
 
 # Ensures single space after the verse number.
 def spaceVerseNo(text):
@@ -197,14 +198,14 @@ def fixVerseMarkers(text):
     # Move or remove the phrase-ending punctuation character found right after a verse marker.
     found = sub8_re.search(text)
     while found:
-        if not found.group(1):  # match starts at beginning of line
-            before_backslash = ""
-        elif found.group(1) not in ".,:;?!":
-            before_backslash = text[0:found.start()+1] + found.group(3) + " "
-        else:
-            before_backslash = text[0:found.start()+1] + " "    # just delete the stray punctuation
+        before_backslash = found.group(1).rstrip()
+        if before_backslash:
+            if before_backslash[-1] not in ".,:;?!" and not vatend_re.search(before_backslash):
+                before_backslash = f'{before_backslash}{found.group(3)} '
+            else:
+                before_backslash += ' '
         text = before_backslash + found.group(2) + text[found.end():].lstrip()
-        found = sub8_re.search(text, found.end()-1)
+        found = sub8_re.search(text, 0)
 
     found = sub9_re.search(text)
     while found:

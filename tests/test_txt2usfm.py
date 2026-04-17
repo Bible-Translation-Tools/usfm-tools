@@ -323,6 +323,7 @@ def test_spaceVerseNo(text, expected):
         (r'\v 4 \v 5 \v 6 \V6 Yesu, "tsii:\V5 Shichila.\V6 Ali inzi."', r'\v 4 \v 5 \v 6 Yesu, "tsii: \v 5 Shichila. \v 6 Ali inzi."'),
         (r'\v 14\V14Yesu, "tsii:\V15 15 Shichila.\V16 16Ali inzi."', r'\v 14 Yesu, "tsii: \v 15 Shichila. \v 16 Ali inzi."'),
         (r'\v 8 \v 9 \v 10 \V8 Petro, \V9 Niiva, \V10  Neenya', r'\v 8 \v 9 \v 10 \v 8 Petro, \v 9 Niiva, \v 10  Neenya'),
+        (r'\v 7 \v 8 \v 9 \V7. munyi munyi.\V8 Vandu.', r'\v 7 \v 8 \v 9 \v 7 munyi munyi. \v 8 Vandu.'),
     ])
 def test_fixVerseMarkers(text, expected):
     if not expected:
