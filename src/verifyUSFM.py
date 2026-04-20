@@ -110,6 +110,10 @@ class State:
         self.upperCaseReported = False
         self.nSectionHeadings = 0
         self.inConflict = False
+        self.lastparen = (str(), str()) # for tracking parentheses in verse text, to detect mismatched parentheses
+        self.lastsquare = (str(), str())
+        self.lastbrace = (str(), str())
+        self.lastangle = (str(), str())
 
     def __repr__(self):
         return f'State({self.reference})'
@@ -223,7 +227,7 @@ class State:
     def isVerseInBridge(self, vn):
         return vn > 0 and (self.bridge_start <= vn <= self.bridge_end)
 
-    def getReference(self):
+    def getReference(self) -> str:
         if self.isVerseInBridge(self.verse):
             return f"{self.ID} {self.chapter}:{self.bridge_start}-{self.bridge_end}"
         else:
@@ -1174,6 +1178,48 @@ def reportNumbers(t, footnote):
     elif leadzero := leadingzero_re.search(t):
         reportIssue(f"Invalid leading zero: {leadzero.group(0)} at {state.getReference()}", 61.2)
 
+leftright_re = re.compile(r'[()<>\[\]{}]')
+
+def reportUnmatched(t):
+    for leftright in leftright_re.finditer(t):
+        report = None
+        char = leftright[0]
+        match char:
+            case '(':
+                if state.lastparen[0] == '(':
+                    report = ("parenthesis", state.lastparen[1], 56)
+                state.lastparen = (char, state.getReference())
+            case ')':
+                if state.lastparen[0] in {'', ')'}:
+                    report = ("parenthesis", state.getReference(), 56)
+                state.lastparen = (char, state.getReference())
+            case '<' if not "<<<" in t:
+                if state.lastangle[0] == '<':
+                    report = ("angle bracket", state.lastangle[1], 56.1)
+                state.lastangle = (char, state.getReference())
+            case '>' if not ">>>" in t:
+                if state.lastangle[0] in {'', '>'}:
+                    report = ("angle bracket", state.getReference(), 56.1)
+                state.lastangle = (char, state.getReference())
+            case '[':
+                if state.lastsquare[0] == '[':
+                    report = ("square bracket", state.lastsquare[1], 56.2)
+                state.lastsquare = (char, state.getReference())
+            case ']':
+                if state.lastsquare[0] in {'', ']'}:
+                    report = ("square bracket", state.getReference(), 56.2)
+                state.lastsquare = (char, state.getReference())
+            case '{':
+                if state.lastbrace[0] == '{':
+                    report = ("curly brace", state.lastbrace[1], 56.3)
+                state.lastbrace = (char, state.getReference())
+            case '}':
+                if state.lastbrace[0] in {'', '}'}:
+                    report = ("curly brace", state.getReference(), 56.3)
+                state.lastbrace = (char, state.getReference())
+        if report:
+            reportIssue(f"Unmatched {report[0]} at {report[1]}", report[2])
+
 period_re = re.compile(r'[\s]*[\.,;:!\?]')  # detects phrase-ending punctuation standing alone or starting a phrase
 badmarker_re = re.compile(r'\\\w+\*?')
 
@@ -1190,18 +1236,7 @@ def takeText(t, footnote=False):
     if state.textOkay() and state.verse == 0 and state.chapter > 0:
         reportIssue(f"Unmarked text before {state.reference + ':1'}", 54.1)
     if not state.inConflict:
-        if ("<" in t) ^ (">" in t) and not ">>>" in t:
-            reportIssue("Unmatched angle bracket at " + state.getReference(), 56)
-        if t.count("[") != t.count("]"):
-            if t.count("[") + t.count("]") == 1:
-                reportIssue("Unmatched square bracket at " + state.getReference(), 56.1)
-            else:
-                reportIssue("Mismatched square brackets at " + state.getReference(), 56.2)
-        if t.count("(") != t.count(")"):
-            if t.count("(") + t.count(")") == 1:
-                reportIssue("Unmatched parenthesis at " + state.getReference(), 56.3)
-            else:
-                reportIssue("Mismatched parentheses at " + state.getReference(), 56.4)
+        reportUnmatched(t)
     if "Conflict Parsing Error" in t:
         reportIssue("BTT Writer artifact in " + state.getReference(), 57)
     if not suppress[3] and not state.aligned_usfm:    # report punctuation issues
@@ -1540,6 +1575,7 @@ def verifyFile(path):
         if (state.usfm_version == 2 or state.aligned_usfm) and not state.toc3:
             reportIssue("No \\toc3 tag in " + shortname(path), 81)
         previousVerseCheck()       # checks last verse in the file
+        reportUnmatched("([{<")   # checks for any unmatched openers at end of file
         verifyNotEmpty(path)
         # if not suppress[5]:
         verifyVerseCount()      # for the last chapter
