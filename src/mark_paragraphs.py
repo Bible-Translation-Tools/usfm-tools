@@ -143,18 +143,18 @@ class State:
             self.verse = int(v1)
             self.bridge = int(v2)
             self.reference = self.ID[0:3].upper() + " " + str(self.chapter) + ":" + v
-        if self.prevTokenType == 'v':
-            self.lastText = ''   # last verse was empty
-            self.midSentence = False
         self.expectText = True
 
     def addFootnote(self):
         self.expectText = True
         self.lastText = ''
 
-    def saveTokenType(self, type):
+    def preprocessToken(self, token):
         self.prevTokenType = self.currTokenType
-        self.currTokenType = type
+        self.currTokenType = token.type
+        if self.prevTokenType == 'v' and self.currTokenType != 'text' and not token.isCharacterStyle():
+            self.lastText = ''   # last verse was empty
+            self.midSentence = False
 
     # Returns the number of the next verse known to be needing a paragraph mark.
     def needP(self):
@@ -270,12 +270,14 @@ punctuated_re = re.compile(r'[^\w\s]\s*$')
 def punctuated(s):
     return (punctuated_re.search(s) != None)
 
+# Inserts punctuation before a paragraph break
+# when the model text has punctuation and the text being modified does not end with punctuation.
 def mayTerminateLastSentence(punctuation):
     global punctuate
     if punctuate and punctuation and state.getBlock() == state.getModelBlock() and state.lastText and not punctuated(state.lastText):
         state.usfm.writeStr(punctuation)
         state.terminateSentence()
-        reportError(f"Added missing end-of-paragraph punctuation before {state.reference}", True)
+        reportError(f"Added missing end-of-paragraph punctuation at {state.reference}", True)
         global nChanges
         nChanges += 1
 
@@ -423,7 +425,7 @@ def takeC(c):
 # Handles the specified token from the input file.
 # Inserts paragraph and section markers where needed from model.
 def take(token, nexttoken):
-    state.saveTokenType(token.type)
+    state.preprocessToken(token)
     if token.type == 'v':
         takeV(token.value)
     elif token.type == 'text':

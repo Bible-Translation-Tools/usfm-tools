@@ -108,7 +108,7 @@ class VerifyManifest_Frame(g_step.Step_Frame):
         os.startfile(self.work_dir.get())
 
     def _set_button_status(self):
-        self.controller.enablebutton(2, os.path.isdir(self.work_dir.get()))
         workdir = self.work_dir.get()
+        self.controller.enablebutton(2, os.path.isdir(workdir))
         self.controller.enablebutton(3, os.path.isfile(os.path.join(workdir, "manifest.yaml")))
         self.controller.enablebutton(4, os.path.isdir(workdir))
