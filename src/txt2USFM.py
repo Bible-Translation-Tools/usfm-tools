@@ -140,6 +140,7 @@ def fixStrandedTag(text, vstr):
 
 sub0_re = re.compile(r'[\\/]+ *[vV] *[1-9]')    # should match every plausible verse marker
 sub1_re = re.compile(r'\S\\v ')     # non-space character before \v
+sub2_re = re.compile(r'\\?\s+v\s+([1-9][0-9\-]*)\s+')   # isolated v -- \ v 10 or   v 10
 sub3_re = re.compile(r'(\\v [1-9][0-9\-]*)[^0-9\- ]')    # nonspace character after verse number
 sub4_re = re.compile(r'(\\v [0-9\-]+ +)\\v +[^1-9]')   # \v 10 \v The...
 sub5_re = re.compile(r'\\v\s*(\\v [0-9\-]+ +)')         # \v \v 10
@@ -163,6 +164,11 @@ def fixVerseMarkers(text):
     while found:
         text = text[0:found.start()] + "\\v " + text[found.end()-1:]
         found = sub0_re.search(text, found.start()+3)
+
+    found = sub2_re.search(text)
+    while found:
+        text = text[0:found.start()] + "\\v " + found.group(1) + text[found.end()-1:]
+        found = sub2_re.search(text, found.end())
 
     found = sub1_re.search(text)    # no space before \v
     while found:
