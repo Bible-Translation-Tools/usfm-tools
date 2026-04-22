@@ -15,7 +15,7 @@
 #   suppress[6]  - Suppress warnings about straight double and single quotes
 #   suppress[7]  - Suppress warnings about straight single quotes  (report straight double quotes only)
 #   suppress[8]  - Suppress warnings about UPPER CASE BOOK TITLES
-#   suppress[9]  - Suppress warnings about ASCII content
+#   suppress[9]  - Suppress warnings about ASCII content; set automatically
 #   suppress[10] - Suppress "First word not capitalized" warnings; report totals only
 #   suppress[11] - Suppress "Punctuation missing at end of paragraph" warnings; report totals only'
 #   suppress[12] - Suppress warnings about Mixed-case words.
@@ -1501,15 +1501,17 @@ def verifyBlockByBlock(path):
         if conflict_tail_re.match(block):
             localstate.trackConflict(block)
         if not localstate.inConflict and marker not in {'id','c','cl'}:
-            if block.isascii():
-                nAscii += 1
+            if len(block) > 10:
+                nblocks += 1
+                if block.isascii():
+                    nAscii += 1
             if word := said_word(remainder):
                 saidwords.addWord(word)
             if remainder and localstate.chapter > 0:
                 reportSectionTitles(block, localstate.reference, localstate.chapter, localstate.verse)
                 reportFootnoteSpacing(block, localstate.reference)
 
-    suppress[9] = (nAscii / nblocks > 0.05)
+    suppress[9] = (nAscii / nblocks > 0.03)
     global nFiles
     nFiles += 1
     state.setConflictCount(nconflicts)
