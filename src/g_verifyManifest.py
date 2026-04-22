@@ -30,9 +30,8 @@ class VerifyManifest_Frame(g_step.Step_Frame):
         super().__init__(parent,controller)
 
         self.work_dir = StringVar()
-        self.work_dir.trace_add("write", self._onChangeEntry)
+        self.work_dir.trace_add("write", self._onChangeWorkDir)
         self.bibletype = BooleanVar(value = True)
-        self.expectAscii = BooleanVar(value = False)
         for col in (3,5):
             self.columnconfigure(col, weight=1)   # keep columns 1,4 from expanding
 
@@ -51,12 +50,6 @@ class VerifyManifest_Frame(g_step.Step_Frame):
         bibletype_Tip = Hovertip(bibletype_checkbox, hover_delay=500,
              text="Is the resource a Bible or Bible portion (as opposed to OBS, Notes, etc)?")
 
-        expectAscii_checkbox = ttk.Checkbutton(self, text='Expect ASCII', variable=self.expectAscii,
-                                             onvalue=True, offvalue=False)
-        expectAscii_checkbox.grid(row=5, column=2, sticky=W)
-        expectAscii_Tip = Hovertip(expectAscii_checkbox, hover_delay=500,
-             text=r"Suppress warnings about ASCII book titles, etc")
-
         self.message_area['wrap'] = "none"
         xs = ttk.Scrollbar(self, orient = 'horizontal', command = self.message_area.xview)
         xs.grid(row=89, column = 1, columnspan=4, sticky = 'ew')
@@ -72,11 +65,11 @@ class VerifyManifest_Frame(g_step.Step_Frame):
     def show_values(self):
         self.work_dir.set( self.getWorkDirConfigValue())
         self.bibletype.set(self.getBooleanOption('bibletype'))
-        self.expectAscii.set(self.getBooleanOption('expectascii'))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Previous step")
         self.controller.showbutton(2, "VERIFY", self._onExecute, tip="Verify readiness of manifest.yaml and the whole resource.")
+        self.controller.bindButtonEvent(2, "<Enter>", self._onCheckInputs)
         self.controller.showbutton(3, "Open manifest", self._onOpenManifest, tip="Opens manifest.yaml in your default editor")
         self.controller.showbutton(4, "Open folder", self._onOpenWorkDir, tip="Opens the resource folder")
         self.controller.hidebutton(5)
@@ -91,12 +84,21 @@ class VerifyManifest_Frame(g_step.Step_Frame):
         values = {}
         values['work_dir'] = self.work_dir.get()
         values['bibletype'] = str(self.bibletype.get())
-        values['expectascii'] = str(self.expectAscii.get())
         return values
+
+    # Returns a list of incomplete or incorrect inputs.
+    # Used by _onExecute().
+    # Is also called before values are saved to configuration files.
+    def invalidInputs(self):
+        objections = []
+        dir = self.work_dir.get()
+        if not dir or not os.path.isdir(dir) or dir.endswith('.'):
+            objections.append("Invalid location.")
+        return objections
 
     def _onFindSrcDir(self, *args):
         self.controller.askdir(self.work_dir)
-    def _onChangeEntry(self, *args):
+    def _onChangeWorkDir(self, *args):
         self._set_button_status()
 
     def _onOpenManifest(self, *args):
@@ -108,7 +110,8 @@ class VerifyManifest_Frame(g_step.Step_Frame):
         os.startfile(self.work_dir.get())
 
     def _set_button_status(self):
+        valid = not self.invalidInputs()
+        self.controller.enablebutton(2, valid)
+        self.controller.enablebutton(4, valid)
         workdir = self.work_dir.get()
-        self.controller.enablebutton(2, os.path.isdir(workdir))
-        self.controller.enablebutton(3, os.path.isfile(os.path.join(workdir, "manifest.yaml")))
-        self.controller.enablebutton(4, os.path.isdir(workdir))
+        self.controller.enablebutton(3, valid and os.path.isfile(os.path.join(workdir, "manifest.yaml")))

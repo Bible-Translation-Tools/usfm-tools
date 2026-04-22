@@ -54,11 +54,11 @@ nIssues = 0
 projtype = ''
 manifestDir = ""
 language_code = ""
+allowAsciiTitles = None
 
 from configmanager import ToolsConfigManager
 from datetime import datetime
 from datetime import date
-from datetime import timedelta
 import sys
 import os
 from manifestyaml import ManifestYaml
@@ -66,6 +66,7 @@ import io
 import numbers
 import re
 import usfm_verses
+import usfm_utils
 
 # Returns language identifier based on the directory name
 def getLanguageFromDirName():
@@ -73,9 +74,17 @@ def getLanguageFromDirName():
     parts = os.path.basename(manifestDir).split('_', 1)
     return parts[0]
 
-def expectAscii(language_id=None):
-    expectAsciiTitles = ToolsConfigManager().getboolean('VerifyManifest', 'expectascii')
-    return expectAsciiTitles
+usfm_re = re.compile(r'\\([a-z][a-z1-5]*\*?)(\s+.*)?')
+
+def allowAscii(path) -> bool:
+    nAscii = 0
+    nblocks = 0
+    for block in usfm_utils.nextblock(path):
+        if len(block) > 11:
+            nblocks += 1
+            if block.isascii():
+                nAscii += 1
+    return (nAscii / nblocks > 0.03)
 
 # Writes error message to stderr.
 def reportError(msg):
@@ -204,7 +213,7 @@ def verifyBookTitlePairs(projects, id1, id2):
 # Verifies that the title does not contain unwanted digits.
 # Verifies the Bible book title against the title as given in the usfm file.
 def verifyBookTitle(booktitle, bookId, relpath):
-    if booktitle.isascii() and not expectAscii():
+    if booktitle.isascii() and not allowAsciiTitles:
         # reportError("ASCII project:title book title: " + str(project['title']))
         reportError("ASCII project:title: " + booktitle)
     if booktitle.endswith('.'):
@@ -219,9 +228,9 @@ def verifyBookTitle(booktitle, bookId, relpath):
         elif bookId in {'3jn'}:
             unwanted -= {'3','३','৩','၃','۳'}
         if unwanted:
-            reportError(f"Unwanted digits {unwanted} in project:title: {booktitle}")
+            reportError(f"Unwanted digits in {bookId} project:title: {booktitle}")
         elif len(digits) > 1:
-            reportError(f"Extra digits in project:title: {booktitle}")
+            reportError(f"Extra digits in {bookId} project:title: {booktitle}")
 
     path = os.path.join(manifestDir, relpath)
     if os.path.exists(path):
@@ -335,7 +344,7 @@ def verifyCore(core):
             reportError("Invalid publisher: " + pub)
         elif "43" in pub:
             reportWarning("publisher: " + pub)
-    elif core['language']['identifier'] in {'as','bn','gu','hi','kn','ml','mr','nag','or','pa','ta','te','ur-deva'} and pub != 'BCS':
+    elif core['language']['identifier'] in {'ar','arb','as','bn','gu','hi','kn','ml','mr','nag','or','pa','ta','te','ur-deva'} and pub != 'BCS':
         reportError("Publisher name should be 'BCS' for BCS resources.")
     verifyRelations(core['relation'])
     if 'rights' in core and core['rights'] != 'CC BY-SA 4.0':
@@ -381,9 +390,10 @@ def verifyFile(dir):
     if manifest := yamlcontents(dir, "manifest.yaml"):
         try:
             verifyKeys("", manifest, ['dublin_core', 'checking', 'projects'])
+            # verifyProjects sets expectAsciiTitles, so it needs to be called before verifyCore
+            verifyProjects(manifest['projects'])
             verifyCore(manifest['dublin_core'])
             verifyChecking(manifest['checking'])
-            verifyProjects(manifest['projects'], manifest['dublin_core']['language']['identifier'])
         except TypeError as e:
             reportError(f"Syntax error in manifest.yaml: \"{str(e)}.\"")
             reportError("    -- It most likely involves quotes around strings.")
@@ -452,7 +462,7 @@ def verifyLanguage(language):
         if language_code != getLanguageFromDirName():
             reportWarning("Language identifier (" + language['identifier'] + ") does not match first part of directory name: " + os.path.basename(manifestDir))
     if verifyStringField(language, 'language:title', 3):
-        if language['title'].isascii() and not expectAscii(language_code):
+        if language['title'].isascii() and not allowAsciiTitles:
             reportWarning("Remember to localize language title: " + language['title'])
 
 # For OBS projects, verify that media.yaml is valid.
@@ -493,16 +503,20 @@ def verifyOtherFiles():
 # Verifies that the title corresponds to the project type.
 # Verifies that the sort field is not octal.
 # Validate some other field values, depending on the type of project
-def verifyProject(project, language_code):
+def verifyProject(project):
     verifyKeys("projects", project, ['title', 'versification', 'identifier', 'sort', 'path', 'categories'])
 
     projpath = project['path']
+    fullpath = os.path.join(manifestDir, projpath)
     (root,ext) = os.path.splitext(projpath)
     if ext.lower() == ".usfm" and (ext.isupper() or not root.isupper()):
         reportError(f"Incorrect case in project:path: {projpath}. Use {projpath.upper().replace('USFM', 'usfm')}")
-    elif len(projpath) < 5 or not os.path.exists(os.path.join(manifestDir, projpath)):
+    elif len(projpath) < 5 or not os.path.exists(fullpath):
         reportError("Invalid path: " + projpath)
     else:
+        global allowAsciiTitles
+        if allowAsciiTitles is None:
+            allowAsciiTitles = allowAscii(fullpath)
         filenames = os.listdir(manifestDir)     # this is necessary to get case sensitive file names in Windows
         if not os.path.basename(projpath) in filenames:
             reportError(f"Case mismatch in file name. Use {os.path.basename(projpath)}, as in manifest file.")
@@ -572,7 +586,7 @@ def verifyProject(project, language_code):
 # For most project types, the projects:identifier is really a part identifier, like book id (ULB, tQ, etc.), or section id (tA)
 
 # Verifies the projects list
-def verifyProjects(projects, language_code):
+def verifyProjects(projects):
     if not projects:
         reportError('Empty projects list')
     else:
@@ -581,7 +595,7 @@ def verifyProjects(projects, language_code):
         if nprojects < 1:
             reportError('Empty projects list')
         if isBibleType(projtype):
-            verifyProjectsBible(projects, language_code)
+            verifyProjectsBible(projects)
         elif projtype in {'tn-tsv'} and nprojects != countFiles(".tsv"):
             reportError("Number of projects listed " + str(nprojects) + " does not match number of tsv files: " + str(countFiles(".tsv")))
         elif projtype in {'tn', 'tq'} and nprojects != countBookDirs():
@@ -595,9 +609,9 @@ def verifyProjects(projects, language_code):
                 reportWarning("Number of projects listed: " + str(nprojects))
 
         for p in projects:
-            verifyProject(p, language_code)
+            verifyProject(p)
 
-def verifyProjectsBible(projects, language_code):
+def verifyProjectsBible(projects):
     if len(projects) != countFiles(".usfm"):
         reportError("Number of projects listed " + str(len(projects)) + " does not match number of usfm files: " + str(countFiles(".usfm")))
     verifyBookTitlePairs(projects, '1sa', '2sa')
@@ -814,7 +828,7 @@ def verifyYamls(folderpath):
     if contents := yamlcontents(folderpath, "toc.yaml"):
         try:
             nAsciiTitles = verifyTocYaml(contents, "toc.yaml")
-            if nAsciiTitles > 0 and not expectAscii(language_code):
+            if nAsciiTitles > 0 and not allowAsciiTitles:
                 reportWarning(f"{nAsciiTitles} likely untranslated titles in toc.yaml")
         except TypeError as e:
             reportError(f"Syntax error in toc.yaml: \"{str(e)}.\"")
