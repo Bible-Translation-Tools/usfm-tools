@@ -457,11 +457,13 @@ def fix_saids(line):
     while saidquote:
         if saidquote.group(1) in saidwords:
             comma = saidquote.group(2)
-            if enable[2] and not comma:
-                comma = ','
-            elif enable[2] and comma == ';':
-                comma = ':'
-            line = line[0:saidquote.end(1)] + comma + " " + saidquote.group(3) + line[saidquote.end():]
+            # Don't do anything if this is a word-medial apostrophe case
+            if ' ' in line[saidquote.end(1):saidquote.start(3)] or comma or saidquote.group(3) not in "'‘":
+                if enable[2] and not comma:
+                    comma = ','
+                elif enable[2] and comma == ';':
+                    comma = ':'
+                line = line[0:saidquote.end(1)] + comma + " " + saidquote.group(3) + line[saidquote.end():]
         saidquote = said_re.search(line, saidquote.end())
     return line
 
