@@ -449,18 +449,20 @@ def pair_up_quotes(line, singles):
                 pairs.append((openpos, i))
     return pairs
 
-said_re = re.compile(r'(\w+)[,:]? ["\'«“‘]( )')
+said_re = re.compile(r'(\w+)\s*([,:;\-]?)\s*(["\'«“‘]+)\s*')
 
-# Removes space on right side of quote if preceded by a "said" word.
+# Corrects spacing after "said" word and following punctuation.
 def fix_saids(line):
     saidquote = said_re.search(line)
     while saidquote:
         if saidquote.group(1) in saidwords:
-            pos = saidquote.start(2)
-            line = line[0:pos] + line[pos+1:]
-        else:
-            pos = saidquote.end()
-        saidquote = said_re.search(line, pos)
+            comma = saidquote.group(2)
+            if enable[2] and not comma:
+                comma = ','
+            elif enable[2] and comma == ';':
+                comma = ':'
+            line = line[0:saidquote.end(1)] + comma + " " + saidquote.group(3) + line[saidquote.end():]
+        saidquote = said_re.search(line, saidquote.end())
     return line
 
 quotefloat_re = re.compile(r'(^|\s)(["\'«“‘’”»])(\s|$)')
@@ -470,7 +472,6 @@ quotefloat_re = re.compile(r'(^|\s)(["\'«“‘’”»])(\s|$)')
 # Returns the line including any changes made.
 def change_floating_quotes(line, all):
     if quotefloat_re.search(line):    # if there exist any floating quotes in this line
-        line = fix_saids(line)
         quotepairs = pair_up_quotes(line, all)
         closepositions = [p[1] for p in quotepairs]
         openpositions = [p[0] for p in quotepairs]
@@ -667,6 +668,7 @@ def takeText(s, usfm):
     if enable[5] and not in_footnote:
         s = capitalizeAsNeeded(s)
     s = change_quote_medial(s, enable[4])
+    s = fix_saids(s)
     s = change_floating_quotes(s, enable[4])
     if enable[4]:   # promote all straight quotes
         s = quotes.promoteQuotes(s)

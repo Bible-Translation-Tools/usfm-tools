@@ -132,7 +132,7 @@ def test_fix_punctuation(s, expected):
         expected = s
     assert usfm_cleanup.fix_punctuation(s) == expected
 
-@pytest.mark.parametrize('s, all, expected',
+@pytest.mark.parametrize('s, singles, expected',
     [
         ('first,second', True, 'first,second'),
         ('first,"second', True, 'first,"second'),
@@ -152,12 +152,36 @@ def test_fix_punctuation(s, expected):
         ("he said,»You may", True, ''),
         ("«he said,»Then", True, "«he said,» Then"),
         ("he said,‘Do not", False, "he said, ‘Do not"),
+        ("he said'no space'", True, ""),  # word-medial apostrophe
+        ('he said"no space"', True, ""),  # handled by fix_saids()
    ])
-def test_change_quote_medial(s, all, expected):
+def test_change_quote_medial(s, singles, expected):
     if not expected:
         expected = s
     usfm_cleanup._setSaidWords(['said', 'asked'])
-    newstr = usfm_cleanup.change_quote_medial(s, all)
+    newstr = usfm_cleanup.change_quote_medial(s, singles)
+    assert newstr == expected
+
+@pytest.mark.parametrize('line, expected',
+    [
+        ('asked:‘why"', 'asked: ‘why"'),
+        ('asked:" why"', 'asked: "why"'),
+        ('asked:       " why "', 'asked: "why "'),
+        ('said«Because"', 'said, «Because"'),
+        ('said;"Two"', 'said: "Two"'),
+        ('said :«Three"', 'said: «Three"'),
+        ('said , " Four."', 'said, "Four."'),
+        ('said   \' Five."', 'said, \'Five."'),
+        ('said , Six"', ''),
+        ('said\'Seven', ''),    # word medial apostrophe, no change
+        ('asked‘Where', ''),    # ditto
+        ('asked ‘When', 'asked, ‘When'),
+    ])
+def test_fix_saids(line, expected):
+    if not expected:
+        expected = line
+    usfm_cleanup._setSaidWords(['said', 'asked'])
+    newstr = usfm_cleanup.fix_saids(line)
     assert newstr == expected
 
 floating_test_cases = [
@@ -191,11 +215,8 @@ floating_test_cases = [
     ('“DD, “   second”', '“DD, “second”'),
     ('"EE, " FF " GG " HH', '"EE," FF "GG" HH'),
     ('"EE,  " FF " GG " HH "', ''),
-    ('he said, " Go', 'he said, "Go'),
-    ('he asked, ” Why', ''),
-    ("They said, ' Okay", "They said, 'Okay"),
+    ('he said, " Go', ''),      # this case is handled in fix_saids()
 ]
-
 @pytest.mark.parametrize('s, expected', floating_test_cases)
 def test_change_floating_quotes(s, expected):
     if not expected:
@@ -359,7 +380,7 @@ def test_find_matching_openquote(line, pos, exp_matepos):
     matepos = usfm_cleanup.find_matching_openquote(line, pos, True)
     assert matepos == exp_matepos
 
-@pytest.mark.parametrize('line, all, exp_pairs',
+@pytest.mark.parametrize('line, singles, exp_pairs',
     [
     ('first\'second', True, []),
     ('first, " second"', True, [(7,15)]),
@@ -368,11 +389,11 @@ def test_find_matching_openquote(line, pos, exp_matepos):
     ('""234 " 890"', False, [(6,11), (0,1)]),
     ('"It is written: \'Do not test\'"', True, [(0,29), (16,28)]),
     # ('"Tell him: "I am here.""', True, [(0,23), (11,22)]),  # This case is not supported yet
-    ('““234"6789“1\'34””78\'"1234"‘789’’234‘‘789’1234"”\' \' ', True, [(47, 49), (0, 46), (36, 40), (26, 30), (20, 25), (1, 16), (10, 15)]),
+    ('““234"6789“1\'34”678\'"1234"‘789’’234‘‘789’1234"”\' \' ', True, [(47, 49), (1, 46), (36, 40), (26, 30), (20, 25), (1, 16), (10, 15)]),
     ('““234"6789“1\'34””78\'"1234"‘789’’234‘‘789’1234"”\' \' ', False, [ (0, 46), (36, 40), (26, 30), (20, 25), (1, 16), (10, 15)]),
     ])
-def test_pair_up_quotes(line, all, exp_pairs):
-    pairs = usfm_cleanup.pair_up_quotes(line, all)
+def test_pair_up_quotes(line, singles, exp_pairs):
+    pairs = usfm_cleanup.pair_up_quotes(line, singles)
     assert pairs == exp_pairs
     quotes = [p[0] for p in pairs] + [p[1] for p in pairs]
     assert len(set(quotes)) == len(pairs) * 2    # ensures no duplicate indexes
