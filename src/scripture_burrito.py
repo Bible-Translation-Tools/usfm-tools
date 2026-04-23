@@ -63,15 +63,19 @@ class Burrito:
     # Saves the current contents to metadata.json. Overwrites file if it exists.
     # Returns Tuple of (is_valid: bool, message: str)
     def save(self):
-        self.updateFileInfo()
         is_valid = True
         msg = ""
-        if self.resource_dir and self.contents:
-            is_valid, msg = scripture_burrito_validator.validate(self.contents)
-            if is_valid:
-                path = os.path.join(self.resource_dir, "metadata.json")
-                with io.open(path, 'w', newline='\n') as json_file:
-                    json.dump(self.contents, json_file, indent=2)
+        if self.contents:
+            self._updateFileInfo()
+            if self.resource_dir and self.contents:
+                is_valid, msg = scripture_burrito_validator.validate(self.contents)
+                if is_valid:
+                    path = os.path.join(self.resource_dir, "metadata.json")
+                    with io.open(path, 'w', newline='\n') as json_file:
+                        json.dump(self.contents, json_file, indent=2)
+        else:
+            is_valid = False
+            msg = "No contents to save."
         return (is_valid, msg)
 
     def setGenerator(self, software, version):
@@ -126,7 +130,8 @@ class Burrito:
         self.contents['type']['flavorType']["currentScope"][bookId] = []
 
     # Recalculates size and checksum for each ingredient.
-    def updateFileInfo(self):
+    # Also resets the timestamp.
+    def _updateFileInfo(self):
         if "ingredients" in self.contents:
             for filename in self.contents["ingredients"]:
                 path = os.path.join(self.resource_dir, filename)
@@ -135,3 +140,7 @@ class Burrito:
                     md5 = {"md5": checksum}
                     self.contents["ingredients"][filename]["checksum"] = md5
                     self.contents["ingredients"][filename]["size"] = size
+
+        # Now reset the timestamp in the identification section
+        repository = next(iter(self.contents['identification']['primary']['wacs'])) # create() and load() ensure that this exists
+        self.contents['identification']['primary']['wacs'][repository]['timestamp'] = strToday()
