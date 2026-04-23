@@ -52,14 +52,7 @@ class usfmWriter:
             self._file.close()
             self._file = None
 
-    # Specify a set of usfm tags that do not have to start on a new line
-    # See __init__() for the defaults.
-    # def setInlineTags(self, tags):
-    #     self._inline_tags = tags
-
     # Writes specified string to the usfm file, inserting spaces where needed.
-    # Technical debt: the beginning of the string should be checked for inline tags. Currently
-    # this function places all leading usfm markers on a new line.
     def writeStr(self, s):
         if s and self._file:
             if not self._newlined and s[0] == '\\':
