@@ -1,6 +1,5 @@
 # A hard-coded, fully in memory, WA-specific, Scripture Burrito validator.
-# Use the validate_burrito() method to validate.
-# As of 3/11/26, the WA version is the same as the full version, but may diverge in the future.
+# Use the validate() method to validate.
 #
 
 import os
@@ -932,9 +931,12 @@ identification = Resource.from_contents({
             "properties": {
                 "revision": {
                     "$ref": "#/definitions/revisionString"
+                },
+                "timestamp": {
+                    "$ref": "common.schema.json#/definitions/timestamp"
                 }
             },
-            "required": ["revision"],
+            "required": ["revision",  "timestamp"],
             "additionalProperties": False
         },
         "authorityRepositories": {

@@ -24,7 +24,7 @@ def test_WA_file():
     is_valid, msg = scripture_burrito_validator_orig.validate(path)
     if not is_valid:
         print(msg)
-    assert not is_valid
+    assert is_valid
 
 def test_orig_file():
     path = os.path.join(testdir_orig, "metadata.json")
@@ -48,4 +48,4 @@ def test_rai():
     is_valid, msg = scripture_burrito_validator_orig.validate(path)
     if not is_valid:
         print(msg)
-    assert not is_valid
+    assert is_valid
