@@ -223,3 +223,22 @@ def test_add_projects():
     if not is_valid:
         print(msg)
     assert is_valid
+
+def test_modify_project():
+    backup()
+    burrito = Burrito(testdir)
+    is_valid, msg = burrito.load()
+    assert is_valid
+    filename = "52-COL.usfm"
+    orig_checksum = burrito.contents['ingredients'][filename]['checksum']
+    orig_size = burrito.contents['ingredients'][filename]['size']
+    # Append a space to the file to change the checksum and size
+    path = os.path.join(testdir, filename)
+    with open(path, "a") as f:
+        f.write(" ")
+    is_valid, msg = burrito.save()  # save() automatically recalculate size and checksum
+    if not is_valid:
+        print(msg)
+    assert is_valid
+    assert burrito.contents['ingredients'][filename]['checksum'] != orig_checksum
+    assert burrito.contents['ingredients'][filename]['size'] == orig_size + 1
