@@ -121,6 +121,13 @@ def reportToGui(event, msg):
             gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
         gui.event_generate(event, when="tail")
 
+# Called just before main() exits, to recalculate checksums and file sizes in metadata.json.
+def updateBurrito(work_dir):
+    from scripture_burrito import Burrito
+    burrito = Burrito(work_dir)
+    burrito.load()
+    burrito.save()
+
 # If issues.txt file is not already open, opens it for writing.
 # Overwrites existing issues.txt file, if any.
 # Returns new file pointer.
@@ -802,6 +809,7 @@ def main(app = None):
                 reportError(f"No such file: {path}")
         else:
             convertFolder(work_dir)
+        updateBurrito(work_dir)
         reportStatus("\nDone. Changed " + str(nChanged) + " files.")
 
     if aligned_usfm:
