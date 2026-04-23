@@ -84,6 +84,9 @@ class ProjectInfo:
     # Also saves the manifest info in the manifest.yaml, if it is in use.
     def save(self):
         self.languageInfo.save()
+        repo = "Tech_Advance/" + self.getLanguageCode() + "_reg"
+        identity = self.languageInfo.getLanguageName() + " Bible"
+        self.burrito.setIdentification(locale='en', identity=identity, abbrev="Bible", repo=repo)
         is_valid, msg = self.burrito.save()
         if self.manifest:
             # Utilize this opportunity to set version if missing
