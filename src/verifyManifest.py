@@ -865,10 +865,16 @@ def verifyManifest():
     manifestDir = getWorkDir()
     verifyDir(manifestDir)
 
-    if nIssues == 0:
-        reportStatus("Done, no issues found.")
+# Verifies the syntactical correctness of the metadata.json file for now.
+# Also resaves the file, which automatically updates the timestamp and checksums.
+def verifyBurrito():
+    from scripture_burrito import Burrito
+    burrito = Burrito(manifestDir)
+    is_valid, msg = burrito.load()
+    if not is_valid:
+        reportError(f"Invalid burrito data: {msg}")
     else:
-        reportStatus("\nFinished checking, found " + str(nIssues) + " issue(s).")
+        burrito.save()
 
 # Temporary function, until all references to "source_dir" are removed.
 def getWorkDir():
@@ -884,6 +890,11 @@ def main(app = None):
     global nIssues
     nIssues = 0
     verifyManifest()
+    verifyBurrito()
+    if nIssues == 0:
+        reportStatus("Done, no issues found.")
+    else:
+        reportStatus("\nFinished checking, found " + str(nIssues) + " issue(s).")
     sys.stdout.flush()
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
