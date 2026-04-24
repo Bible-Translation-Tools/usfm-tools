@@ -232,6 +232,13 @@ class State:
     def getBlock(self):
         return self.block
 
+# Called just before main() exits, to recalculate checksums and file sizes in metadata.json.
+def updateBurrito(work_dir):
+    from scripture_burrito import Burrito
+    burrito = Burrito(work_dir)
+    burrito.load()
+    burrito.save()
+
 # Loads the specified yaml file and reports errors.
 # Returns the contents of the file if no errors.
 def parseYaml(path):
@@ -778,6 +785,7 @@ def main(app = None):
         convertFolder(work_dir)
 
     closeFiles()
+    updateBurrito(work_dir)
     reportStatus(f"\nDone.")
     if nChanges > 0 and not config.getboolean('MarkParagraphs', 'diagnostics'):
         reportStatus("Changes were made.")
