@@ -765,7 +765,7 @@ def convertFolder(folder):
 # Returns file name for usfm file in current folder
 def makeUsfmFilename(bookId):
     num = usfm_verses.verseCounts[bookId.upper()]['usfm_number']
-    filename = num + '-' + bookId + '.usfm'
+    filename = num + '-' + bookId.upper() + '.usfm'
     return filename
 
 def writeHeader(usfm, bookId, bookTitle):
