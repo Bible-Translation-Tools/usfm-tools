@@ -1384,6 +1384,7 @@ def verifyParagraphCounts():
             reportIssue(f"Possible error: one lone section is marked in {state.ID}", 73.6)
 
 embeddedquotes_re = re.compile(r"\w'\w")
+curly_re = re.compile(r'[{}]')
 
 # Receives the text of an entire book as input.
 # Verifies things that are better done as a whole file.
@@ -1406,6 +1407,9 @@ def verifyWholeFile(contents, path):
                 reportIssue(f"Straight quotes in {shortname(path)}: {ndouble} doubles, {nsingle} singles not counting {nembedded} word-medial.", 75)
         elif nsingle > 0 and not suppress[7]:
             reportIssue(f"Straight quotes in {shortname(path)}: {nsingle} singles not counting {nembedded} word-medial.", 75)
+
+    if curlies := curly_re.findall(contents):
+        reportIssue(f"Curly brace(s) ({len(curlies)}) found in " + shortname(path), 75.1)
 
     if state.nconflicts > 0:
         # When there are unresolved conflicts, we must adjust state.booklength
