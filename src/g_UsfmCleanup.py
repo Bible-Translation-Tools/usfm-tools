@@ -372,9 +372,9 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         return "\n".join(sourcehints)
 
     def _onUndo(self, *args):
-        if self._save_values():
-            self.controller.revertChanges()
-            self.controller.enablebutton(4, False)
+        self._save_values()
+        self.controller.revertChanges()
+        self.controller.enablebutton(4, False)
 
     def _set_button_status(self, *args):
         if not self.changingVars:
