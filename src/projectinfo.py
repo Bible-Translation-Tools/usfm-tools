@@ -88,6 +88,8 @@ class ProjectInfo:
         identity = self.languageInfo.getLanguageName() + " Bible"
         self.burrito.setIdentification(locale='en', identity=identity, abbrev="Bible", repo=repo)
         is_valid, msg = self.burrito.save()
+        if msg:
+            msg = "Burrito " + msg
         if self.manifest:
             # Utilize this opportunity to set version if missing
             if self.manifest.getVersion() == "":

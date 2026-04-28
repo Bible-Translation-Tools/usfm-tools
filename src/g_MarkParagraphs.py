@@ -233,7 +233,7 @@ then you don't need to run this process.")
 
     def onScriptEnd(self, nIssues):
         if nIssues > 0:
-            self.message_area.insert('end', "Now issues.mark_paragraphs.txt contains the list of issues encountered in marking paragraphs.\n")
+            self.message_area.insert('end', "issues.mark_paragraphs.txt contains the list of issues detected in marking paragraphs.\n")
             # self.message_area.insert('end', "Resolve as appropriate.\n")
             self.message_area.see('end')
         self.message_area['state'] = DISABLED   # prevents insertions to message area
