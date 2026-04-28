@@ -305,7 +305,7 @@ def verifyCleanDir(dirpath):
             reportError("Extra manifest file: " + os.path.relpath(path, manifestDir))
         if "temp" in fname or "tmp" in fname or "orig" in fname or "bak" in fname or \
           "Copy" in fname or "txt" in fname or "projects" in fname or fname.endswith(".field"):
-            if not issuesfile_re.match(fname) and fname not in {"translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md", "wordlist.txt"}:
+            if not issuesfile_re.match(fname) and fname not in {"metadata.json", "translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md", "wordlist.txt"}:
                 reportError("Extraneous file: " + os.path.relpath(path, manifestDir))
 
         elif badname_re.match(fname):
