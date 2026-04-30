@@ -35,13 +35,10 @@ def parseLine(line):
         remainder = line
     return (marker, value, remainder)
 
+# This function was copied from somewhere else, I can't remember where.
+# Converts an aligned USFM string to an unaligned USFM compatible string.
+# Remove all tags used for alignments and words.
 def unalign_usfm(aligned_usfm):
-    """
-    Converts an aligned USFM string to an unaligned USFM compatible string
-    :param aligned_usfm:
-    :return: the unaligned USFM of the string
-    """
-    # Remove all tags used for alignments and words
     usfm = re.sub(r'\\ts(-s)*\s*\\\*\s*', r'', aligned_usfm, flags=re.UNICODE | re.MULTILINE)
     usfm = re.sub(r'\\zaln-s[^*]*?\*', r'', usfm, flags=re.UNICODE | re.MULTILINE)
     usfm = re.sub(r'\\zaln-e\\\*', r'', usfm, flags=re.UNICODE | re.MULTILINE)
