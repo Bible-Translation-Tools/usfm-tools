@@ -414,7 +414,7 @@ def openIssuesFile():
         issuesFile.write("-------------------\n")
     return issuesFile
 
-# Returns the longest common substrin g at the start of s1 and s2
+# Returns the longest common substring at the start of s1 and s2
 def long_substring(s1, s2):
     if s1.startswith(s2):
         return s2
@@ -1069,13 +1069,19 @@ def reportCaps(s):
         if word[0].islower():
             reportIssue(f"First word in sentence is not capitalized: \"{word}\" in {state.getReference()}", 44.1, suppress[10])
 
-# Returns a string containing text preceding specified start position and following end position
+# Returns a string containing nonspace text preceding start position thru and following end position
 def context(text, start, end):
-    start = 0 if start < 0 else 1 + text.rfind(' ', 0, start)
-    end = text.find(' ', end, -1)
-    return text[start:end] if end > start else text[start:]
+    s = ""
+    if end < 0 or end >= len(text):
+        end = len(text) - 1
+    if end >= start:
+        end = text.find(' ', end+1)
+        if end < 0:
+            end = len(text)
+        start = 0 if start < 1 else text.rfind(' ', 0, start) + 1
+        s = text[start:end] if end >= start else text[start:]
+    return s.strip()
 
-#adjacent_re = re.compile(r'([\.\?!;\:,][\.\?!;\:,])', re.UNICODE)
 punctuation_re = re.compile(r'([.?!;:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)   # phrase ending punctuation that doesn't actually end the phrase
 # note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
 spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)    # space before phrase-ending mark

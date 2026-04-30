@@ -148,6 +148,22 @@ def test_parseChapterLabel(s, nchapter, expname):
 def test_decimalvalue(s, expected):
     assert verifyUSFM.decimal_value(s) == expected
 
+@pytest.mark.parametrize('s1, s2, expected',
+    [
+        ('', '', ''),
+        ('', 'as', ''),
+        ('aaaaaaaa', '', ''),
+        ('X3YZ', 'XYZ', 'X'),
+        (' 1 ', '1 ', ''),
+        ('1 Korin', 'Korin', ''),
+        ('22', '22', '22'),
+        ('باب ۱', 'باب ۱', 'باب ۱'),
+        ('12345678', '123xxx', '123'),
+    ])
+def test_long_substring(s1, s2, expected):
+    result = verifyUSFM.long_substring(s1, s2)
+    assert result == expected
+
 @pytest.mark.parametrize('text, expTrigger',
     [
         ('pslm 103:1', ':'),
@@ -179,6 +195,36 @@ def test_findFootnote(text, expTrigger):
     ])
 def test_validBracketedFootnote(text, expected):
     assert verifyUSFM.validBracketedFootnote(text) == expected
+
+@pytest.mark.parametrize('text, start, end, expected',
+    [
+        ('0123 56789 ', 0, 10, '0123 56789'),
+        (' 123 56789 ', 0, 10, '123 56789'),
+        (' 123 56789 ', 0, 0, '123'),
+        (' 123 56789 ', 1, 3, '123'),
+        (' 123 56789 ', 1, 4, '123 56789'),
+        (' 123 56789 ', 1, 5, '123 56789'),
+        (' 123 56789 ', 3, 5, '123 56789'),
+        (' 123 56789 ', 4, 5, '123 56789'),
+        (' 123 56789 ', 5, 5, '56789'),
+        ('012345 789012 4567890', 0, 0, '012345'),
+        ('012345 789012 4567890', 0, 5, '012345'),
+        ('012345 789012 4567890', 5, 0, ''),
+        ('012345 789012 4567890', 0, 6, '012345 789012'),
+        ('012345 789012 4567890', 0, 7, '012345 789012'),
+        ('012345 789012 4567890', 6, 6, '012345 789012'),
+        ('012345 789012 4567890', 7, 4, ''),
+        ('012345 789012 4567890', 7, 7, '789012'),
+        ('012345 789012 4567890', 7, 13, '789012 4567890'),
+        ('012345 789012 4567890', 7, 14, '789012 4567890'),
+        ('012345 789012 4567890', 7, 99, '789012 4567890'),
+        ('012345 789012 4567890', 7, -1, '789012 4567890'),
+        ('012345 789012 4567890', 5, -1, '012345 789012 4567890'),
+        ('012345 789012 4567890  ', 5, -1, '012345 789012 4567890'),
+    ])
+def test_context(text, start, end, expected):
+    result = verifyUSFM.context(text, start, end)
+    assert result == expected
 
 @pytest.mark.parametrize('fname, expected',
     [
