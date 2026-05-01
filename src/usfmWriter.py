@@ -37,6 +37,10 @@ inline_tags = {'va','va*','vp','vp*','ca*',
                 'ior','ior*','iqt','iqt*','qac','qac*',
                 'fig','fig*'
 }
+# These tags can optionally be followed by a space and some text. Most notably, \p.
+tags_with_optional_text = {'li','li1','li2','li3','li4',
+                           'm','mi','p','pc','pi','pi1','pi2','pi3','pm','pmc','pmo',
+                           'q','q1','q2','q3','q4','qm','qm1','qm2'}
 
 class usfmWriter:
     def __init__(self, path):
@@ -44,6 +48,7 @@ class usfmWriter:
         self._file = io.open(path, "tw", encoding='utf-8', newline='\n')
         self._spaced = True
         self._newlined = True
+        self._prevtag = ""
 
     def close(self):
         if self._file:
@@ -59,35 +64,49 @@ class usfmWriter:
                 tag = usfm_utils.usfm_re.match(s)
                 if not tag or tag.group(1) not in inline_tags:
                     s = "\n" + s
-            elif not self._spaced and s[0] not in '\\.?!;:,)’”»›\n ':
-            # Indonesian TBI version of this condition:
-            # elif not self._spaced and s[0] not in '\\.?!;:,)’»›\n ':
-                s = " " + s
+            elif self._add_space_before(s):
+                self._file.write(" ")
             self._file.write(s)
             self._spaced = (s[-1] == ' ')
             self._newlined = (s[-1] == '\n')
+            self._prevtag = ""
 
     # Writes a usfm tagged value, insert newline if needed
     def writeUsfm(self, key, value=None):
         if self._file:
             if key in inline_tags:
-                # intro = "\\" if (self._newlined or self._spaced) else " \\"
-                intro = '\\'
+                intro = " \\" if key[-1] != '*' and self._add_space_before("\\") else "\\"
             else:
                 intro = "\\" if self._newlined else "\n\\"
-            self._file.write(f"{intro}{key}")
-            self._spaced = False
-            self._newlined = False
             if value:
-                self.writeStr(value)
+                self._file.write(f"{intro}{key} {value}")
+                self._spaced = value[-1] == ' '
+                self._newlined = value[-1] == '\n'
+                self._prevtag = ""
                 if key in {'v', 'ef','ex','f','fe','x'}:
-                    self.writeStr(" ")  # ensure correct verse marker even when next char is phrase-ending
+                    self._file.write(" ")  # ensure correct verse marker even when next char is phrase-ending
                     # ensure space after "\f +" etc.
+                    self._spaced = True
+                    self._newlined = False
+            else:
+                self._file.write(f"{intro}{key}")
+                self._spaced = False
+                self._newlined = False
+                self._prevtag = key
 
-    # Inserts the specified number of line breaks (defualt 1) into the file.
+    # Inserts the specified number of line breaks (default 1) into the file.
     def newline(self, n=1):
         if self._file:
             for i in range(n):
                 self._file.write("\n")
             self._spaced = True
             self._newlined = True
+            self._prevtag = ""
+
+    # Determines whether a space should be inserted before the specified string,
+    # based on the value of self._spaced, the previous tag, and the first character of the string.
+    def _add_space_before(self, s):
+        add = (s and not self._spaced and not self._newlined)
+        if add and s[0] in '.?!;:,)’»›\n ' and not self._prevtag in tags_with_optional_text:
+            add = False
+        return add
