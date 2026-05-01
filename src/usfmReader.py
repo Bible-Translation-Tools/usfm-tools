@@ -21,7 +21,7 @@ all_markers = {'id','ide','usfm','c','v','p','rem','text',   # text is an intern
                 'ip','ipi','io','io1','io2','io3','iq','iq1','iq2','iq3','ib',
                 'ili','ili1','ili2','ili3','iot','iex',
                 'ior','+ior','ior*','+ior*', 'iqt','iqt*','ie',
-                'm','pi','pc','nb','b',
+                'm','pi','pi1','pi2','pi3','pc','nb','b',
                 'q','q1','q2','q3','qa','qr','qc','qac','qac*','qs','qs*','qm','qm1','qm2',
                 's','s1','s2','s3','s4','s5','sr','r','d','sp',
                 'sd','sd1','sd2','sd3',
@@ -66,7 +66,7 @@ class Token:
     def isIntro(self):
         return self.type in {'is','ip','ipi','iot','io','im','imt','imt1'}
     def isParagraph(self):
-        return self.type in {'p','m','pi','pc','nb','b','ip','iot','io','io2'}
+        return self.type in {'p','m','pi','pi1','pi2','pi3','pc','nb','b','ip','iot','io','io2'}
     def isPoetry(self):
         return self.type in {'q','q1','q2','q3','qa','qr','qc','qm','qm1','qm2','qs','qac'}
     def isSection(self):
@@ -156,7 +156,7 @@ def parseString(s):
         elif pair.type.endswith('*'):
             contents.append(Token(pair.type, ''))
             leftover = pair.value
-        elif pair.type in {'p','pi','pc','nb','m','q','q1','q2','q3','q4','qa','qr','qc',
+        elif pair.type in {'p','pi','pi1','pi2','pi3','pc','nb','m','q','q1','q2','q3','q4','qa','qr','qc',
                       'add','bk','dc','k','lit','nd','ord','pn','qt','sig','sls','tl','wj',
                       'em','bd','it','bdit','no','sc','pb',
                       'fig','ndx','pro','w','wg','wh','fl','fp',
