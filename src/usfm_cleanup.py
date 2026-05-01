@@ -214,7 +214,7 @@ def usfm_move_pq(str):
     return newstr
 
 # losepq_re = re.compile(r'\\[pqm][i1-9]? *\n*(\\[^v])')
-losepq_re = re.compile(r'\\[pqm][i1-9]? *\n*(\\[a-z][a-z1-5]*\*?)')
+losepq_re = re.compile(r'\\[pqm][i1-3]?\s*\\([a-z][a-z1-5]*\*?)')
 
 # Remove paragraph markers not followed by verse marker or \s5 or \rem.
 # Other markers that follow a paragraph marker invalidate the paragraph marker.
@@ -222,8 +222,9 @@ def usfm_remove_pq(str):
     newstr = ""
     found = losepq_re.search(str)
     while found:
-        if found.group(1) not in {'\\v', '\\rem', '\\s5'}:
-            newstr += str[:found.start()] + found.group(1)
+        tag = found.group(1)
+        if tag not in {'v','rem','s5'} and tag not in usfmWriter.inline_tags:
+            newstr += str[:found.start()] + "\\" + tag
         else:
             newstr += str[:found.end()]
         str = str[found.end():]
