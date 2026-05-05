@@ -1138,6 +1138,7 @@ def reportPunctuation(text):
 numberembed_re = re.compile(r'[^\s,:\."\'‘\d\(\[\-]+\d+[^\s,;\."\'’\d\)\]]+')
 numberprefix_re = re.compile(r'[^\s,\."\d\(\[]\d+', re.UNICODE)
 numbersuffix_re = re.compile(r'\d+[^\s,;:."\-?!"\d\)\]]', re.UNICODE)
+fraction_re = re.compile(r'\d+\s*[/\\]\s*\d+')
 unsegmented_re = re.compile(r'\d\d\d\d+')
 numberformat_re = re.compile(r'[\d]+[.,]?\s[.,]?[\d]+')    # space between digits
 leadingzero_re = re.compile(r'\s0[0-9,]*', re.UNICODE)
@@ -1170,12 +1171,15 @@ def reportNumbers(t, footnote):
     if embed := numberembed_re.search(t):
         reportIssue(f"Embedded number in word: {embed.group(0)} at {state.getReference()}", 60)
     elif not verseflag:
-        if suffixed := numbersuffix_re.search(t):
+        if fraction := fraction_re.search(t):
+            if state.chapter > 0 and not footnote:
+                reportIssue(f"Possible fraction in text: {fraction.group(0)} at {state.getReference()}", 60.1)
+        elif suffixed := numbersuffix_re.search(t):
             if state.chapter > 0 and not footnote:
                 reportIssue(f"Invalid number suffix: {suffixed.group(0)} at {state.getReference()}", 60.2)
-        if prefixed := numberprefix_re.search(t):
+        elif prefixed := numberprefix_re.search(t):
             if (state.chapter > 0 and not footnote) or (prefixed.group(0)[0] not in {':','-'}):
-                reportIssue(f"Invalid number prefix: {prefixed.group(0)} at {state.getReference()}", 60.1)
+                reportIssue(f"Invalid number prefix: {prefixed.group(0)} at {state.getReference()}", 60.3)
     if unsegmented := unsegmented_re.search(t):
         if len(unsegmented.group(0)) > 4:
             reportIssue(f"Unsegmented number: {unsegmented.group(0)} at {state.getReference()}", 61)
