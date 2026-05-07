@@ -453,7 +453,7 @@ def mark_section_heading_eos(section):
             startpos -= 1
             candidate = section_titles_new.find_parenthesized_heading(section, 0.499)
             candidate = remove_parens(candidate)
-        else:
+        elif startpos - lmpos > 15:  # avoid marking headings that would leave a very short verse
             candidate = section[startpos:]  # last "sentence" in the line
         if candidate and section_titles_new.prob_heading(candidate) > 0.7:
             heading = candidate.rstrip('.\u0964\u0965\u1362\u06D4')
