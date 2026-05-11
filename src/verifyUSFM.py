@@ -1094,6 +1094,7 @@ spacey4_re = re.compile(r'[\s][\(\'"«“‘’”»›]$', re.UNICODE)       # 
 wordmedial_punct_re = re.compile(r'[\w][.?!;:,()\[\]"«“‘”»›][.?!;:,()\[\]\'"«“‘’”»›]*[\w]')
 outsidequote_re = re.compile(r'([\'"’”»›][\.!])', re.UNICODE)   # Period or exclamation outside closing quote.
 backs_re = re.compile(r'\\([^+a-z]|$)')
+unusual_re = re.compile(r'[=+_*&^%$#@~/|¬]+')
 
 def reportPunctuation(text):
     if bad := punctuation_re.search(text):
@@ -1128,12 +1129,11 @@ def reportPunctuation(text):
     if bad and text[bad.end()-1] not in "0123456789":
         s = context(text, bad.start(), bad.end())
         reportIssue(f"Word medial punctuation in {state.getReference()}: {s}", 52)
-    if '/' in text:
-        reportIssue(f"Forward slash in {state.getReference()}", 52.1)
     if backs_re.search(text):
         reportIssue(f"Backslash (\\) near {state.getReference()}", 52.2)
-    if '=' in text:
-        reportIssue(f"Equals sign (=) in {state.getReference()}", 52.3)
+    if unusual := unusual_re.findall(text):
+        for c in dict.fromkeys(unusual):
+            reportIssue(f"Unusual character ({c}) in {state.getReference()}", 52.3)
 
 numberembed_re = re.compile(r'[^\s,:\."\'‘\d\(\[\-]+\d+[^\s,;\."\'’\d\)\]]+')
 numberprefix_re = re.compile(r'[^\s,\."\d\(\[]\d+', re.UNICODE)
