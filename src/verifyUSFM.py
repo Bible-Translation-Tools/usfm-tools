@@ -49,7 +49,7 @@ from projectinfo import SaidWords, ProjectInfo
 from manifestyaml import ManifestYaml
 import usfm_utils
 import sentences
-import section_titles_new
+import section_titles
 from scripturebook import ScriptureBook
 from datetime import date, datetime
 
@@ -1475,17 +1475,17 @@ def reportSectionTitles(block, reference, chap, verse):
 def find_section_heading(block, chap, verse, prevline, sentenceended):
     pheading = ""
     if verse == 0 or prevline.strip() == '' or sentenceended:
-        prob = section_titles_new.prob_heading(block)
+        prob = section_titles.prob_heading(block)
         if prob >= 0.1 or verse == 0 and prob > 0:
             pheading = block.lstrip()
     if not pheading and sourcebook and sourcebook.has_section(chap, verse):
-        if not pheading and section_titles_new.prob_heading(block) >= 0.1:
+        if not pheading and section_titles.prob_heading(block) >= 0.1:
             pheading = block.lstrip()
         if not pheading:
-            pheading = section_titles_new.find_parenthesized_heading(block, 0.249)
+            pheading = section_titles.find_parenthesized_heading(block, 0.249)
         if not pheading and sentences.sentenceCount(block) > 1:
-            if not state or state.reference not in section_titles_new.exclude_eol_checks:
-                pheading = section_titles_new.find_eol_heading(block, 0.100)
+            if not state or state.reference not in section_titles.exclude_eol_checks:
+                pheading = section_titles.find_eol_heading(block, 0.100)
     return pheading
 
 conflict_head_re = re.compile(r'<+ HEAD')   # conflict resolution tag

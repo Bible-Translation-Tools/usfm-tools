@@ -6,7 +6,7 @@ import sys
 tests_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
-import section_titles_new
+import section_titles
 import pytest
 
 parens_test_cases = [(' ( Sentence 1 Sentence Two )', '( Sentence 1 Sentence Two )'),
@@ -60,7 +60,7 @@ parens_test_cases = [(' ( Sentence 1 Sentence Two )', '( Sentence 1 Sentence Two
 def test_find_parenthesized_heading_new(line, expected):
     if expected is None:
         expected = ""
-    s = section_titles_new.find_parenthesized_heading(line, 0.249)
+    s = section_titles.find_parenthesized_heading(line, 0.249)
     assert s == expected
 
 @pytest.mark.parametrize('line, expected',
@@ -80,7 +80,7 @@ def test_find_parenthesized_heading_new(line, expected):
     ('\\v 17 ਸੋ ਤੱਕ ਚੌਦਾਂ । ਯਿਸੂ ਦਾ ਜਨਮ', 'ਯਿਸੂ ਦਾ ਜਨਮ'),
     ])
 def test_find_eol_heading(line, expected):
-    assert section_titles_new.find_eol_heading(line, 0.100) == expected
+    assert section_titles.find_eol_heading(line, 0.100) == expected
 
 # Remove this test when the old section_titles is gone.
 
@@ -113,7 +113,7 @@ def test_find_eol_heading(line, expected):
     ("Single Quotes' Don't Count as Internal 'Quotes", 6/7)
     ])
 def test_percentTitleCase(s, expected):
-    assert section_titles_new.percentTitleOrCaps(s) == expected
+    assert section_titles.percentTitleOrCaps(s) == expected
 
 @pytest.mark.parametrize('s, expected',
     [('N’amamera', True),
@@ -143,7 +143,7 @@ def test_percentTitleCase(s, expected):
      ('After-all', True),
     ])
 def test_isCapitalized(s, expected):
-    assert section_titles_new._isCapitalized(s) == expected
+    assert section_titles._isCapitalized(s) == expected
 
 # @pytest.mark.parametrize('s, expected',
 #     [('మొదటి ప్రార్థన (మార్కు 14:35. లూకా 22:41;42)', 0.555),
@@ -160,7 +160,7 @@ def test_isCapitalized(s, expected):
      ('Pre    ', 'heading', '', 'Pre\n\\s heading\n\\p\n'),
     ])
 def test_insert_heading(preheading, heading, postheading, expected):
-    result = section_titles_new.insert_heading(preheading, heading, postheading)
+    result = section_titles.insert_heading(preheading, heading, postheading)
     assert result == expected
 
 @pytest.mark.parametrize('s, expected',
@@ -179,5 +179,5 @@ def test_insert_heading(preheading, heading, postheading, expected):
      ('  « Begins A Quote.', 4),
     ])
 def test_wordcount(s, expected):
-    result = section_titles_new._wordcount(s)
+    result = section_titles._wordcount(s)
     assert result == expected

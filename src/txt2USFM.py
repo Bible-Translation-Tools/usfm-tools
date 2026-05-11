@@ -12,7 +12,7 @@ from configmanager import ToolsConfigManager
 from projectinfo import ProjectInfo
 from pathlib import Path
 import sentences
-import section_titles_new
+import section_titles
 import usfm_verses
 import re
 import io
@@ -428,9 +428,9 @@ def mark_section_heading_bos(strChunk):
     if vpos >= 0 and vpos >= cendpos:
         candidate = strChunk[cendpos:vpos] if vpos == len(strChunk) else strChunk[cendpos:vpos-1]
         candidate = remove_parens(candidate)
-        if section_titles_new.prob_heading(candidate) >= 0.1:
+        if section_titles.prob_heading(candidate) >= 0.1:
             heading = candidate.rstrip('.\u0964\u0965\u1362\u06D4')
-            strChunk = section_titles_new.insert_heading(strChunk[0:cendpos], heading, strChunk[vpos:])
+            strChunk = section_titles.insert_heading(strChunk[0:cendpos], heading, strChunk[vpos:])
     return strChunk
 
 anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
@@ -451,13 +451,13 @@ def mark_section_heading_eos(section):
         candidate = None
         if startpos > 0 and section[startpos-1] == '(':
             startpos -= 1
-            candidate = section_titles_new.find_parenthesized_heading(section, 0.499)
+            candidate = section_titles.find_parenthesized_heading(section, 0.499)
             candidate = remove_parens(candidate)
         elif startpos - lmpos > 15:  # avoid marking headings that would leave a very short verse
             candidate = section[startpos:]  # last "sentence" in the line
-        if candidate and section_titles_new.prob_heading(candidate) > 0.7:
+        if candidate and section_titles.prob_heading(candidate) > 0.7:
             heading = candidate.rstrip('.\u0964\u0965\u1362\u06D4')
-            section = section_titles_new.insert_heading(section[0:startpos], heading, "")
+            section = section_titles.insert_heading(section[0:startpos], heading, "")
     return section
 
 lbi_re = re.compile(r'^[^\\\n]+$', re.MULTILINE)
@@ -468,13 +468,13 @@ lbi_re = re.compile(r'^[^\\\n]+$', re.MULTILINE)
 def mark_section_heading_lbi(section, lastref, lastchunk):
     lbi = lbi_re.search(section)
     while lbi:
-        if lbi.end() >= len(section) and (lastchunk or lastref in section_titles_new.exclude_eol_checks):
+        if lbi.end() >= len(section) and (lastchunk or lastref in section_titles.exclude_eol_checks):
             break
         candidate = remove_parens(lbi.group(0))
-        if section_titles_new.prob_heading(candidate) > 0.1:
+        if section_titles.prob_heading(candidate) > 0.1:
             startpos = lbi.start() + (len(candidate) - len(candidate.lstrip(' ')))
             heading = candidate.rstrip('.\u0964\u0965\u1362\u06D4')
-            section = section_titles_new.insert_heading(section[0:startpos], heading, section[lbi.end():])
+            section = section_titles.insert_heading(section[0:startpos], heading, section[lbi.end():])
             break
         lbi = lbi_re.search(section, lbi.end())
     return section
@@ -492,7 +492,7 @@ def mark_section_heading_lbi(section, lastref, lastchunk):
 def mark_section_headings(strChunk, lastref, lastchunk):
     orig_section = strChunk
     strChunk = mark_section_heading_bos(strChunk)
-    if not lastchunk and lastref not in section_titles_new.exclude_eol_checks:
+    if not lastchunk and lastref not in section_titles.exclude_eol_checks:
         strChunk = mark_section_heading_eos(strChunk)
     if strChunk == orig_section:
         strChunk = mark_section_heading_lbi(strChunk, lastref, lastchunk)

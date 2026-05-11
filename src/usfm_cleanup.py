@@ -18,7 +18,7 @@ import substitutions
 import quotes
 import usfmReader
 import sentences
-import section_titles_new
+import section_titles
 from manifestyaml import ManifestYaml
 from scripturebook import ScriptureBook
 import usfm_utils
@@ -504,7 +504,7 @@ chapstart_re = re.compile(r'(\\c|\\ca|\\cl|\\cp) ')
 
 def find_section_heading(line, chap, verse, prevline, sentenceended):
     pheading = ""
-    prob = section_titles_new.prob_heading(line)
+    prob = section_titles.prob_heading(line)
     if prob > 0 and chapstart_re.match(prevline):
         pheading = line.lstrip()
     elif prob >= 0.1 and (verse == 0 or prevline.strip() == '' or sentenceended):
@@ -513,10 +513,10 @@ def find_section_heading(line, chap, verse, prevline, sentenceended):
         if prob >= 0.1:
             pheading = line.lstrip()
         if not pheading:
-            pheading = section_titles_new.find_parenthesized_heading(line, 0.249)
+            pheading = section_titles.find_parenthesized_heading(line, 0.249)
         if not pheading and sentences.sentenceCount(line) > 1:
-            if not state or state.reference not in section_titles_new.exclude_eol_checks:
-                pheading = section_titles_new.find_eol_heading(line, 0.100)
+            if not state or state.reference not in section_titles.exclude_eol_checks:
+                pheading = section_titles.find_eol_heading(line, 0.100)
     return pheading
 
 def mark_sections_in_block(block):
@@ -564,7 +564,7 @@ def mark_sections(line):
         endpos = startpos + len(pheading)
         assert startpos >= 0 and endpos <= len(line)
         pheading = pheading.strip('().\u0964\u0965\u1362\u06D4 \n')
-        line = section_titles_new.insert_heading(line[0:startpos].rstrip('( '), pheading, line[endpos:])
+        line = section_titles.insert_heading(line[0:startpos].rstrip('( '), pheading, line[endpos:])
         changed = True
 
     mark_sections.prevline = line

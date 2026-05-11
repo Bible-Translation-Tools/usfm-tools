@@ -19,7 +19,7 @@ import sentences
 import usfm_verses
 import usfmWriter
 import yaml
-import section_titles_new
+import section_titles
 from datetime import datetime
 from usfm_utils import unicodeBlock
 from yaml.scanner import ScannerError
@@ -405,7 +405,7 @@ def takeText(t):
 so sentence termination functionality is disabled.")
 
     ####### This is the case where the model has a section heading, and t might be a section heading on a line by itself #######
-    if smark in {'s','s1','s2','sr','r','d','sp'} and section_titles_new.prob_heading(t) >= 0.1:
+    if smark in {'s','s1','s2','sr','r','d','sp'} and section_titles.prob_heading(t) >= 0.1:
         mayTerminateLastSentence(punct)
         state.usfm.writeUsfm(smark, t)
         nChanges += 1
