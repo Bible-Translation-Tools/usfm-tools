@@ -78,6 +78,9 @@ class State:
 
     def addLine(self, line):
         marker, value, remainder = usfm_utils.parseLine(line)
+        if marker:
+            self.prevMarker = self.currMarker
+            self.currMarker = marker
         match marker:
             case 'id':
                 self.bookId = remainder[0:3].upper()
@@ -497,13 +500,17 @@ def change_floating_quotes(line, all):
                         line = line[0:pos+1] + line[pos+2:]
     return line
 
+chapstart_re = re.compile(r'(\\c|\\ca|\\cl|\\cp) ')
+
 def find_section_heading(line, chap, verse, prevline, sentenceended):
     pheading = ""
-    if verse == 0 or prevline.strip() == '' or sentenceended:
-        if section_titles_new.prob_heading(line) >= 0.1:
-            pheading = line.lstrip()
+    prob = section_titles_new.prob_heading(line)
+    if prob > 0 and chapstart_re.match(prevline):
+        pheading = line.lstrip()
+    elif prob >= 0.1 and (verse == 0 or prevline.strip() == '' or sentenceended):
+        pheading = line.lstrip()
     if not pheading and sourcebook and sourcebook.has_section(chap, verse):
-        if not pheading and section_titles_new.prob_heading(line) >= 0.1:
+        if prob >= 0.1:
             pheading = line.lstrip()
         if not pheading:
             pheading = section_titles_new.find_parenthesized_heading(line, 0.249)
@@ -511,6 +518,13 @@ def find_section_heading(line, chap, verse, prevline, sentenceended):
             if not state or state.reference not in section_titles_new.exclude_eol_checks:
                 pheading = section_titles_new.find_eol_heading(line, 0.100)
     return pheading
+
+def mark_sections_in_block(block):
+    (line1, sep, remainder) = block.partition("\n")
+    (changed, line1) = mark_sections(line1)
+    if changed:
+        block = line1 + sep + remainder
+    return (changed, block)
 
 chap_re = re.compile(r'\\c +([0-9]+)')
 verse_re = re.compile(r'\\v +([0-9]+)')
@@ -574,32 +588,6 @@ def remove_periods(line):
         vperiod = vperiod_re.search(line, vperiod.end()-1)
     return (changed, line)
 
-# Iterator, returns the next block in the file.
-# Usually, a block is a single line.
-# If multiple lines of pure text occur together, they are returned as a single block.
-def nextblock(path):
-    with io.open(path, "tr", encoding="utf-8-sig") as input:
-        lines = input.readlines()
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        marker, value, remainder = usfm_utils.parseLine(line)
-        if marker == '' and not line.isspace():
-            block = line
-            i += 1
-            while i < len(lines):
-                nextline = lines[i]
-                nextmarker, nextvalue, nextremainder = usfm_utils.parseLine(nextline)
-                if nextmarker == '':
-                    block += nextline
-                    i += 1
-                else:
-                    break
-            yield block
-        else:
-            yield line
-            i += 1
-
 # Rewrites the file line by line, making changes to individual lines
 # Returns True if any changes are made
 def convert_by_line(path):
@@ -610,10 +598,10 @@ def convert_by_line(path):
     changedfile = False
     changed3 = False
 
-    for block in nextblock(inputpath):  # @TODO use usfm_utils.nextblock() once it is tested
+    for block in usfm_utils.nextblock(inputpath):
         state.addLine(block)
         if enable[7]:
-            (changed3, block) = mark_sections(block)
+            (changed3, block) = mark_sections_in_block(block)
         (changed4, block) = remove_periods(block)
         if changed3 or changed4:
             changedfile = True
