@@ -14,6 +14,12 @@ import scripture_burrito_validator_orig
 testdir_wa = r'C:\DCS\Test\burritos\WA'
 testdir_orig = r'C:\DCS\Test\burritos\orig'
 
+def test_empty():
+    is_valid, msg = scripture_burrito_validator.validate("")
+    if not is_valid:
+        print(msg)
+    assert not is_valid
+
 def test_WA_file():
     path = os.path.join(testdir_wa, "metadata.json")
     is_valid, msg = scripture_burrito_validator.validate(path)

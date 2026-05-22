@@ -1,8 +1,8 @@
 # pytest unit tests for functions in projectinfo.py
 # Before running all the tests as a whole:
 #   Manifest.yaml in test_dir should have a valid language direction and a language identifer.
-#   Manifest.yaml should have one, syntactially correct source.
-#   remove "said_words" from C:\DCS\Test\test.json, or set it to an empty dict -- {}
+#   Manifest.yaml should have one, syntactially complete source.
+#   C:\DCS\Test\test.json should have no "said_words" defined.
 
 import os
 import sys
@@ -12,15 +12,12 @@ src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 from projectinfo import ProjectInfo, SaidWords
 from manifestyaml import ManifestYaml
+from scripture_burrito import Burrito
 
 test_dir = r'C:\DCS\Test\test_pi'
 saidwords_dir = r'C:\DCS\Test\test_reg'
 language_code = 'test-pi'
 saidwords_language_code = "test"
-language_name = 'Test ProjectInfo'
-source_lang = 'test-source'
-source_resource_id = 'uub'
-source_ver = "1.8"
 
 def test_init_newfile():
     # This test function backs up the existing .json file before deleting it.
@@ -57,12 +54,18 @@ def test_init_oldfile():
     assert projectInfo.getLanguageCode() == ''
 
 def test_language_name():
+    language_name = 'Test ProjectInfo'
     projectInfo = ProjectInfo(test_dir, language_code)
     projectInfo.setLanguage(language_name, 'rtl')
     projectInfo.save()
     assert projectInfo.getLanguageName() == language_name
 
 def test_mainsource():
+    source_lang = 'test-source'
+    source_resource_id = 'uub'
+    source_ver = "1.8"
+    test_lang = 'test-pi'
+
     my = ManifestYaml()
     my.load(test_dir)
     sources = my.getSources()
@@ -73,11 +76,13 @@ def test_mainsource():
     else:
         my.addSource(source_lang, source_resource_id, source_ver)
     my.save()
-    pi = ProjectInfo(test_dir, language_code)
-    pi.resetSources()
+
+    pi = ProjectInfo(test_dir, test_lang)
+    assert pi.getMainSource()
+    pi.resetSources()   # doesn't affect manifest.yaml which is not used yet
     assert pi.getMainSource() == None
     pi.useManifest(docreate=True)
-    source = pi.getMainSource()
+    source = pi.getMainSource()     # gets it from manifest.yaml
     assert source['language_id'] == source_lang
     assert source['resource_id'] == source_resource_id
     assert source['version'] == source_ver
@@ -121,10 +126,11 @@ def test_manifest_connection():
     pi = ProjectInfo(workdir, working_lang_code)
     pi.resetSources()
     pi.setLanguage("")
-    n = len(pi.getSources())
-    assert n == 0
+    assert len(pi.getSources()) == 0
     assert pi.getLanguageName() == ""
 
+    burrito = Burrito(workdir)
+    (was_valid, msg) = burrito.load()
     my = ManifestYaml()
     my.load(workdir)
     myname = my.getLanguageName()
@@ -134,10 +140,14 @@ def test_manifest_connection():
 
     pi.useManifest(docreate=True)        # sync happens here
     pilen = len(pi.getSources())
-    assert pilen == 1  # it got one from the sync from manifest
+    assert pilen == 1               # from the sync from manifest
     piname = pi.getLanguageName()
     assert piname != ""
     pi.save()
+
+    burrito = Burrito(workdir)
+    (is_valid,msg) = burrito.load()
+    assert is_valid == was_valid  # empty language name means json file was not overwritten
 
     # New ProjectInfo object, not synced to Manifest
     pi_nosync = ProjectInfo(workdir, working_lang_code)
@@ -165,13 +175,17 @@ def test_manifest_connection():
     assert my.getLanguageDirection() in {'rtl','ltr'}   # direction is not affected
     assert len(my.getSources()) == mylen + 1
 
+    (is_valid,msg) = burrito.load()
+    assert is_valid == was_valid     # bad direction
+
     pi.setLanguage(myname, mydirection)
     pi.resetSources()
-    pi.addSource('en', 'uub', '12')
-    pi.save()   # should restore language and source entries in both files
+    pi.addSource('en', 'uxb', '12')
+    pi.save()   # should restore language and source entries
+    (is_valid,msg) = burrito.load()
+    assert is_valid == was_valid     # validity unchanged
 
-# Before running this, remove "said_words" from test.json in the saidwords_dir.
-# Or, set it to an empty dict -- {}
+# Before running this test, test.json in saidwords_dir should have no "said_words" defined.
 def test_saidwords():
     nowords()
     addwords()
@@ -179,6 +193,7 @@ def test_saidwords():
     add_to_savedwords()
     saidWords()
     savedSaidWords()
+    clearwords()    # reset for next time
 
 def nowords():
     pi = ProjectInfo(saidwords_dir, saidwords_language_code)
@@ -197,7 +212,6 @@ def addwords():
     assert words == ['aaa', 'bbb']
     pi.save()
 
-# Run this test after running test_addwords()
 def savedwords():
     pi = ProjectInfo(saidwords_dir, saidwords_language_code)
     words = pi.getWords(mincount=1)
@@ -213,7 +227,6 @@ def add_to_savedwords():
     assert words == ['aaa', 'bbb', 'ccc']
     pi.save()
 
-# Run this test after running test_savedwords()
 def saidWords():
     saidwords = SaidWords(saidwords_dir, saidwords_language_code)
     saidwords.addWord('aaa')
@@ -243,6 +256,11 @@ def savedSaidWords():
     words = pi.getWords(mincount=3)
     assert words == ['aaa', 'bbb', 'ccc']
 
+def clearwords():
+    saidwords = SaidWords(saidwords_dir, saidwords_language_code)
+    saidwords._clearWords()
+    saidwords.save(mincount=1000)   # this clears the words in the language info file
+
 def test_addSourceDir():
     workdir = r'C:\DCS\Test\test_reg'
     sourcedir = r'C:\DCS\Nepali\invaliddir'
@@ -260,3 +278,28 @@ def test_addChapterTitle():
     assert pi.getStandardChapterTitle() == title
     pi.save()
     assert pi.getStandardChapterTitle() == title
+
+def test_setGenerator():
+    workdir = r'C:\DCS\Test\no_manifest'
+    name = "Generator Test"
+    version = "0"
+    pi = ProjectInfo(workdir, 'test')
+    pi.setGenerator(name, version)
+    pi.save()
+
+    burrito = Burrito(workdir)
+    is_valid, msg = burrito.load()
+    assert is_valid
+    assert 'generator' in burrito.contents['meta']
+    assert burrito.contents['meta']['generator']['softwareName'] == name
+    assert burrito.contents['meta']['generator']['softwareVersion'] == version
+
+    # Reset generator to something else
+    name += " Undo"
+    version += "99"
+    pi.setGenerator(name, version)
+    pi.save()
+    is_valid, msg = burrito.load()
+    assert is_valid
+    assert burrito.contents['meta']['generator']['softwareName'] == name
+    assert burrito.contents['meta']['generator']['softwareVersion'] == version

@@ -9,6 +9,7 @@ tests_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(os.path.dirname(tests_path), "src")
 sys.path.append(src_path)
 from scripture_burrito import Burrito
+from scripture_burrito_validator import validate as validate_burrito
 
 testdir = r'C:\DCS\Test\no_manifest'
 # testdir = r'C:\DCS\Test'
@@ -32,6 +33,7 @@ def test_validate(testdir):
     # Validates existing file.
     burrito = Burrito(testdir)
     is_valid, msg = burrito.load()
+    assert validate_burrito(burrito.contents) == (is_valid, msg)
     if not is_valid:
         print(msg)
     assert is_valid
@@ -44,6 +46,7 @@ def test_init_burrito():
     assert burrito.contents != {}
     burrito.addProject("COL", os.path.join(testdir, "52-COL.usfm"))
     is_valid, msg = burrito.save()
+    assert validate_burrito(burrito.contents) == (is_valid, msg)
     print(msg)
     assert is_valid
 
@@ -54,8 +57,10 @@ def test_rewrite():
     assert is_valid
     content1 = burrito.contents
     is_valid, msg = burrito.save()
+    assert validate_burrito(content1) == (is_valid, msg)
     assert is_valid
     is_valid, msg = burrito.load()
+    assert validate_burrito(burrito.contents) == (is_valid, msg)
     assert is_valid
     content2 = burrito.contents
     assert content1 == content2
@@ -74,6 +79,7 @@ def test_change_generator():
     assert burrito.contents['meta']['generator']['softwareName'] == name
     assert burrito.contents['meta']['generator']['softwareVersion'] == version
     is_valid, msg = burrito.save()
+    assert validate_burrito(burrito.contents) == (is_valid, msg)
     assert is_valid
     if origname and origversion and (origname != name or origversion != version):
         burrito.setGenerator(origname, origversion)
@@ -126,6 +132,7 @@ def test_set_language():
     assert locale in burrito.contents['languages'][0]['name']
     assert burrito.contents['languages'][0]['name'][locale] == name
     is_valid, msg = burrito.save()
+    assert validate_burrito(burrito.contents) == (is_valid, msg)
     assert is_valid
 
     locale_fr = "fr"
