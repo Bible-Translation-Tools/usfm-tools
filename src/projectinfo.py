@@ -29,7 +29,7 @@ class ProjectInfo:
     def useManifest(self, docreate):
         if not self.manifest:
             if docreate:
-                self.makeManifest()     # makes and loads manifest
+                self._makeManifest()     # makes and loads manifest
         else:
             self.manifest.load(self.project_dir)
         if self.manifest and self.manifest.getLanguageId() != self.getLanguageCode():
@@ -43,7 +43,7 @@ class ProjectInfo:
     # Creates manifest file if it does not exist.
     # Overwrites manifest if it exists and is corrupted.
     # Does not overwrite a syntactically valid manifest.
-    def makeManifest(self):
+    def _makeManifest(self):
         if not self.manifest:
             self.manifest = ManifestYaml()
             errors = self.manifest.load(self.project_dir)
@@ -194,6 +194,9 @@ class SaidWords:
     def getWords(self, mincount=1):
         return [word for word in self.words if self.words[word] >= mincount]
 
+    def _clearWords(self):
+        self.words = dict()
+
     # Saves the current information to LanguageInfo, which serializes the
     # top "said" words in the language info file.
     def save(self, mincount=1):
@@ -201,6 +204,8 @@ class SaidWords:
         for word in self.words:
             if self.words[word] >= mincount:
                 li.addWord(word, self.words[word])
+        if not self.words and mincount >= 1000:
+            li.clearWords()
         li.save()
 
 # Returns the modified date/time of the specified file, formatted as a string.

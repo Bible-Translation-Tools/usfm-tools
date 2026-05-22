@@ -107,3 +107,6 @@ class LanguageInfo:
     # Returns the list of words with count greater than mincount.
     def getWords(self, mincount=1):
         return [word for word in self.info['said_words'] if self.info['said_words'][word] >= mincount]
+
+    def clearWords(self):
+        self.info['said_words'] = dict()
