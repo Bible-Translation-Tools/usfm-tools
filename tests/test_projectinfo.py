@@ -1,8 +1,8 @@
 # pytest unit tests for functions in projectinfo.py
 # Before running all the tests as a whole:
-#   Manifest.yaml in test_dir should have valid language info.
-#   Manifest.yaml should have one valid source.
-#   remove "said_words" from test.json, or set it to an empty dict -- {}
+#   Manifest.yaml in test_dir should have a valid language direction and a language identifer.
+#   Manifest.yaml should have one, syntactially correct source.
+#   remove "said_words" from C:\DCS\Test\test.json, or set it to an empty dict -- {}
 
 import os
 import sys
@@ -14,7 +14,9 @@ from projectinfo import ProjectInfo, SaidWords
 from manifestyaml import ManifestYaml
 
 test_dir = r'C:\DCS\Test\test_pi'
+saidwords_dir = r'C:\DCS\Test\test_reg'
 language_code = 'test-pi'
+saidwords_language_code = "test"
 language_name = 'Test ProjectInfo'
 source_lang = 'test-source'
 source_resource_id = 'uub'
@@ -111,12 +113,12 @@ def add1source(lang, resource_id, ver):
     assert source['count'] == 1
     projectInfo.save()
 
-# Manifest.yaml should have valid language info before running this.
+# The manifest.yaml file in workdir should have valid language info before running this.
 # Manifest.yaml should have exactly one valid source before running this.
 def test_manifest_connection():
-    dir = r'C:\DCS\Test\test_reg'
-    language_code = 'test'
-    pi = ProjectInfo(dir, language_code)
+    workdir = r'C:\DCS\Test\test_reg'
+    working_lang_code = 'test'
+    pi = ProjectInfo(workdir, working_lang_code)
     pi.resetSources()
     pi.setLanguage("")
     n = len(pi.getSources())
@@ -124,7 +126,7 @@ def test_manifest_connection():
     assert pi.getLanguageName() == ""
 
     my = ManifestYaml()
-    my.load(dir)
+    my.load(workdir)
     myname = my.getLanguageName()
     mydirection = my.getLanguageDirection()
     mylen = len(my.getSources())
@@ -138,7 +140,7 @@ def test_manifest_connection():
     pi.save()
 
     # New ProjectInfo object, not synced to Manifest
-    pi_nosync = ProjectInfo(dir, language_code)
+    pi_nosync = ProjectInfo(workdir, working_lang_code)
     assert len(pi_nosync.getSources()) == pilen
     pi_nosync.setLanguage("Mangled name", "mangled direction")
     assert pi_nosync.getLanguageName() == "Mangled name"
@@ -148,8 +150,8 @@ def test_manifest_connection():
     assert len(pi_nosync.getSources()) == pilen + 1
     pi_nosync.save()   # does not save manifest
 
-    my.load(dir)
-    assert my.getLanguageId() == language_code
+    my.load(workdir)
+    assert my.getLanguageId() == working_lang_code
     assert my.getLanguageName() == myname   # sync didn't happen
     assert my.getLanguageDirection() == mydirection   # bad value wasn't saved
     assert len(my.getSources()) == mylen
@@ -158,36 +160,33 @@ def test_manifest_connection():
     assert pi.getLanguageName() == "Sync name"
     pi.addSource('bogus', 'uld', 'v3')
     pi.save()
-    my.load(dir)
+    my.load(workdir)
     assert my.getLanguageName() == "Sync name"   # existing name wasn't overwritten
     assert my.getLanguageDirection() in {'rtl','ltr'}   # direction is not affected
     assert len(my.getSources()) == mylen + 1
 
     pi.setLanguage(myname, mydirection)
-    pi.save()   # should restore language entry in both files
+    pi.resetSources()
+    pi.addSource('en', 'uub', '12')
+    pi.save()   # should restore language and source entries in both files
 
-# Before running this, remove "said_words" from test.json.
+# Before running this, remove "said_words" from test.json in the saidwords_dir.
 # Or, set it to an empty dict -- {}
 def test_saidwords():
-    global test_dir
-    test_dir = r'C:\DCS\Test\test_reg'
-    global language_code
-    language_code = 'test'
-
     nowords()
     addwords()
     savedwords()
     add_to_savedwords()
     saidWords()
-    savedSaidWords( )
+    savedSaidWords()
 
 def nowords():
-    pi = ProjectInfo(test_dir, language_code)
+    pi = ProjectInfo(saidwords_dir, saidwords_language_code)
     words = pi.getWords()
     assert words == []
 
 def addwords():
-    pi = ProjectInfo(test_dir, language_code)
+    pi = ProjectInfo(saidwords_dir, saidwords_language_code)
     pi.addWord('aaa', 2)
     pi.addWord('bbb', 3)
     pi.addWord('ccc', 1)
@@ -200,14 +199,14 @@ def addwords():
 
 # Run this test after running test_addwords()
 def savedwords():
-    pi = ProjectInfo(test_dir, language_code)
+    pi = ProjectInfo(saidwords_dir, saidwords_language_code)
     words = pi.getWords(mincount=1)
     assert words == ['aaa', 'bbb', 'ccc']
     words = pi.getWords(mincount=2)
     assert words == ['aaa', 'bbb']
 
 def add_to_savedwords():
-    pi = ProjectInfo(test_dir, language_code)
+    pi = ProjectInfo(saidwords_dir, saidwords_language_code)
     pi.addWord('bbb', 1)    # no effect
     pi.addWord('ccc', 3)
     words = pi.getWords(mincount=2)
@@ -216,7 +215,7 @@ def add_to_savedwords():
 
 # Run this test after running test_savedwords()
 def saidWords():
-    saidwords = SaidWords(test_dir, language_code)
+    saidwords = SaidWords(saidwords_dir, saidwords_language_code)
     saidwords.addWord('aaa')
     saidwords.addWord('aaa')
     saidwords.addWord('aaa')
@@ -237,6 +236,13 @@ def saidWords():
     assert words == []
     saidwords.save(mincount=2)
 
+def savedSaidWords():
+    pi = ProjectInfo(saidwords_dir, saidwords_language_code)
+    words = pi.getWords(mincount=1)
+    assert words == ['aaa', 'bbb', 'ccc', 'ddd']    # notice, 'eee' was not saved
+    words = pi.getWords(mincount=3)
+    assert words == ['aaa', 'bbb', 'ccc']
+
 def test_addSourceDir():
     workdir = r'C:\DCS\Test\test_reg'
     sourcedir = r'C:\DCS\Nepali\invaliddir'
@@ -254,10 +260,3 @@ def test_addChapterTitle():
     assert pi.getStandardChapterTitle() == title
     pi.save()
     assert pi.getStandardChapterTitle() == title
-
-def savedSaidWords():
-    pi = ProjectInfo(test_dir, language_code)
-    words = pi.getWords(mincount=1)
-    assert words == ['aaa', 'bbb', 'ccc', 'ddd']    # notice, 'eee' was not saved
-    words = pi.getWords(mincount=3)
-    assert words == ['aaa', 'bbb', 'ccc']
