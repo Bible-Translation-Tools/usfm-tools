@@ -50,6 +50,7 @@
 #   verifies presence of media.yaml file for OBS projects.
 #   verifies config.yaml files for tA or tW projects
 
+gui = None
 nIssues = 0
 projtype = ''
 manifestDir = ""
@@ -88,6 +89,11 @@ def allowAscii(path) -> bool:
 
 # Writes error message to stderr.
 def reportError(msg):
+    if not "manifest.yaml" in msg and not "media.yaml" in msg:
+        msg = "manifest.yaml: " + msg
+    reportErrorSic(msg)
+
+def reportErrorSic(msg):
     reportToGui(msg)
     stream(msg, "Error", sys.stderr)
     sys.stderr.flush()
@@ -99,6 +105,8 @@ def reportWarning(msg):
     reportError("Potential error. Please check: " + msg)
 
 def reportStatus(msg):
+    if not "manifest.yaml" in msg and not "media.yaml" in msg:
+        msg = "manifest.yaml: " + msg
     reportToGui(msg)
     stream(msg, "Status", sys.stdout)
 
@@ -214,7 +222,6 @@ def verifyBookTitlePairs(projects, id1, id2):
 # Verifies the Bible book title against the title as given in the usfm file.
 def verifyBookTitle(booktitle, bookId, relpath):
     if booktitle.isascii() and not allowAsciiTitles:
-        # reportError("ASCII project:title book title: " + str(project['title']))
         reportError("ASCII project:title: " + booktitle)
     if booktitle.endswith('.'):
         reportError(f"project:title has punctuation: {booktitle}")
@@ -241,11 +248,11 @@ def verifyBookTitle(booktitle, bookId, relpath):
 # Verifies that all chapters exist for the given folder.
 def verifyBook(book, bookpath):
     if not book.islower():
-        reportError("Upper case book folder: " + os.path.relpath(bookpath, manifestDir))
+        reportErrorSic("Upper case book folder: " + os.path.relpath(bookpath, manifestDir))
     nchapters = usfm_verses.verseCounts[book.upper()]['chapters']
     subdirs = os.listdir(bookpath)
     if len(subdirs) < nchapters or ("front" in subdirs and len(subdirs) <= nchapters):
-        reportError("Missing chapters in: " + os.path.relpath(bookpath, manifestDir))
+        reportErrorSic("Missing chapters in: " + os.path.relpath(bookpath, manifestDir))
     for chapter in subdirs:
         path = os.path.join(bookpath, chapter)
         if os.path.isdir(path):
@@ -261,7 +268,7 @@ def verifyBooks(path):
             if len(book) == 3 and os.path.isdir(bookpath) and book.upper() in usfm_verses.verseCounts:
                 verifyBook(book, bookpath)
             elif not book.startswith("issues"):
-                reportError("Invalid(?) file or folder: " + os.path.relpath(bookpath, manifestDir))
+                reportErrorSic("Invalid(?) file or folder: " + os.path.relpath(bookpath, manifestDir))
 
 fname2_re = re.compile(r'[0-8][0-9]\.md$')
 fname3_re = re.compile(r'[0-1][0-9][0-9]\.md$')
@@ -275,7 +282,7 @@ def verifyChapter(path):
         fname_re = fname3_re
     for fname in os.listdir(path):
         if not skip and not fname_re.match(fname) and fname != "intro.md":
-            reportError("Invalid file name: " + fname + " in " + os.path.relpath(path, manifestDir))
+            reportErrorSic("Invalid file name: " + fname + " in " + os.path.relpath(path, manifestDir))
 
 # Verifies the checking section of the manifest.
 def verifyChecking(checking):
@@ -300,16 +307,16 @@ def verifyCleanDir(dirpath):
     for fname in os.listdir(dirpath):
         path = os.path.join(dirpath, fname)
         if projtype == 'ta' and fname == 'media.yaml':
-            reportError("Unwanted media.yaml file: " + os.path.relpath(path, manifestDir))
+            reportErrorSic("Unwanted media.yaml file: " + os.path.relpath(path, manifestDir))
         if "manifest" in fname and fname != "manifest.yaml":
-            reportError("Extra manifest file: " + os.path.relpath(path, manifestDir))
+            reportErrorSic("Extra manifest file: " + os.path.relpath(path, manifestDir))
         if "temp" in fname or "tmp" in fname or "orig" in fname or "bak" in fname or \
           "Copy" in fname or "txt" in fname or "projects" in fname or fname.endswith(".field"):
             if not issuesfile_re.match(fname) and fname not in {"metadata.json", "translate-original", "temple.md", "tempt.md", "contempt.md", "habakkuk.md", "wordlist.txt"}:
-                reportError("Extraneous file: " + os.path.relpath(path, manifestDir))
+                reportErrorSic("Extraneous file: " + os.path.relpath(path, manifestDir))
 
         elif badname_re.match(fname):
-            reportError("Likely misnamed file: " + os.path.relpath(path, manifestDir))
+            reportErrorSic("Likely misnamed file: " + os.path.relpath(path, manifestDir))
         if os.path.isdir(path) and fname != ".git":
             verifyCleanDir(path)
 
@@ -364,26 +371,35 @@ def verifyDates(issued, modified):
     if issuedate > moddate:
         reportError("Dates wrong - issued: " + issued + ", modified: " + modified)
 
-def verifyDir(dirpath):
-    path = os.path.join(dirpath, "manifest.yaml")
+# Checks the manifest.yaml file in the folder specified in the config.
+# Returns the number of issues found.
+def verifyManifest(app = None):
+    global gui
+    gui = app
+    global nIssues
+    nIssues = 0
+    global manifestDir
+    manifestDir = ToolsConfigManager().get('VerifyManifest', 'work_dir')
+    path = os.path.join(manifestDir, "manifest.yaml")
     if os.path.isfile(path):
-        verifyFile(dirpath)
+        verifyFile(manifestDir)
         verifyOtherFiles()
-        verifyCleanDir(dirpath)
+        verifyCleanDir(manifestDir)
         if projtype == 'ta':
             for folder in ['checking', 'intro', 'process', 'translate']:
-                path = os.path.join(dirpath, folder)
+                path = os.path.join(manifestDir, folder)
                 verifyYamls(path)
                 verifyTitleFiles(path)
         if projtype.startswith('obs'):
-            verifyMediaYaml(dirpath)
+            verifyMediaYaml(manifestDir)
         if projtype == 'tw':
-            verifyTWfiles(dirpath)
+            verifyTWfiles(manifestDir)
         if projtype in {'tn','tq'}:
-            verifyBooks(dirpath)
-        verifyReadme(dirpath)
+            verifyBooks(manifestDir)
+        verifyReadme(manifestDir)
     else:
-        reportError(f"There is no manifest.yaml file in: {dirpath}.\nCancelled further checking.")
+        reportErrorSic(f"There is no manifest.yaml file in: {manifestDir}.\nCancelled further checking.")
+    return nIssues
 
 # Manifest file verification
 def verifyFile(dir):
@@ -395,9 +411,9 @@ def verifyFile(dir):
             verifyCore(manifest['dublin_core'])
             verifyChecking(manifest['checking'])
         except TypeError as e:
-            reportError(f"Syntax error in manifest.yaml: \"{str(e)}.\"")
-            reportError("    -- It most likely involves quotes around strings.")
-            reportError("    -- If you can't find the mistake, it may help to use an online yaml checker, like yamllint.com.")
+            reportErrorSic(f"Syntax error in manifest.yaml: \"{str(e)}.\"")
+            reportErrorSic("    -- It most likely involves quotes around strings.")
+            reportErrorSic("    -- If you can't find the mistake, it may help to use an online yaml checker, like yamllint.com.")
 
 # Verifies format field is a valid string, depending on project type.
 # Done with iev, irv, isv, obs, obs-tn, obs-tq, obs-sn, obs-sq, reg, ta, tq, tn, tw, tsv, ulb, udb, ust
@@ -472,16 +488,16 @@ def verifyMediaYaml(dirpath):
             verifyKeys("", contents, ['projects'])
             verifyProjectsOBS(contents['projects'])
         except TypeError as e:
-            reportError(f"Syntax error in media.yaml: \"{str(e)}.\"")
+            reportErrorSic(f"Syntax error in media.yaml: \"{str(e)}.\"")
 
 # Verify media entry from OBS media.yaml file
 def verifyMedium(medium):
     verifyKeys("media", medium, ['identifier', 'version', 'contributor', 'url'])
     if 'en' in medium['url']:
-        reportError("Replace 'en' with the correct langauge code in media.yaml url's")
+        reportErrorSic("Replace 'en' with the correct langauge code in media.yaml url's")
     version = "v" + medium['version']
     if medium['identifier'] != 'door43' and medium['url'].count(version) != 2:
-        reportError("Correct the version numbers in media.yaml url's")
+        reportErrorSic("Correct the version numbers in media.yaml url's")
     if medium['identifier'] == 'pdf':
         reportStatus("Verify all language codes and {latest} version in media.yaml.\n")
     else:
@@ -496,7 +512,7 @@ def verifyOtherFiles():
             found = True
             break
     if not found:
-        reportError("LICENSE file is missing")
+        reportErrorSic("LICENSE file is missing")
 
 # Verifies that the project contains the six required fields and no others.
 # Verifies that the path exists.
@@ -519,7 +535,7 @@ def verifyProject(project):
             allowAsciiTitles = allowAscii(fullpath)
         filenames = os.listdir(manifestDir)     # this is necessary to get case sensitive file names in Windows
         if not os.path.basename(projpath) in filenames:
-            reportError(f"Case mismatch in file name. Use {os.path.basename(projpath)}, as in manifest file.")
+            reportErrorSic(f"Case mismatch in file name. Use {os.path.basename(projpath)}, as in manifest file.")
     if not isinstance(project['sort'], numbers.Integral):
         reportError("project:sort is the wrong type: " + str(project['sort']))
     if projtype == 'ta':
@@ -630,17 +646,17 @@ def verifyProjectOBS(project):
     if project['identifier'] in {'obs','obs-tn','obs-tq'}:
         nmedia = len(project['media'])
         if nmedia < 1:
-            reportError('No media are defined in media.yaml')
+            reportErrorSic('No media are defined in media.yaml')
         else:
             for medium in project['media']:
                 verifyMedium(medium)
     else:
-        reportError("Unknowns identifier in media.yaml: " + project['identifier'])
+        reportErrorSic("Unknowns identifier in media.yaml: " + project['identifier'])
 
 # Verify the projects section of an OBS media.yaml file, which is the only section
 def verifyProjectsOBS(projects):
     if not projects:
-        reportError('media.yaml is empty')
+        reportErrorSic('media.yaml is empty')
     else:
         for p in projects:
             verifyProjectOBS(p)
@@ -650,7 +666,7 @@ def verifyReadme(dirpath):
     if not os.path.isfile(readmepath):
         readmepath = os.path.join(dirpath, "README")
     if not os.path.isfile(readmepath):
-        reportError("No README file is found")
+        reportErrorSic("No README file is found")
 
 def verifyRelation(rel):
     if not isinstance(rel, str):
@@ -764,7 +780,7 @@ def verifySubject(subject):
     elif projtype == 'obs-sn':
         expected_subject = 'OBS Study Notes'
     else:
-        reportStatus("Verify subject manually.")
+        reportStatus("Verify subject field manually.")
         expected_subject = subject
     if subject != expected_subject:
         reportError("Invalid subject: " + subject + " (expected '" + expected_subject + "')")
@@ -791,7 +807,7 @@ def verifyTitleFiles(folder):
                 for fname in ["01.md", "title.md", "sub-title.md"]:
                     path = os.path.join(articlePath, fname)
                     if not os.path.isfile(path):
-                        reportError("Missing file: " + os.path.relpath(path, manifestDir))
+                        reportErrorSic("Missing file: " + os.path.relpath(path, manifestDir))
 
 # For now, simply reports whether the config.yaml file is parseable.
 def verifyTWfiles(dir):
@@ -829,9 +845,9 @@ def verifyYamls(folderpath):
         try:
             nAsciiTitles = verifyTocYaml(contents, "toc.yaml")
             if nAsciiTitles > 0 and not allowAsciiTitles:
-                reportWarning(f"{nAsciiTitles} likely untranslated titles in toc.yaml")
+                reportErrorSic(f"{nAsciiTitles} likely untranslated titles in toc.yaml")
         except TypeError as e:
-            reportError(f"Syntax error in toc.yaml: \"{str(e)}.\"")
+            reportErrorSic(f"Syntax error in toc.yaml: \"{str(e)}.\"")
 
 def verifyType(type):
     failure = False
@@ -860,41 +876,12 @@ def verifyVersion(version, sourceversion):
     if projtype == 'obs':
         reportStatus("Verify that the version number listed in front/intro.md is: " + version + "\n")
 
-def verifyManifest():
-    global manifestDir
-    manifestDir = getWorkDir()
-    verifyDir(manifestDir)
-
-# Verifies the syntactical correctness of the metadata.json file for now.
-# Also resaves the file, which automatically updates the timestamp and checksums.
-def verifyBurrito():
-    from scripture_burrito import Burrito
-    burrito = Burrito(manifestDir)
-    is_valid, msg = burrito.load()
-    if not is_valid:
-        reportError(f"Invalid burrito data: {msg}")
-    else:
-        burrito.save()
-
-# Temporary function, until all references to "source_dir" are removed.
-def getWorkDir():
-    config = ToolsConfigManager()
-    workdir = config.get('VerifyManifest', 'work_dir')
-    if not workdir:
-        workdir = config.get('VerifyManifest', 'source_dir')    # the old name
-    return workdir
-
 def main(app = None):
-    global gui
-    gui = app
-    global nIssues
-    nIssues = 0
-    verifyManifest()
-    verifyBurrito()
+    verifyManifest(app)
     if nIssues == 0:
-        reportStatus("Done, no issues found.")
+        reportStatus("Done, no issues found in manifest.yaml.")
     else:
-        reportStatus("\nFinished checking, found " + str(nIssues) + " issue(s).")
+        reportStatus("\nFound " + str(nIssues) + " issue(s) in manifest.yaml.")
     sys.stdout.flush()
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
