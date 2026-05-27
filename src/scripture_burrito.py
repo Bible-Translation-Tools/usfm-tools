@@ -58,9 +58,9 @@ class Burrito:
     # It is not a valid Burrito until copyright, language and one ingredient are added.
     def create(self):
         # self.contents = {"format":"scripture burrito","meta":{"version":"1.0.0","category":"source","defaultLocale":"en","dateCreated":strNow()},"idAuthorities":{"wycliffeassociates":{"id":"https://www.wycliffeassociates.org","name":{"en":"Wycliffe Associates"}}},"identification":{"primary":{"wacs":{"Tech_Advance:":{"revision":"latest","timestamp":strNow()}}},"name":{"en":"Bible"}},"confidential":False,"languages":[{"tag":"xx","name":{"en":"Placeholder"},"scriptDirection":"ltr"}],"type":{"flavorType":{"name":"scripture","flavor":{"name":"textTranslation","projectType":"standard","translationType":"newTranslation","audience":"common","usfmVersion":"3.0"}}},"copyright":{"licenses":[{"ingredient":"LICENSE.md"}]}}
-          self.contents = {"format":"scripture burrito","meta":{"version":"1.0.0","category":"source","defaultLocale":"en","dateCreated":strToday()},"idAuthorities":{"wycliffeassociates":{"id":"https://www.wycliffeassociates.org","name":{"en":"Wycliffe Associates"}}},"identification":{"primary":{"wacs":{"owner/repo":{"revision":"latest","timestamp":strToday()}}},"name":{"en":"Bible"},"abbreviation":{"en":"Bible"}},"confidential":False,"type":{"flavorType":{"name":"scripture","flavor":{"name":"textTranslation","projectType":"standard","translationType":"newTranslation","audience":"common","usfmVersion":"3.0"}}},"copyright":{"licenses":[{"ingredient":"LICENSE.md"}]}}
+        self.contents = {"format":"scripture burrito","meta":{"version":"1.0.0","category":"source","defaultLocale":"en","dateCreated":strToday()},"idAuthorities":{"wycliffeassociates":{"id":"https://www.wycliffeassociates.org","name":{"en":"Wycliffe Associates"}}},"identification":{"primary":{"wacs":{"owner/repo":{"revision":"latest","timestamp":strToday()}}},"name":{"en":"Bible"},"abbreviation":{"en":"Bible"}},"confidential":False,"type":{"flavorType":{"name":"scripture","flavor":{"name":"textTranslation","projectType":"standard","translationType":"newTranslation","audience":"common","usfmVersion":"3.0"}}},"copyright":{"licenses":[{"ingredient":"LICENSE.md"}]}}
 
-    # Saves the current contents to metadata.json. Overwrites file if it exists.
+    # Overwrites metadata.json, if in-memory contents are valid.
     # Returns Tuple of (is_valid: bool, message: str)
     def save(self):
         is_valid = True
@@ -94,8 +94,7 @@ class Burrito:
     # There may be only one language in a WA burrito, but the name may vary by locale.
     def setLanguage(self, language_code, locale, name, direction):
         if not "languages" in self.contents:
-            self.contents["languages"] = []
-            self.contents["languages"].append({"tag": language_code, "name": {locale: name}, "scriptDirection": direction})
+            self.contents["languages"] = [{"tag": language_code, "name": {locale: name}, "scriptDirection": direction}]
         else:
             language = self.contents["languages"][0]
             if language["tag"] != language_code:      # different language
