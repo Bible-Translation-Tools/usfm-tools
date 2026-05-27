@@ -1,14 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# Script for verifying a Scripture Burrito metadata.json.
+# Script for verifying a Scripture Burrito: metadata.json in situ.
 
 nIssues = 0
-resouceDir = ""
+resourceDir = ""
+burrito_contents = dict()
+
+import os
+
+import requests
 
 from configmanager import ToolsConfigManager
-from datetime import datetime
-from datetime import date
+import re
 import sys
+
+from scripture_burrito import Burrito, size_and_checksum
+
 # import os
 # import io
 # import re
@@ -23,7 +30,7 @@ def reportError(msg):
 
 # Writes warnings message to stderr.
 def reportWarning(msg):
-    reportError("Potential error. Please check: " + msg)
+    reportError("Possible error. " + msg)
 
 def reportStatus(msg):
     reportToGui(msg)
@@ -43,6 +50,15 @@ def stream(msg, msgtype, stream):
     except UnicodeEncodeError as e:
         stream.write(f"{msgtype} message not shown, contains Unicode.\n")
 
+def check_url_exists(url):
+    import requests
+    try:
+        response = requests.head(url, allow_redirects=True)
+        exists = response.status_code < 400
+    except requests.exceptions.RequestException as e:
+        exists = False
+    return exists
+
 # Verifies the syntactical correctness of the metadata.json file for now.
 # Returns the number of issues found.
 def verifyBurrito(app = None):
@@ -50,22 +66,86 @@ def verifyBurrito(app = None):
     gui = app
     global nIssues
     nIssues = 0
-    global resouceDir
-    resouceDir = ToolsConfigManager().get('VerifyManifest', 'work_dir')
+    global resourceDir
+    resourceDir = ToolsConfigManager().get('VerifyManifest', 'work_dir')
 
-    from scripture_burrito import Burrito
-    burrito = Burrito(resouceDir)
+    global burrito_contents
+    burrito = Burrito(resourceDir)
     is_valid, msg = burrito.load()
-    if not is_valid:
+    if is_valid:
+        global burrito_contents
+        burrito_contents = burrito.contents
+        verifyCleanDir(resourceDir)
+        verifyIngredients()
+        verifyLicense()
+        verifyWacsRepo()
+    else:
         reportError(f"Invalid burrito data: {msg}")
     return nIssues
+
+issuesfile_re = re.compile(r'issues.*\.txt')
+readme_re = re.compile(r'readme(\.md|$)', re.IGNORECASE)
+
+# Checks for extraneous files
+def verifyCleanDir(dirpath):
+    global burrito_contents
+    ingredients = burrito_contents['ingredients'].keys()
+    for entry in os.listdir(dirpath):
+        # Skip known exceptions
+        if entry in {"manifest.yaml", "metadata.json", "wordlist.tsv", ".git"}:
+            continue
+        if issuesfile_re.match(entry) or readme_re.match(entry):
+            continue
+        path = os.path.join(dirpath, entry)
+        if os.path.isdir(path):
+            verifyCleanDir(path)
+        else:
+            relpath = os.path.relpath(path, resourceDir)
+            if relpath not in ingredients and relpath != burrito_contents['copyright']['licenses'][0]['ingredient']:
+                reportError(f"This file is not listed as an ingredient in metadata.json: {relpath}")
+
+subdir_re = re.compile(r'^[^\\/]+[\\/][^\\/]+')
+
+def verifyIngredients():
+    global resourceDir
+    global burrito_contents
+    for ingredient in burrito_contents['ingredients'].keys():
+        path = os.path.join(resourceDir, ingredient)
+        if not os.path.isfile(path):
+            reportError(f"Ingredient file not found: {ingredient}")
+        else:
+            (size, checksum) = size_and_checksum(path)
+            expect_size = burrito_contents['ingredients'][ingredient]['size']
+            expect_checksum = burrito_contents['ingredients'][ingredient]['checksum']['md5']
+            if size != expect_size:
+                reportError(f"Ingredient size mismatch for {ingredient}: actual size is {size}")
+            if checksum != expect_checksum:
+                reportError(f"Ingredient checksum mismatch for {ingredient}: actual checksum is {checksum}")
+
+def verifyLicense():
+    global burrito_contents
+    relpath = burrito_contents['copyright']['licenses'][0]['ingredient']
+    path = os.path.join(resourceDir, relpath)
+    if not os.path.isfile(path):
+        reportError(f"License file not found: {relpath}")
+
+def verifyWacsRepo():
+    global burrito_contents
+    if 'wacs' in burrito_contents['identification']['primary']:
+        repo_info = burrito_contents['identification']['primary']['wacs']
+        for repo in repo_info.keys():
+            url = os.path.join("https://content.bibletranslationtools.org/", repo)
+            if not check_url_exists(url):
+                reportError(f"WACS repository does not exist yet: {repo}")
+    else:
+        reportWarning("No WACS repository specified in metadata.json primary identification.")
 
 def main(app = None):
     verifyBurrito(app)
     if nIssues == 0:
         reportStatus("Done, no issues found.")
     else:
-        reportStatus("\nFinished checking, found " + str(nIssues) + " issue(s).")
+        reportStatus("\nFinished checking burrito, found " + str(nIssues) + " issue(s).")
     sys.stdout.flush()
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
