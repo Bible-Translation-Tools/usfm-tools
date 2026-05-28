@@ -306,18 +306,16 @@ class State:
         self.needVerseText = False
         self.textOkayHere = True
 
-    # Returns the length of the source text for the current verse.
+    # Returns the length of the source text for the current verse or verse bridge.
     def sourcelength(self):
         if sourcebook:
-            length = sourcebook.getVerseLength(self.chapter, self.verse)
-            if length == 0 and self.bridge_start > 0:
+            if self.isVerseInBridge(self.verse):
+                length = 0
                 for vn in range(self.bridge_start, self.bridge_end + 1):
                     verselen = sourcebook.getVerseLength(self.chapter, vn)
-                    if verselen > 0:
-                        length += verselen
-                    else:
-                        length = 1
-                        break
+                    length += verselen if verselen > 0 else 1
+            else:
+                length = sourcebook.getVerseLength(self.chapter, self.verse)
         else:
             length = 1
         return length
