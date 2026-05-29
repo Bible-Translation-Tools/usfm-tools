@@ -1448,6 +1448,7 @@ def reportFootnoteSpacing(line, reference):
             reportIssue(f"Space before footnote marker \\{fspace.group(1)} at {reference}", 78)
 
 section_re = re.compile(r'\\s[1-4]? +')
+emptytitle_re = re.compile(r'\\s *$')
 
 def reportSectionTitles(block, reference, chap, verse):
     if not hasattr(reportSectionTitles, "lastHd"):
@@ -1458,6 +1459,8 @@ def reportSectionTitles(block, reference, chap, verse):
     if section_re.match(block):
         reportSectionTitles.lastHd = reference
 
+    if emptytitle_re.match(block):
+        reportIssue(f"Empty section title at {reference}", 76.2)
     if reference != reportSectionTitles.lastHd:
         pheading = find_section_heading(block, chap, verse, reportSectionTitles.prevline, reportSectionTitles.sentenceended)
         if pheading:
@@ -1519,9 +1522,10 @@ def verifyBlockByBlock(path):
                     nAscii += 1
             if word := said_word(remainder):
                 saidwords.addWord(word)
-            if remainder and localstate.chapter > 0:
+            if localstate.chapter > 0:
                 reportSectionTitles(block, localstate.reference, localstate.chapter, localstate.verse)
-                reportFootnoteSpacing(block, localstate.reference)
+                if remainder:
+                    reportFootnoteSpacing(block, localstate.reference)
 
     suppress[9] = (nAscii / nblocks > 0.03)
     global nFiles
