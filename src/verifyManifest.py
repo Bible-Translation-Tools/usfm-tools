@@ -382,6 +382,8 @@ def verifyManifest(app = None):
     manifestDir = ToolsConfigManager().get('VerifyManifest', 'work_dir')
     path = os.path.join(manifestDir, "manifest.yaml")
     if os.path.isfile(path):
+        if "manifest.yaml" not in os.listdir(manifestDir):
+            reportErrorSic(f"manifest.yaml file name should be all lower case.")
         verifyFile(manifestDir)
         verifyOtherFiles()
         verifyCleanDir(manifestDir)
