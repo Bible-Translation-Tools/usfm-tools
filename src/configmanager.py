@@ -104,6 +104,16 @@ class ToolsConfigManager:
     # Returns a default dict for the specified section.
     def default_section(self, sectionname):
         match sectionname:
+            case 'MakeMetadata':
+                sec = {'work_dir': "",
+                       'language_code': "",
+                       'language_name_en': "",
+                       'direction': "ltr",
+                       'localized_name': "",
+                       'license_file': "",
+                       'license_type': "",
+                       'repo_owner': "",
+                       'repo_name': "" }
             case 'MarkParagraphs':
                 sec = {'language_code': "",
                     'work_dir': "",
