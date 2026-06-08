@@ -91,7 +91,15 @@ class ManifestYaml:
                 self.contents['projects'].sort(key=operator.itemgetter('sort'))
             except Exception as e:
                 pass
+
+            # Clean up list of contributors
+            newlist = []
+            for contributor in self.contents['dublin_core']['contributor']:
+                contributor = contributor.replace("'", "’")
+                newlist.append(contributor)
+            self.contents['dublin_core']['contributor'] = newlist
             self.contents['dublin_core']['contributor'].sort()
+
             with io.open(self.path, "tw", encoding='utf-8', newline='\n') as file:
                 yaml.safe_dump(self.contents, stream=file, allow_unicode=True, sort_keys=False)
             self.last_load_time = os.path.getmtime(self.path)
@@ -188,6 +196,8 @@ class ManifestYaml:
     # Converts contributor to title case and adds it to the list, if unique.
     def addContributor(self, contributor: str):
         candidate = contributor.title().strip()
+        if candidate.find("'") >= 0:
+            candidate = candidate.replace("'", "’")
         if candidate and not candidate in self.contents['dublin_core']['contributor']:
             self.contents['dublin_core']['contributor'].append(candidate)
 
