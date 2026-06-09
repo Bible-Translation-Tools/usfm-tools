@@ -50,6 +50,8 @@ class LanguageInfo:
         return self.info['language']['id']
     def getLanguageName(self):
         return self.info['language']['name'] if 'name' in self.info['language'] else ""
+    def getLanguageDirection(self):
+        return self.info['language']['direction'] if 'direction' in self.info['language'] else ""
 
     # Overwrites the list of source translations
     def resetSources(self):

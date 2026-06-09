@@ -58,7 +58,7 @@ class Burrito:
     # It is not a valid Burrito until copyright, language and one ingredient are added.
     def create(self):
         # self.contents = {"format":"scripture burrito","meta":{"version":"1.0.0","category":"source","defaultLocale":"en","dateCreated":strNow()},"idAuthorities":{"wycliffeassociates":{"id":"https://www.wycliffeassociates.org","name":{"en":"Wycliffe Associates"}}},"identification":{"primary":{"wacs":{"Tech_Advance:":{"revision":"latest","timestamp":strNow()}}},"name":{"en":"Bible"}},"confidential":False,"languages":[{"tag":"xx","name":{"en":"Placeholder"},"scriptDirection":"ltr"}],"type":{"flavorType":{"name":"scripture","flavor":{"name":"textTranslation","projectType":"standard","translationType":"newTranslation","audience":"common","usfmVersion":"3.0"}}},"copyright":{"licenses":[{"ingredient":"LICENSE.md"}]}}
-        self.contents = {"format":"scripture burrito","meta":{"version":"1.0.0","category":"source","defaultLocale":"en","dateCreated":strToday()},"idAuthorities":{"wycliffeassociates":{"id":"https://www.wycliffeassociates.org","name":{"en":"Wycliffe Associates"}}},"identification":{"primary":{"wacs":{"owner/repo":{"revision":"latest","timestamp":strToday()}}},"name":{"en":"Bible"},"abbreviation":{"en":"Bible"}},"confidential":False,"type":{"flavorType":{"name":"scripture","flavor":{"name":"textTranslation","projectType":"standard","translationType":"newTranslation","audience":"common","usfmVersion":"3.0"}}},"copyright":{"licenses":[{"ingredient":"LICENSE.md"}]}}
+        self.contents = {"format":"scripture burrito","meta":{"version":"1.0.0","category":"source","defaultLocale":"en","dateCreated":strToday()},"idAuthorities":{"wycliffeassociates":{"id":"https://www.wycliffeassociates.org","name":{"en":"Wycliffe Associates"}}},"identification":{"primary":{"wacs":{"owner/repo":{"revision":"latest","timestamp":strToday()}}},"name":{"en":"Bible"},"abbreviation":{"en":"Bible"}},"confidential":False,"type":{"flavorType":{"name":"scripture","flavor":{"name":"textTranslation","projectType":"standard","translationType":"newTranslation","audience":"common","usfmVersion":"3.0"}}},"copyright":{"licenses":[{"ingredient":"LICENSE"}]}}
 
     # Overwrites metadata.json, if in-memory contents are valid.
     # Returns Tuple of (is_valid: bool, message: str)
@@ -93,17 +93,35 @@ class Burrito:
 
     # There may be only one language in a WA burrito, but the name may vary by locale.
     def setLanguage(self, language_code, locale, name, direction):
-        if not "languages" in self.contents:
-            self.contents["languages"] = [{"tag": language_code, "name": {locale: name}, "scriptDirection": direction}]
-        else:
-            language = self.contents["languages"][0]
-            if language["tag"] != language_code:      # different language
-                self.contents["languages"][0] = {"tag": language_code, "name": {locale: name}, "scriptDirection": direction}
-            elif not locale in language["name"]:
+        if language_code and locale and name:
+            if not "languages" in self.contents:
+                self.contents["languages"] = [{"tag": language_code, "name": {locale: name}, "scriptDirection": direction}]
+            else:
+                language = self.contents["languages"][0]
+                if language["tag"] != language_code:      # different language
+                    self.contents["languages"][0] = {"tag": language_code, "name": {locale: name}, "scriptDirection": direction}
                 language["name"][locale] = name
-            if language["scriptDirection"] != direction:
                 language["scriptDirection"] = direction
 
+    # WA burritos only have one language.
+    def getLanguageCode(self):
+        code = ""
+        if "languages" in self.contents and len(self.contents["languages"]) > 0:
+            code = self.contents["languages"][0].get("tag", "")
+        return code
+    # Returns the name of the language in the specified locale, or "" if not found.
+    def getLanguageName(self, locale='en'):
+        name = ""
+        if "languages" in self.contents and len(self.contents["languages"]) > 0:
+            name = self.contents["languages"][0]["name"].get(locale, "")
+        return name
+    def getLanguageDirection(self):
+        direction = ""
+        if "languages" in self.contents and len(self.contents["languages"]) > 0:
+            direction = self.contents["languages"][0].get("scriptDirection", "")
+        return direction
+
+    # Adds a localized book name to the dictionary.
     def addName(self, bookId, locale, shortname, longname="", abbr=""):
         if not "localizedNames" in self.contents:
             self.contents["localizedNames"] = {}
@@ -115,6 +133,9 @@ class Burrito:
         if abbr:
             localized_names[bookId]["abbr"] = {locale: abbr}
 
+    # Adds file information for a project ingredient,
+    # and adds the bookId to the scope of the "scripture" type.
+    # Only supports Scripture books and "scripture" flavortype currently.
     def addProject(self, bookId, path):
         if "ingredients" not in self.contents:  # create() doesn't create this section
             self.contents["ingredients"] = {}

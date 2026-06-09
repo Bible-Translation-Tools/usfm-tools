@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Manages project-specific information, including language-specific information.
-# Changes to the project info are held in memory until save() is called.
+# New project data is held in memory until save() is called.
 # ProjectInfo is a composite class, using LanguageInfo, ManifestYaml, and Burrito.
 # The SaidWords class is also implemented in this module, since it also uses LanguageInfo.
 
@@ -60,7 +60,7 @@ class ProjectInfo:
         if my := self.manifest:
             # Sync language attributes
             if not my.getLanguageId():
-                my.setLanguageId(self.getLanguageCode())
+                my.setLanguageId(self.languageInfo.getLanguageCode())
             language_name = self.languageInfo.getLanguageName()
             if not my.getLanguageName() and language_name:
                 my.setLanguageName(language_name)
@@ -76,12 +76,16 @@ class ProjectInfo:
                 if not self.languageInfo.findSource(mysource['language'], mysource['identifier'], mysource['version']):
                     self.languageInfo.addSource(mysource['language'], mysource['identifier'], mysource['version'])
 
+        self.burrito.setLanguage(self.languageInfo.getLanguageCode(),
+                                  locale='en', name=self.languageInfo.getLanguageName(),
+                                  direction=self.languageInfo.getLanguageDirection())
+
     # Returns True if the specified language resource exists in project info.
     def knownSource(self, language_id, resource_id, version):
         return self.languageInfo.findSource(language_id, resource_id, version) is not None
 
-    # Saves the current information in the project json file and burrito metadata file.
-    # Also saves the manifest info in the manifest.yaml, if it is in use.
+    # Saves the current information in the project json file, burrito metadata file,
+    # and manifest.yaml, if it is in use.
     def save(self):
         self.languageInfo.save()
         repo = "Tech_Advance/" + self.getLanguageCode() + "_reg"
