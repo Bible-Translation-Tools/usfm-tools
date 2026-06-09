@@ -39,7 +39,7 @@ class ToolsConfigManager:
 
     def _make_default_config(self):
         for section in ['MarkParagraphs','RevertChanges','SelectProcess',
-                        'Txt2USFM','UsfmCleanup','VerifyManifest','VerifyUSFM']:
+                        'Txt2USFM','UsfmCleanup','VerifyMetadata','VerifyUSFM']:
             self.cfgParser.add_section(section)
             self.cfgParser[section] = self.default_section(section)
         with io.open(self.configpath, "tw", encoding='utf-8', newline='\n') as file:
@@ -175,7 +175,7 @@ class ToolsConfigManager:
                        'filename': "",
                        'work_dir': "",
                        'notes': False }
-            case 'VerifyManifest':
+            case 'VerifyMetadata':
                 sec = {'work_dir': "",
                        'expectascii': False,
                        'bibletype': True }

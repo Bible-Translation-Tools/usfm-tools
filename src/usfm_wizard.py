@@ -19,7 +19,7 @@ import g_MarkParagraphs
 import g_makeMetadata
 import g_paratext2usfm
 import g_plaintext2usfm
-import g_verifyManifest
+import g_verifyMetadata
 import g_usfm2usx
 import g_usx2usfm
 import g_word2text
@@ -27,13 +27,14 @@ from txt2USFM import main
 from verifyUSFM import main
 from inventory_chapter_labels import main
 from usfm_cleanup import main
+from makeMetadata import main
 from mark_paragraphs import main
 from paratext2usfm import main
 from plaintext2usfm import main
 from revertChanges import main
 from usfm2usx import main
 from usx2usfm import main
-from verifyManifest import main
+from verifyMetadata import main
 from word2text import main
 
 app_version = "1.4.5"
@@ -65,7 +66,7 @@ class UsfmWizard(tkinter.Tk):
     def _build_steps(self, mainframe):
         self.steps = {}
         for S in (g_selectProcess, g_txt2USFM, g_verifyUSFM, g_UsfmCleanup, g_MarkParagraphs,
-                  g_makeMetadata, g_verifyManifest,
+                  g_makeMetadata, g_verifyMetadata,
                   g_plaintext2usfm, g_usfm2usx, g_word2text, g_paratext2usfm, g_usx2usfm):
             stepclass = getattr(sys.modules[S.__name__], S.stepname)
             step = stepclass(mainframe, mainapp=self)   # create an instance of the class
@@ -132,7 +133,7 @@ class UsfmWizard(tkinter.Tk):
                 else:
                     gotostep = self.process
             case 'MakeMetadata':
-                gotostep = 'VerifyManifest'
+                gotostep = 'VerifyMetadata'
             case 'Txt2USFM':
                 gotostep = 'VerifyUSFM'
             case 'Word2text':
