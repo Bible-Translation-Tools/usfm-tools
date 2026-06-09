@@ -28,14 +28,14 @@ class MakeMetadata(g_step.Step):
 
     def onNext(self):
         if self.executed:
-            super().onNext('work_dir', 'language_code')
+            super().onNext('work_dir')
         else:
             super().onNext()
         self.executed = False
 
     def onExecute(self):
         self.enablebutton(2, False)
-        self.mainapp.execute_script("makeMetadata", 2)
+        self.mainapp.execute_script("makeMetadata", 0)
         self.frame.clear_messages()
         self.executed = True
 
@@ -114,7 +114,7 @@ class MakeMetadata_Frame(g_step.Step_Frame):
     def show_values(self):
         self.changingVars = True
         self.language_code.set(self.getOption('language_code'))
-        self.language_name_en.set(self.getOption('language_name'))
+        self.language_name_en.set(self.getOption('language_name_en'))
         direction = self.getOption('direction')
         self.direction.set(direction if direction else 'ltr')
         self.localized_name.set(self.getOption('localized_name'))
@@ -132,7 +132,7 @@ class MakeMetadata_Frame(g_step.Step_Frame):
         self.controller.showbutton(2, "GO", self._onExecute)     # no tip since we bind the <Enter> event
         self.controller.bindButtonEvent(2, "<Enter>", self._onCheckInputs)
         self.controller.showbutton(3, "Work folder", self._onOpenWorkDir)
-        self.controller.showbutton(4, "VERIFY", self._onVerifyMetadata, tip="Verify existing metadata files")
+        self.controller.showbutton(4, "VERIFY", self._onVerifyMetadata, tip="(Not implemented yet) Verify existing metadata files")
         self.controller.showbutton(5, ">>>", self._onNext, tip="Next step")
 
         self.language_code.trace_add("write", self._onChangeLanguage)
