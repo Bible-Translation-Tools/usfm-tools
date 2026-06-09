@@ -25,14 +25,10 @@ def reportError(msg):
     sys.stderr.write(msg + '\n')
     sys.stderr.flush()
 
-# Sends a progress report to the GUI.
+# Sends a status message to the GUI.
 # To be called only if the gui is set.
 def reportStatus(msg):
     reportToGui(msg, '<<ScriptMessage>>')
-    print(msg)
-
-def reportProgress(msg):
-    reportToGui(msg, '<<ScriptProgress>>')
     print(msg)
 
 def reportToGui(msg, event):

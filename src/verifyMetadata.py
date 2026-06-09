@@ -7,15 +7,22 @@ import sys
 from verifyManifest import verifyManifest
 from verifyBurrito import verifyBurrito
 
-def reportStatus(msg, gui):
-    reportToGui(msg, gui)
+gui = None
+
+def reportStatus(msg):
+    reportToGui('<<ScriptMessage>>', msg)
     stream(msg, "Status", sys.stdout)
 
-def reportToGui(msg, gui):
+# Sends a progress report to the GUI, and to stdout.
+def reportProgress(msg):
+    reportToGui('<<ScriptProgress>>', msg)
+    print(msg)
+
+def reportToGui(event, msg):
     if gui:
         with gui.progress_lock:
             gui.progress = msg if not gui.progress else f"{gui.progress}\n{msg}"
-        gui.event_generate('<<ScriptMessage>>', when="tail")
+        gui.event_generate(event, when="tail")
 
 # This little function streams the specified message and handles UnicodeEncodeError
 # exceptions, which are common in Indian language texts. 2/5/24.
@@ -25,17 +32,16 @@ def stream(msg, msgtype, stream):
     except UnicodeEncodeError as e:
         stream.write(f"{msgtype} message not shown, contains Unicode.\n")
 
-def main(gui = None):
+def main(app = None):
+    global gui
+    gui = app
     nIssues = verifyManifest(gui)
+    reportProgress(f"Finished checking manifest.yaml, found {nIssues} issue(s).")
     nBurritoIssues = verifyBurrito(gui)
     if nBurritoIssues == 0:
-        reportStatus("\nNo issues found in metadata.json.", gui)
+        reportStatus("\nNo issues found in metadata.json.")
     nIssues += nBurritoIssues
-    if nIssues == 0:
-        reportStatus("Done, no issues found.", gui)
-    else:
-        reportStatus("\nFinished checking, found " + str(nIssues) + " issue(s).", gui)
-    sys.stdout.flush()
+    reportProgress(f"\nDone, found {nIssues} issue(s).")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 

@@ -12,7 +12,7 @@ stepname = 'VerifyMetadata'   # equals the main class name in this module
 
 class VerifyMetadata(g_step.Step):
     def __init__(self, mainframe, mainapp):
-        super().__init__(mainframe, mainapp, stepname, "Verify manifest.yaml")
+        super().__init__(mainframe, mainapp, stepname, "Verify metadata")
         self.frame = VerifyMetadata_Frame(mainframe, self)
         self.frame.grid(row=1, column=0, sticky="nsew")
         self.executed = False
@@ -37,7 +37,7 @@ class VerifyMetadata(g_step.Step):
     def onExecute(self):
         self.enablebutton(2, False)
         self.enablebutton(5, False)
-        self.mainapp.execute_script("verifyMetadata", 1)
+        self.mainapp.execute_script("verifyMetadata", 2)
         self.frame.clear_messages()
         self.executed = True
 
