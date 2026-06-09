@@ -27,7 +27,10 @@ def stream(msg, msgtype, stream):
 
 def main(gui = None):
     nIssues = verifyManifest(gui)
-    nIssues += verifyBurrito(gui)
+    nBurritoIssues = verifyBurrito(gui)
+    if nBurritoIssues == 0:
+        reportStatus("\nNo issues found in metadata.json.", gui)
+    nIssues += nBurritoIssues
     if nIssues == 0:
         reportStatus("Done, no issues found.", gui)
     else:
