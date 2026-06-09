@@ -20,9 +20,16 @@ class VerifyMetadata(g_step.Step):
     def name(self):
         return stepname
 
+    def onBack(self):
+        if self.executed:
+            super().onBack('work_dir')
+        else:
+            super().onBack()
+        self.executed = False
+
     def onNext(self):
         if self.executed:
-            super().onNext('language_code', 'work_dir')
+            super().onNext('work_dir')
         else:
             super().onNext()
         self.executed = False

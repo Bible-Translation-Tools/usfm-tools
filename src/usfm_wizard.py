@@ -114,9 +114,9 @@ class UsfmWizard(tkinter.Tk):
         self.process = selection
 
     # Activates the previous step
-    def step_back(self):
+    def step_back(self, copyparms={}):
         self.stepstack.pop()
-        self.activate_step( self.stepstack[-1] )
+        self.activate_step( self.stepstack[-1], copyparms)
 
     # Returns the name of the next step in the current process
     def nextstepname(self):

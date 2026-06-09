@@ -39,8 +39,9 @@ class Step(ABC):
         value = self.values[option] if option in self.values else ""
         return (value in {'True', 'true', '1'})
 
-    def onBack(self):
-        self.mainapp.step_back()
+    def onBack(self, *parms):
+        copyparms = {parm: self.values[parm] for parm in parms} if parms else {}
+        self.mainapp.step_back(copyparms)
     def onSkip(self):
         self.mainapp.step_next()
     # Advance to next step, defaulting the values of the named parameters, if any.
