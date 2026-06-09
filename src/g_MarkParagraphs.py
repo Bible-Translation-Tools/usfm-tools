@@ -20,6 +20,7 @@ class MarkParagraphs(g_step.Step):
         super().__init__(mainframe, mainapp, stepname, "Mark paragraphs and poetry")
         self.frame = MarkParagraphs_Frame(mainframe, self)
         self.frame.grid(row=1, column=0, sticky="nsew")
+        self.executed = False
 
     def name(self):
         return stepname
@@ -33,6 +34,7 @@ class MarkParagraphs(g_step.Step):
         self.script = "mark_paragraphs"
         self.mainapp.execute_script(self.script, count)
         self.frame.clear_messages()
+        self.executed = False
 
     # Temporary function, until "source_dir" is fully retired.
     def getWorkDir(self):
@@ -53,8 +55,11 @@ class MarkParagraphs(g_step.Step):
 
     # Temporary overload of Step.onNext()
     def onNext(self):
-        # self.frame._save_values()  # only needed until 'source_dir' is retired
-        super().onNext('work_dir', 'language_code')
+        if self.executed:# self.frame._save_values()  # only needed until 'source_dir' is retired
+            super().onNext('work_dir', 'language_code')
+        else:
+            super().onNext()
+        self.executed = False
 
     # Called by the mainapp.
     def onScriptEnd(self, status):

@@ -8,24 +8,33 @@ from idlelib.tooltip import Hovertip
 import g_step
 import os
 
-stepname = 'VerifyManifest'   # equals the main class name in this module
+stepname = 'VerifyMetadata'   # equals the main class name in this module
 
-class VerifyManifest(g_step.Step):
+class VerifyMetadata(g_step.Step):
     def __init__(self, mainframe, mainapp):
         super().__init__(mainframe, mainapp, stepname, "Verify manifest.yaml")
-        self.frame = VerifyManifest_Frame(mainframe, self)
+        self.frame = VerifyMetadata_Frame(mainframe, self)
         self.frame.grid(row=1, column=0, sticky="nsew")
+        self.executed = False
 
     def name(self):
         return stepname
 
+    def onNext(self):
+        if self.executed:
+            super().onNext('language_code', 'work_dir')
+        else:
+            super().onNext()
+        self.executed = False
+
     def onExecute(self):
         self.enablebutton(2, False)
         self.enablebutton(5, False)
-        self.mainapp.execute_script("verifyManifest", 1)
+        self.mainapp.execute_script("verifyMetadata", 1)
         self.frame.clear_messages()
+        self.executed = True
 
-class VerifyManifest_Frame(g_step.Step_Frame):
+class VerifyMetadata_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent,controller)
 

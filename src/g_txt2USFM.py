@@ -17,6 +17,7 @@ class Txt2USFM(g_step.Step):
         super().__init__(mainframe, mainapp, stepname, "Convert text files to USFM")
         self.frame = Text2USFM_Frame(parent=mainframe, controller=self)
         self.frame.grid(row=1, column=0, sticky="nsew")
+        self.executed = False
 
     def name(self) -> str:
         return stepname
@@ -27,10 +28,14 @@ class Txt2USFM(g_step.Step):
         count = g_util.count_folders(self.getOption('source_dir'), pattern)
         self.mainapp.execute_script("txt2USFM", count)
         self.frame.clear_messages()
+        self.executed = True
 
     def onNext(self):
-        self.frame._save_values()   # only needed until 'target_dir' is retired
-        super().onNext('language_code', 'work_dir')
+        if self.executed:
+            super().onNext('language_code', 'work_dir')
+        else:
+            super().onNext()
+        self.executed = False
 
     # Called by the main app.
     def onScriptEnd(self, status: str):

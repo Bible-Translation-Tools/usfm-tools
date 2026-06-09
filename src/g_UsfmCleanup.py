@@ -21,12 +21,17 @@ class UsfmCleanup(g_step.Step):
         super().__init__(mainframe, mainapp, stepname, "USFM Cleanup")
         self.frame = UsfmCleanup_Frame(mainframe, self)
         self.frame.grid(row=1, column=0, sticky="nsew")
+        self.executed = False
 
     def name(self):
         return stepname
 
     def onNext(self):
-        super().onNext('language_code', 'work_dir', 'filename', 'compare_dir')
+        if self.executed:
+            super().onNext('language_code', 'work_dir', 'filename', 'compare_dir')
+        else:
+            super().onNext()
+        self.executed = False
 
     def onExecute(self):
         self.enablebutton(2, False)
@@ -35,6 +40,7 @@ class UsfmCleanup(g_step.Step):
             count = g_util.count_files(self.getOption('work_dir'), ".*sfm$")
         self.mainapp.execute_script("usfm_cleanup", count)
         self.frame.clear_messages()
+        self.executed = True
 
     # Temporary function, until "source_dir" is fully retired.
     def getWorkDir(self):
