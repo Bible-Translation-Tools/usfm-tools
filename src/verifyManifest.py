@@ -161,7 +161,7 @@ def getBookTitles(path):
 def isBibleType(id):
     isbible = (isAlignedBibleType(id) or id in {'ulb','udb','reg', 'ayt', 'blv','cuv','nav','det','juds','opcb'})
     if not isbible:
-        isbible = ToolsConfigManager().getboolean('VerifyManifest', 'bibletype')
+        isbible = ToolsConfigManager().getboolean('VerifyMetadata', 'bibletype')
     return isbible
 
 # Returns True if the specified string is a recognized Aligned Bible type of project type
@@ -379,7 +379,7 @@ def verifyManifest(app = None):
     global nIssues
     nIssues = 0
     global manifestDir
-    manifestDir = ToolsConfigManager().get('VerifyManifest', 'work_dir')
+    manifestDir = ToolsConfigManager().get('VerifyMetadata', 'work_dir')
     path = os.path.join(manifestDir, "manifest.yaml")
     if os.path.isfile(path):
         if "manifest.yaml" not in os.listdir(manifestDir):
