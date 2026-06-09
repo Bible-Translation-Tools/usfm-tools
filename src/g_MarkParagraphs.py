@@ -53,8 +53,8 @@ class MarkParagraphs(g_step.Step):
 
     # Temporary overload of Step.onNext()
     def onNext(self):
-        self.frame._save_values()  # only needed until 'source_dir' is retired
-        super().onNext('work_dir')
+        # self.frame._save_values()  # only needed until 'source_dir' is retired
+        super().onNext('work_dir', 'language_code')
 
     # Called by the mainapp.
     def onScriptEnd(self, status):
@@ -174,6 +174,7 @@ then you don't need to run this process.")
         return workdir
 
     def show_values(self):
+        self.changingVars = True
         code = self.getOption('language_code')
         dir = self.getWorkDirConfigValue()
         self.work_dir.set(dir)
@@ -199,6 +200,7 @@ then you don't need to run this process.")
                                    tip="Restore any and all .usfmorig backup files in the folder.")
         self.controller.enablebutton(4, False)
         self.controller.showbutton(5, ">>>", self._onNext, tip="Next step")
+        self.changingVars = False
         self._set_button_status()
         self.language_code.trace_add("write", self._onChangeLanguage)
         self.work_dir.trace_add("write", self._onChangeWorkDir)
