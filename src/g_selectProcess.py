@@ -28,8 +28,8 @@ class Select_Frame(g_step.Step_Frame):
 
         self.process = StringVar()
         subheadingFont = font.Font(size=10, slant='italic')     # normal size is 9
-        suppressions_label = ttk.Label(self, text="What do you want to do today?", font=subheadingFont)
-        suppressions_label.grid(row=3, column=1, columnspan=2, sticky=W, pady=(4,2))
+        process_selection_label = ttk.Label(self, text="What do you want to do today?", font=subheadingFont)
+        process_selection_label.grid(row=3, column=1, sticky=W, pady=(4,2))
 
         process1_rb = ttk.Radiobutton(self, text='Convert BTT-Writer text to USFM', variable=self.process,
                                       command=self._onRbChange, value='Txt2USFM')
@@ -43,30 +43,42 @@ class Select_Frame(g_step.Step_Frame):
                                       command=self._onRbChange, value='Plaintext2Usfm')
         process3_rb.grid(row=6, column=1, sticky=W)
 
-        process6_rb = ttk.Radiobutton(self, text='Convert USX to USFM', variable=self.process,
+        process4_rb = ttk.Radiobutton(self, text='Convert USX to USFM', variable=self.process,
                                       command=self._onRbChange, value='Usx2Usfm')
-        process6_rb.grid(row=7, column=1, sticky=W)
-        process6_Tip = Hovertip(process6_rb, hover_delay=500,
-             text="Convert Unified Scripture XML files to USFM")
+        process4_rb.grid(row=7, column=1, sticky=W)
+        tip = Hovertip(process4_rb, hover_delay=500, text="Convert Unified Scripture XML files to USFM")
 
-        process4_rb = ttk.Radiobutton(self, text='Convert USFM to “resource container”', variable=self.process,
+        process5_rb = ttk.Radiobutton(self, text='Convert USFM to “resource container”', variable=self.process,
                                       command=self._onRbChange, value='Usfm2Usx')
-        process4_rb.grid(row=8, column=1,  sticky=W)
-        process4_Tip = Hovertip(process4_rb, hover_delay=500,
+        process5_rb.grid(row=8, column=1,  sticky=W)
+        tip = Hovertip(process5_rb, hover_delay=500,
              text="Produce a BTTW-compatible resource container with .usx and auxiliary files, from USFM.")
 
-        process5_rb = ttk.Radiobutton(self, text='Copy/rename USFM files', variable=self.process,
+        process6_rb = ttk.Radiobutton(self, text='Copy/rename USFM files', variable=self.process,
                                       command=self._onRbChange, value='Paratext2Usfm')
-        process5_rb.grid(row=9, column=1, sticky=W)
-        process5_Tip = Hovertip(process5_rb, hover_delay=500,
-             text="Convert files to standard names and line endings.")
-        self.columnconfigure(1, minsize=505)
+        process6_rb.grid(row=9, column=1, sticky=W)
+        tip = Hovertip(process6_rb, hover_delay=500, text="Convert files to standard names and line endings.")
+
+        jump_label = ttk.Label(self, text="Jump to:", font=subheadingFont)
+        jump_label.grid(row=3, column=2, sticky=W, pady=(4,2))
+        jump1 = ttk.Radiobutton(self, text='Validate USFM files', variable=self.process,
+                                      command=self._onRbChange, value='SingleStep_VerifyUSFM')
+        jump1.grid(row=4, column=2, sticky=W)
+        jump2 = ttk.Radiobutton(self, text='Make Metadata', variable=self.process,
+                                      command=self._onRbChange, value='SingleStep_MakeMetadata')
+        jump2.grid(row=5, column=2, sticky=W)
+        jump3 = ttk.Radiobutton(self, text='Validate Metadata', variable=self.process,
+                                      command=self._onRbChange, value='SingleStep_VerifyMetadata')
+        jump3.grid(row=6, column=2, sticky=W)
+
+        self.columnconfigure(1, minsize=300)
+        self.columnconfigure(2, minsize=225)
 
     # Called when the frame is first activated. Populate the initial values.
     def show_values(self):
         self.process.set(self.getOption('selection'))
         self._explain()
-        self.controller.showbutton(5, ">>>", self._onNext, tip="Begin the process you selected above.")
+        self.controller.showbutton(5, ">>>", self._onNext, tip="Begin")
         self.controller.hidebutton(1,2,3,4)
         self._set_button_status()
 
@@ -126,7 +138,7 @@ The input file(s) should be verified, correct USFM. Therefore, the first step of
 It standardizes file names and line endings in the process. And if there is a Settings.xml file, \
 it copies that also, with changes to reflect the new file names.""")
             case _:
-                self.message_area.insert('end', f"Please select process above.")
+                self.clear_messages()
         self.message_area.see('1.0')
         self.message_area['state'] = DISABLED   # prevents editing of message area
 

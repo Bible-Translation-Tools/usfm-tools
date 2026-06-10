@@ -37,7 +37,7 @@ from usx2usfm import main
 from verifyMetadata import main
 from word2text import main
 
-app_version = "1.4.5"
+app_version = "1.5"
 
 class UsfmWizard(tkinter.Tk):
     def __init__(self):
@@ -121,41 +121,47 @@ class UsfmWizard(tkinter.Tk):
     # Returns the name of the next step in the current process
     def nextstepname(self):
         gotostep = None
-        match self.stepstack[-1].name():
-            case 'MarkParagraphs':
-                if self.process == 'Usfm2Usx':
-                    gotostep = 'Usfm2Usx'
-                else:
-                    gotostep = 'MakeMetadata'
-            case 'SelectProcess':
-                if self.process == 'Usfm2Usx':
+        if self.process.startswith('SingleStep_') and self.stepstack[-1].name() != 'SelectProcess':
+            gotostep = 'SelectProcess'
+        else:
+            match self.stepstack[-1].name():
+                case 'SelectProcess':
+                    if self.process == 'Usfm2Usx':
+                        gotostep = 'VerifyUSFM'
+                    elif self.process.startswith('SingleStep_'):
+                        gotostep = self.process[len('SingleStep_'):]
+                    else:
+                        gotostep = self.process
+                case 'MarkParagraphs':
+                    if self.process == 'Usfm2Usx':
+                        gotostep = 'Usfm2Usx'
+                    else:
+                        gotostep = 'MakeMetadata'
+                case 'MakeMetadata':
+                    gotostep = 'VerifyMetadata'
+                case 'Txt2USFM':
                     gotostep = 'VerifyUSFM'
-                else:
-                    gotostep = self.process
-            case 'MakeMetadata':
-                gotostep = 'VerifyMetadata'
-            case 'Txt2USFM':
-                gotostep = 'VerifyUSFM'
-            case 'Word2text':
-                gotostep = 'Plaintext2Usfm'
-            case 'Plaintext2Usfm':
-                gotostep = 'VerifyUSFM'
-            case 'UsfmCleanup':
-                gotostep = 'MarkParagraphs'
-            case 'Usx2Usfm':
-                gotostep = 'VerifyUSFM'
-            case 'VerifyUSFM':
-                if self.process in {'Usfm2Usx', 'Usx2Usfm'}:
+                case 'Word2text':
+                    gotostep = 'Plaintext2Usfm'
+                case 'Plaintext2Usfm':
+                    gotostep = 'VerifyUSFM'
+                case 'UsfmCleanup':
                     gotostep = 'MarkParagraphs'
-                else:
-                    gotostep = 'UsfmCleanup'
+                case 'Usx2Usfm':
+                    gotostep = 'VerifyUSFM'
+                case 'VerifyUSFM':
+                    if self.process in {'Usfm2Usx', 'Usx2Usfm'}:
+                        gotostep = 'MarkParagraphs'
+                    else:
+                        gotostep = 'UsfmCleanup'
         return gotostep
 
     # Activates the next step, based the current process and what step we just finished.
     def step_next(self, copyparms={}):
-        nextstep = self.steps[self.nextstepname()]
-        self.stepstack.append(nextstep)
-        self.activate_step(nextstep, copyparms)
+        if nextstepname := self.nextstepname():
+            nextstep = self.steps[nextstepname]
+            self.stepstack.append(nextstep)
+            self.activate_step(nextstep, copyparms)
 
     def activate_step(self, step, copyparms={}):
         self.titleframe.step_label['text'] = step.title()

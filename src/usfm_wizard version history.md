@@ -1,15 +1,25 @@
 # Usfm Wizard Version history
 
+## 1.5 - 6/10/26
+* add buttons to jump directly to certain Wizard steps.
+* Make Metadata - a new Wizard step, rebuilds both manifest.yaml and metadata.json.
+* verifyManifest - replace with verifyMetadata.
+* verifyMetadata - checks manifest.yaml, metadata.json and cross-project consistency.
+* verifyUsfm - call out more unusual characters in text.
+* usfm_cleanup - improve section title recognition at chapter head.
+* mark_paragaphs - restore option to not add missing paragraph-ending punctuation.
+* multiple refinements and bug fixes.
+
 ## 1.4.6 - 4/28/26
 * txt2Usfm - fix more cases of garbled, BTTW verse numbering.
-* verifyUsfm - eliminate redundant issue reporting around possible verse references and footnotes
-* verifyUsfm - made messaging about unmatched brackets and parentheses more precise.
+* verifyUsfm - eliminate redundant issue reporting around possible verse references and footnotes.
+* verifyUsfm - make messaging about unmatched brackets and parentheses more precise.
 * verifyUsfm - find matching parens and brackets spanning multiple verses.
 * verifyManifest - eliminate 'Expect Ascii' option from GUI; detect automatically.
 * verifyManifest - check and update metadata.json.
 * all - support updated Scripture Burrito schema.
 * all - update metadata.json when files change.
-* bug fixes and other minor improvements
+* bug fixes and other minor improvements.
 
 ## 1.4.5 - 3/24/26
 * txt2Usfm - section title recognition improved.

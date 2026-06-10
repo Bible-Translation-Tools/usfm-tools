@@ -192,9 +192,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         # self.controller.bindButtonEvent(2, "<Leave>", self.clear_messages)
         self.controller.showbutton(3, "Open issues.txt", self._onOpenIssues,
                                    tip="Open issues.txt file in your default editor")
-        nextstep = self.controller.mainapp.nextstepname()
-        tip = "Convert to resource container" if nextstep == "Usfm2Usx" else "Next step"
-        self.controller.showbutton(5, ">>>", self._onNext, tip=tip)
+        self.controller.showbutton(5, ">>>", self._onNext)
         self._set_button_status()
         self.language_code.trace_add("write", self._onChangeLanguage)
         self.work_dir.trace_add("write", self._onChangeWorkDir)
