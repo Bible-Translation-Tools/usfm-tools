@@ -9,11 +9,13 @@ import os
 import sys
 
 # Globals
-source_dir = r'C:\DCS\Malwai\work'
-target_dir = r'C:\DCS\Malwai\work'    # if same as source_dir, back up original files
+source_dir = r'C:\DCS\Burmese\Judson (ebible usfm)'
+target_dir = r'C:\DCS\Burmese\work'    # if same as source_dir, back up original files
 nChanged = 0
 max_changes = 80
-filename_re = re.compile(r'.*\.usfm$')
+# filename_re = re.compile(r'.*\.usfm$')
+filename_re = re.compile(r'14-2CH\.usfm$')
+prevline = ""
 
 # Copies lines from input to output.
 # Modifies certain lines before writing them to output.
@@ -31,8 +33,7 @@ def convertByLine(path):
     output = io.open(newpath, "tw", buffering=1, encoding='utf-8', newline='\n')
 
     for line in lines:
-        if not keeper(line):
-            line = convertLine(line)
+        line = convertLine(line)
         output.write(line)
     output.close()
 
@@ -43,17 +44,22 @@ def keeper(line):
     keep = False
     return keep
 
-# w_re = re.compile(r'\\w +(\w+)\|strong="\w+" ?\\w\*')
-character_styling = [r'\\\+nd( |\*)', r'\\\+tl( |\*)', r'\\\+fq( |\*)', r'\\\+xt( |\*)']
-round2 = [r'\\xt( |\*)']
-round3 = [r'\\\+em( |\*)', r'\\\+sc( |\*)']
+w_re = re.compile(r'\\w ([^|]+)\|strong="[\w,]+" ?\\w\* ?')  # Keep this pattern!
+# character_styling = [r'\\\+nd( |\*)', r'\\\+tl( |\*)', r'\\\+fq( |\*)', r'\\\+xt( |\*)']
+# round2 = [r'\\xt( |\*)']
+# round3 = [r'\\\+em( |\*)', r'\\\+sc( |\*)']
+# pm_re = re.compile(r'\\[mp]\s*$')
 
 def convertLine(line):
-    for pattern in round3:
-        found = re.search(pattern, line)
-        while found:
-            line = line[0:found.start()] + line[found.end():]
-            found = re.search(pattern, line)
+    w = w_re.search(line)
+    while w:
+        remainder = line[w.end():]
+        # if re.match(r'\w', remainder):
+        #     remainder = ' ' + remainder
+        line = line[0:w.start()] + w.group(1) + remainder
+        w = w_re.search(line, w.start())
+    line = line.replace('  ', ' ')
+    line = line.replace(' \n', '\n')
     return line
 
 # keystring is used only in line-by-line. But it is searched against the entire file one time.
@@ -72,15 +78,13 @@ def shortname(longpath):
         shortname = longpath[len(source_dir)+1:]
     return shortname
 
-# wholestring = re.compile(r' \\wj \\wj\*[ \n]', flags=re.UNICODE)
-#wholestring = re.compile(r'[^v] ([1-9][0-9]?)[^0-9 ,\.\n\-]', flags=re.UNICODE)
 # patterns = [re.compile(r'\\xt.*?\\xt\*'), re.compile(r'\\\+xt.*?\\\+xt\*')]
-patterns = [re.compile(r'\\xt.*?\\xt\*'), re.compile(r'\\nd.*?\\nd\*')]
+patterns = [ re.compile(r' +\\fqa\* +([,\.;?!])')]
 
 def convertWholeString(alltext, pattern):
     found = pattern.search(alltext)
     while found:
-        alltext = alltext[0:found.start()] + alltext[found.end():]
+        alltext = alltext[0:found.start()] + "\\fqa*" + found.group(1)+ alltext[found.end():]
         found = pattern.search(alltext, found.start())
     return alltext
 
@@ -114,8 +118,8 @@ def convertWholeFile(path):
 #replacement = 'figs-rquestion'
 
 #sub_re = re.compile(r'<o:p> *</o:p>', re.UNICODE)
-sub_re = re.compile(r'\\p\n\\s5\n')
-replacement = '\\s5\n\\p\n'
+sub_re = re.compile(r'\( *injili *\)')
+replacement = 'injili'
 #sub_re = re.compile(r'</?o:p>', re.UNICODE)
 #sub_re = re.compile(r'<!--.*-->', re.UNICODE)
 #sub_re = re.compile(r'& *nbsp;', re.UNICODE)
@@ -164,10 +168,10 @@ def replaceCharacters(path):
         nChanged += 1
 
 def convertFile(path):
-    # convertFileByLines(path)
+    convertFileByLines(path)
     # convertWholeFile(path)
     # convertFileBySub(path)
-    replaceCharacters(path)
+    # replaceCharacters(path)
 
 # Recursive routine to convert all files under the specified folder
 def convertFolder(folder):
