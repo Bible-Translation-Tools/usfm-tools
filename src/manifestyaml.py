@@ -235,6 +235,10 @@ class ManifestYaml:
         if not relation in rels:
             self.contents['dublin_core']['relation'].append(relation)
 
+    def setLicense(self, rights):
+        if self.contents and 'dublin_core' in self.contents:
+            self.contents['dublin_core']['rights'] = rights
+
 # Returns True if the file has a BOM
 def has_bom(path):
     with open(path, 'rb') as f:

@@ -122,6 +122,7 @@ def main(app = None):
     projectInfo.setGenerator("UsfmWizard", config.get('UsfmWizard', 'version'))
     projectInfo.setLanguage(config.get('MakeMetadata', 'language_name_en'), config.get('MakeMetadata', 'direction'))
     addBooks(work_dir)
+    projectInfo.addLicense(config.get('MakeMetadata', 'license_file'), config.get('MakeMetadata', 'license_type'))
 
     is_valid, msg = projectInfo.save()
     if not is_valid:

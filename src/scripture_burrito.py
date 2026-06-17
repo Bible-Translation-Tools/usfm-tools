@@ -149,6 +149,12 @@ class Burrito:
             self.contents['type']['flavorType']["currentScope"] = {}
         self.contents['type']['flavorType']["currentScope"][bookId] = []
 
+    def addLicense(self, filename):
+        if filename:
+            newlicense = {"ingredient": filename}
+            if newlicense not in self.contents["copyright"]["licenses"]:
+                self.contents["copyright"]["licenses"].append(newlicense)
+
     # Recalculates size and checksum for each ingredient.
     # Also resets the timestamp.
     def _updateFileInfo(self):

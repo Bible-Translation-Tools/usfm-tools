@@ -169,6 +169,11 @@ class ProjectInfo:
         self.burrito.addProject(bookId, path)
         self.burrito.addName(bookId, self.getLanguageCode(), bookTitle)
 
+    def addLicense(self, filename, rights):
+        if self.manifest:
+            self.manifest.setLicense(rights)
+        self.burrito.addLicense(filename)
+
     # Adds or updates the specified word in ProjectInfo.
     def addWord(self, word, count):
         self.languageInfo.addWord(word, count)
