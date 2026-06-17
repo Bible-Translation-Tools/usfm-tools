@@ -123,6 +123,7 @@ def main(app = None):
     projectInfo.setLanguage(config.get('MakeMetadata', 'language_name_en'), config.get('MakeMetadata', 'direction'))
     addBooks(work_dir)
     projectInfo.addLicense(config.get('MakeMetadata', 'license_file'), config.get('MakeMetadata', 'license_type'))
+    projectInfo.setIdentification(config.get('MakeMetadata', 'repo_owner'), config.get('MakeMetadata', 'repo_name'))
 
     is_valid, msg = projectInfo.save()
     if not is_valid:

@@ -88,9 +88,6 @@ class ProjectInfo:
     # and manifest.yaml, if it is in use.
     def save(self):
         self.languageInfo.save()
-        repo = "Tech_Advance/" + self.getLanguageCode() + "_reg"
-        identity = self.languageInfo.getLanguageName() + " Bible"
-        self.burrito.setIdentification(locale='en', identity=identity, abbrev="Bible", repo=repo)
         is_valid, msg = self.burrito.save()
         if msg:
             msg = "Burrito " + msg
@@ -173,6 +170,10 @@ class ProjectInfo:
         if self.manifest:
             self.manifest.setLicense(rights)
         self.burrito.addLicense(filename)
+
+    def setIdentification(self, owner, name):
+        identity = self.languageInfo.getLanguageName() + " Bible"
+        self.burrito.setIdentification(locale='en', identity=identity, abbrev="Bible", repo=f"{owner}/{name}")
 
     # Adds or updates the specified word in ProjectInfo.
     def addWord(self, word, count):
