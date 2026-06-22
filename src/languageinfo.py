@@ -45,6 +45,8 @@ class LanguageInfo:
 
     def setLanguageName(self, name):
         self.info['language']['name'] = name
+    def setLanguageDirection(self, direction):
+        self.info['language']['direction'] = direction
 
     def getLanguageCode(self):
         return self.info['language']['id']

@@ -105,6 +105,7 @@ class ProjectInfo:
 
     def setLanguage(self, name, direction=""):
         self.languageInfo.setLanguageName(name)
+        self.languageInfo.setLanguageDirection(direction)
         self.burrito.setLanguage(self.getLanguageCode(), locale='en', name=name, direction=direction)
         if my := self.manifest:
             my.setLanguageId(self.getLanguageCode())
