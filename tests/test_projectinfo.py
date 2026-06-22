@@ -56,7 +56,7 @@ def test_init_oldfile():
 def test_language_name():
     language_name = 'Test ProjectInfo'
     projectInfo = ProjectInfo(test_dir, language_code)
-    projectInfo.setLanguage(language_name, 'rtl')
+    projectInfo.setLanguage(language_name, 'en', 'rtl')
     projectInfo.save()
     assert projectInfo.getLanguageName() == language_name
 
@@ -152,7 +152,7 @@ def test_manifest_connection():
     # New ProjectInfo object, not synced to Manifest
     pi_nosync = ProjectInfo(workdir, working_lang_code)
     assert len(pi_nosync.getSources()) == pilen
-    pi_nosync.setLanguage("Mangled name", "mangled direction")
+    pi_nosync.setLanguage("Mangled name", 'en', "mangled direction")
     assert pi_nosync.getLanguageName() == "Mangled name"
     pi_nosync.addSource('bogus', 'ulc', 'v2')
     assert len(pi_nosync.getSources()) == pilen + 1
@@ -166,7 +166,7 @@ def test_manifest_connection():
     assert my.getLanguageDirection() == mydirection   # bad value wasn't saved
     assert len(my.getSources()) == mylen
 
-    pi.setLanguage("Sync name", "bad direction")
+    pi.setLanguage("Sync name", "en", "bad direction")
     assert pi.getLanguageName() == "Sync name"
     pi.addSource('bogus', 'uld', 'v3')
     pi.save()
@@ -178,7 +178,7 @@ def test_manifest_connection():
     (is_valid,msg) = burrito.load()
     assert is_valid == was_valid     # bad direction
 
-    pi.setLanguage(myname, mydirection)
+    pi.setLanguage(myname, 'en', mydirection)
     pi.resetSources()
     pi.addSource('en', 'uxb', '12')
     pi.save()   # should restore language and source entries

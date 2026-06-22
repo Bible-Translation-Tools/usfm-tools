@@ -103,10 +103,11 @@ class ProjectInfo:
     def setGenerator(self, name, version):
         self.burrito.setGenerator(name, version)
 
-    def setLanguage(self, name, direction=""):
-        self.languageInfo.setLanguageName(name)
+    def setLanguage(self, name, locale='en', direction=""):
+        if locale == 'en':
+            self.languageInfo.setLanguageName(name)
         self.languageInfo.setLanguageDirection(direction)
-        self.burrito.setLanguage(self.getLanguageCode(), locale='en', name=name, direction=direction)
+        self.burrito.setLanguage(self.getLanguageCode(), locale=locale, name=name, direction=direction)
         if my := self.manifest:
             my.setLanguageId(self.getLanguageCode())
             if name:

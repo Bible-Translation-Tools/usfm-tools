@@ -116,11 +116,13 @@ def main(app = None):
 
     config = ToolsConfigManager()
     work_dir = config.get('MakeMetadata', 'work_dir')
+    language_code = config.get('MakeMetadata', 'language_code')
     global projectInfo
-    projectInfo = ProjectInfo(work_dir, config.get('MakeMetadata', 'language_code'))
+    projectInfo = ProjectInfo(work_dir, language_code)
     projectInfo.useManifest(docreate=True)
     projectInfo.setGenerator("UsfmWizard", config.get('UsfmWizard', 'version'))
-    projectInfo.setLanguage(config.get('MakeMetadata', 'language_name_en'), config.get('MakeMetadata', 'direction'))
+    projectInfo.setLanguage(config.get('MakeMetadata', 'language_name_en'), 'en', config.get('MakeMetadata', 'direction'))
+    projectInfo.setLanguage(config.get('MakeMetadata', 'localized_name'), language_code, config.get('MakeMetadata', 'direction'))
     addBooks(work_dir)
     projectInfo.addLicense(config.get('MakeMetadata', 'license_file'), config.get('MakeMetadata', 'license_type'))
     projectInfo.setIdentification(config.get('MakeMetadata', 'repo_owner'), config.get('MakeMetadata', 'repo_name'))
