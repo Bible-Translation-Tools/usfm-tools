@@ -329,6 +329,8 @@ def verifyContributors(core):
             if not isinstance(c, str) or len(c) < 3:
                 reportError("Invalid contributor name: " + str(c))
 
+rights_re = re.compile(r'CC[\- ]BY-SA[\- _]4\.0|Public Domain')
+
 # Checks the dublin_core of the manifest
 def verifyCore(core):
     verifyKeys("dublin_core", core, ['conformsto', 'contributor', 'creator', 'description', 'format', \
@@ -354,7 +356,7 @@ def verifyCore(core):
     elif core['language']['identifier'] in {'ar','arb','as','bn','gu','hi','kn','ml','mr','nag','or','pa','ta','te','ur-deva'} and pub != 'BCS':
         reportError("Publisher name should be 'BCS' for BCS resources.")
     verifyRelations(core['relation'])
-    if 'rights' in core and core['rights'] != 'CC BY-SA 4.0':
+    if 'rights' in core and not rights_re.match(core['rights']):
         reportError("Invalid value for rights: " + core['rights'])
     verifySource(core['source'])
     verifySubject(core['subject'])
