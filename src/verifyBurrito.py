@@ -7,18 +7,10 @@ resourceDir = ""
 burrito_contents = dict()
 
 import os
-
-import requests
-
 from configmanager import ToolsConfigManager
 import re
 import sys
-
 from scripture_burrito import Burrito, size_and_checksum
-
-# import os
-# import io
-# import re
 
 # Writes error message to stderr.
 def reportError(msg):
@@ -67,7 +59,7 @@ def verifyBurrito(app = None):
     global nIssues
     nIssues = 0
     global resourceDir
-    resourceDir = ToolsConfigManager().get('VerifyManifest', 'work_dir')
+    resourceDir = ToolsConfigManager().get('VerifyMetadata', 'work_dir')
 
     global burrito_contents
     burrito = Burrito(resourceDir)
@@ -77,6 +69,7 @@ def verifyBurrito(app = None):
         burrito_contents = burrito.contents
         verifyCleanDir(resourceDir)
         verifyIngredients()
+        verifyLanguage()
         verifyLicense()
         verifyWacsRepo()
     else:
@@ -121,6 +114,9 @@ def verifyIngredients():
                 reportError(f"Ingredient size mismatch for {ingredient}: actual size is {size}")
             if checksum != expect_checksum:
                 reportError(f"Ingredient checksum mismatch for {ingredient}: actual checksum is {checksum}")
+
+def verifyLanguage():
+    pass
 
 def verifyLicense():
     global burrito_contents
