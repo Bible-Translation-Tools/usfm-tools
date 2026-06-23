@@ -664,7 +664,7 @@ def isBookFolder(path):
     chapterPath = os.path.join(path, '01')
     return os.path.isdir(chapterPath)
 
-# Copies information from the manifest to ProjectInfo.
+# Copies information from the manifest.json to ProjectInfo.
 def extractDataFromManifest(manifest):
     global projectInfo
     assert projectInfo
@@ -672,7 +672,7 @@ def extractDataFromManifest(manifest):
     language_code = ToolsConfigManager().get('Txt2USFM', 'language_code')
     if language_code != language_id:
         reportError(f"Language code ({language_code}) does not match target_language Id ({language_id}) in {shortname(manifest.getPath())}.")
-    projectInfo.setLanguage(manifest.getLanguageName(), manifest.getLanguageDirection())
+    projectInfo.setLanguage(manifest.getLanguageName(), locale='en', direction=manifest.getLanguageDirection())
     projectInfo.addContributors(manifest.getTranslators())
     for source in manifest.getSources():
         projectInfo.addSource(source['language_id'], source['resource_id'], source['version'])
@@ -689,10 +689,10 @@ def getBookIdFromFolderName(folder):
     return bookId
 
 # Locates title.txt in either the front folder or 00 folder.
-# Extracts the first line of that file as the book title.
+# Extracts the lines of that file as the book title.
 # If neither file exists, return the book name in English.
 def getBookTitle(folder, bookId):
-    bookTitle = ""
+    bookTitle = []
     path = os.path.join(folder, "front/title.txt")
     if not os.path.isfile(path):
         path = os.path.join(folder, "00/title.txt")
@@ -700,15 +700,16 @@ def getBookTitle(folder, bookId):
         with io.open(path, "tr", 1, encoding='utf-8-sig') as f:
             lines = f.readlines()
         for line in lines:
-            if bookTitle := line.strip().rstrip("."):
-                break
-        bookTitle = " ".join(bookTitle.split())  # eliminates consecutive spaces
-        if not bookTitle.istitle():
-            bookTitle = bookTitle.title().replace("Iii", 'III')
-            bookTitle = bookTitle.replace("Ii", 'II')
+            line = line.strip().rstrip(".")
+            if line:
+                line = " ".join(line.split())  # eliminates consecutive spaces
+                if not line.istitle():
+                    line = line.title().replace("Iii", 'III')
+                    line = line.replace("Ii", 'II')
+                bookTitle.append(line)
     elif bookId.upper() in usfm_verses.verseCounts:
         # As a last resort, use the English book title
-        bookTitle = usfm_verses.verseCounts[bookId.upper()]['en_name']
+        bookTitle.append(usfm_verses.verseCounts[bookId.upper()]['en_name'])
     else:
         reportError("   Can't open " + path + "!")
     return bookTitle
@@ -751,7 +752,7 @@ def convertFolder(folder):
         if bookId and bookTitle:
             convertBook(folder, bookId.upper(), bookTitle)   # converts the pieces in the current folder
             # profile.print_stats()
-            appendToProjects(bookId, bookTitle)
+            appendToProjects(bookId, bookTitle[0])
             global nConverted
             nConverted += 1
         else:
@@ -771,11 +772,14 @@ def makeUsfmFilename(bookId):
 def writeHeader(usfm, bookId, bookTitle):
     usfm.writeUsfm("id", bookId)
     usfm.writeUsfm("ide", "UTF-8")
-    usfm.writeUsfm("h", bookTitle)
-    usfm.writeUsfm("toc1", bookTitle)
-    usfm.writeUsfm("toc2", bookTitle)
+    usfm.writeUsfm("h", bookTitle[0])
+    usfm.writeUsfm("toc1", bookTitle[0])
+    usfm.writeUsfm("toc2", bookTitle[0])
     usfm.writeUsfm("toc3", bookId.lower())
-    usfm.writeUsfm("mt", bookTitle)
+    level = 1
+    for line in bookTitle:
+        usfm.writeUsfm(f"mt{level}", line)
+        level += 1
 
 # This method returns a list of chapter folders in the specified directory.
 # This list is returned in numeric order.
@@ -891,7 +895,7 @@ def main(app = None):
     projectInfo = ProjectInfo(work_dir, config.get('Txt2USFM', 'language_code'))
     projectInfo.useManifest(docreate=False)
     projectInfo.resetSources()
-    projectInfo.setGenerator("txt2USFM", config.get('UsfmWizard', 'version'))
+    projectInfo.setGenerator("Txt2USFM", config.get('UsfmWizard', 'version'))
 
     if config.getboolean('Txt2USFM', 'diagnostics'):
         open_diagnostic_files()
