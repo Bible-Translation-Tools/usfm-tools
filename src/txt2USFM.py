@@ -719,7 +719,6 @@ def getBookTitle(folder, bookId):
 def appendToProjects(bookId, bookTitle):
     global projectInfo
     assert projectInfo
-    projectInfo.useManifest(docreate=True)  # Needed if this is the first project to be added
     usfmPath = os.path.join(getWorkDir(), makeUsfmFilename(bookId))
     projectInfo.addProject(bookTitle, bookId, usfmPath)
 
@@ -736,6 +735,9 @@ def shortname(longpath):
 def convertFolder(folder):
     language_code = ToolsConfigManager().get('Txt2USFM', 'language_code')
     if language_code + '_' in os.path.basename(folder):
+        global projectInfo
+        assert projectInfo
+        projectInfo.useManifest(docreate=True)  # Needed if this is the first project to be added
         mj = ManifestJson()
         if errors := mj.load(folder):
             for error in errors:
