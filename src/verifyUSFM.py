@@ -634,7 +634,7 @@ def wordkey(item):
     word = item[0].lstrip("'")
     return str.lower(word)
 
-# Returns information about the resource in the specified folder.
+# Returns information about the resource from the manifest file in the specified folder.
 def identifyResource(dir):
     srcmy = ManifestYaml()
     errors = srcmy.load(dir)
@@ -931,8 +931,8 @@ def takeTitle(token: usfmReader.Token):
         state.addToc3(token.value)
     elif token.value:
         state.addTitle(token.value)
-    if token.type in {'mt','mt1'} and token.value.isascii() and not suppress[9]:
-        reportIssue("mt token has ASCII value in " + state.reference, 30)
+    if token.type.startswith('mt') and token.value.isascii() and not suppress[9]:
+        reportIssue(f"{token.type} token has ASCII value in {state.reference}", 30)
     if token.value.isupper() and not state.upperCaseReported and not suppress[8]:
         reportIssue("Upper case book title in " + state.reference, 31)
         state.reportedUpperCase()
@@ -1527,7 +1527,8 @@ def verifyBlockByBlock(path):
                 if remainder:
                     reportFootnoteSpacing(block, localstate.reference)
 
-    suppress[9] = (nAscii / nblocks > 0.03)
+    # suppress[9] = (nAscii / nblocks > 0.03)
+    suppress[9] = (nAscii / nblocks > 0.01) # temporary workaround, for Chin, Muun
     global nFiles
     nFiles += 1
     state.setConflictCount(nconflicts)
