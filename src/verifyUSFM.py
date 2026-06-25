@@ -1497,7 +1497,6 @@ def verifyBlockByBlock(path):
     nconflicts = 0
     nblocks = 0
     for block in usfm_utils.nextblock(path):
-        nblocks += 1
         if not block.strip():
             continue
         marker, value, remainder = usfm_utils.parseLine(block)
@@ -1515,7 +1514,7 @@ def verifyBlockByBlock(path):
             nconflicts += 1
         if conflict_tail_re.match(block):
             localstate.trackConflict(block)
-        if not localstate.inConflict and marker not in {'id','c','cl'}:
+        if not localstate.inConflict and marker not in {'id','ide','c','cl'}:
             if len(block) > 10:
                 nblocks += 1
                 if block.isascii():
@@ -1527,8 +1526,7 @@ def verifyBlockByBlock(path):
                 if remainder:
                     reportFootnoteSpacing(block, localstate.reference)
 
-    # suppress[9] = (nAscii / nblocks > 0.03)
-    suppress[9] = (nAscii / nblocks > 0.01) # temporary workaround, for Chin, Muun
+    suppress[9] = (nAscii / nblocks > 0.02)
     global nFiles
     nFiles += 1
     state.setConflictCount(nconflicts)
