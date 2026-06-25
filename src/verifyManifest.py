@@ -77,6 +77,8 @@ def getLanguageFromDirName():
 
 usfm_re = re.compile(r'\\([a-z][a-z1-5]*\*?)(\s+.*)?')
 
+# Returns True if even 2% of the blocks are all ASCII.
+# Essentially the same algorithm as in verifyUSFM.py.
 def allowAscii(path) -> bool:
     nAscii = 0
     nblocks = 0
@@ -85,7 +87,7 @@ def allowAscii(path) -> bool:
             nblocks += 1
             if block.isascii():
                 nAscii += 1
-    return (nAscii / nblocks > 0.03)
+    return (nAscii / nblocks > 0.02)
 
 # Writes error message to stderr.
 def reportError(msg):
@@ -481,9 +483,9 @@ def verifyLanguage(language):
         language_code = language['identifier']
         if language_code != getLanguageFromDirName():
             reportWarning("Language identifier (" + language['identifier'] + ") does not match first part of directory name: " + os.path.basename(manifestDir))
-    if verifyStringField(language, 'language:title', 3):
-        if language['title'].isascii() and not allowAsciiTitles:
-            reportWarning("Remember to localize language title: " + language['title'])
+    # if verifyStringField(language, 'language:title', 3):
+    #     if language['title'].isascii() and not allowAsciiTitles:
+    #         reportWarning("Remember to localize language title: " + language['title'])
 
 # For OBS projects, verify that media.yaml is valid.
 def verifyMediaYaml(dirpath):
