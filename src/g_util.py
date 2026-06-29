@@ -2,6 +2,7 @@
 
 import os
 import re
+from manifestyaml import ManifestYaml
 
 # Returns a count of files in specifed folder matching file name pattern.
 # Non-recursive
@@ -24,3 +25,23 @@ def count_folders(path, pattern):
                 if re.search(pattern, entry):
                     n += 1
     return n
+
+# Returns the language code from the manifest.yaml file in the specified folder.
+# @TODO unit test
+def get_language_code(dir):
+    code = ""
+    if os.path.isdir(dir):
+        my = ManifestYaml()
+        my.load(dir)
+        code = my.getLanguageId()
+    return code
+
+# Returns the language name from the manifest.yaml file in the specified folder.
+# @TODO unit test
+def get_language_name(dir):
+    name = ""
+    if os.path.isdir(dir):
+        my = ManifestYaml()
+        my.load(dir)
+        name = my.getLanguageName()
+    return name

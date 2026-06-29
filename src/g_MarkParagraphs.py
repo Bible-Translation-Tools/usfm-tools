@@ -11,7 +11,6 @@ import g_step
 import os
 import time
 from projectinfo import ProjectInfo
-from manifestyaml import ManifestYaml
 
 stepname = 'MarkParagraphs'   # equals the main class name in this module
 
@@ -214,10 +213,7 @@ then you don't need to run this process.")
 
     # May be called when Step is activated, and when the work dir changes.
     def set_language_code(self, dir):
-        if os.path.isdir(dir):
-            my = ManifestYaml()
-            my.load(dir)
-            code = my.getLanguageId()
+        if code := g_util.get_language_code(dir):   # from manifest
             if code != self.language_code.get():
                 self.language_code.set(code)    # this will invoke _onChangeLanguage()
 

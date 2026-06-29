@@ -5,13 +5,11 @@
 from tkinter import ttk
 from tkinter import font
 from tkinter import filedialog
-from tkinter import StringVar, BooleanVar, E, W, N, DISABLED
+from tkinter import StringVar, E, W, N, DISABLED
 from idlelib.tooltip import Hovertip
 import g_util
 import g_step
 import os
-from projectinfo import ProjectInfo
-from manifestyaml import ManifestYaml
 from scripture_burrito import Burrito
 
 stepname = 'MakeMetadata'   # equals the main class name in this module
@@ -198,9 +196,7 @@ class MakeMetadata_Frame(g_step.Step_Frame):
             objections.append("Working folder is required.")
 
         if not objections:  # Only do this check if all other checks pass
-            my = ManifestYaml()
-            my.load(working_folder)
-            if mycode := my.getLanguageId():
+            if mycode := g_util.get_language_code(working_folder):
                 if mycode != language_code:
                     objections.append(f"Language code {language_code} doesn't match existing manifest.yaml at {working_folder}")
             burrito = Burrito(working_folder)
@@ -236,12 +232,10 @@ class MakeMetadata_Frame(g_step.Step_Frame):
         self.changingVars = True
         dir = self.work_dir.get()
         if os.path.isdir(dir):
-            my = ManifestYaml()
-            my.load(dir)
-            language_code = my.getLanguageId()
+            language_code = g_util.get_language_code(dir)
             if language_code != self.language_code.get():   # to avoid xs callbacks
                 self.language_code.set(language_code)       # will invoke _onChangeLanguage
-            language_name = my.getLanguageName()
+            language_name = g_util.get_language_name(dir)
             if language_name != self.language_name_en.get():
                 self.language_name_en.set(language_name)
         self.changingVars = False

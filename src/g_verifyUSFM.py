@@ -12,7 +12,6 @@ import g_step
 import os
 import time
 from projectinfo import ProjectInfo
-from manifestyaml import ManifestYaml
 
 stepname = 'VerifyUSFM'   # equals the main class name in this module
 
@@ -176,12 +175,12 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
 
     def show_values(self):
         code = self.getOption('language_code')
-        dir = self.getWorkDirConfigValue()
-        self.work_dir.set(dir)
+        workdir = self.getWorkDirConfigValue()
+        self.work_dir.set(workdir)
         self.language_code.set(code)
         self.filename.set(self.getOption('filename'))
         self.std_titles.set(self.getOption('standard_chapter_title'))
-        self.set_language_fields(code, dir)     # this may overwrite chapter title
+        self.set_language_fields(code, workdir)     # this may overwrite chapter title
         for si in range(len(self.suppress)):
             configname = f"suppress{si}"
             self.suppress[si].set(self.getBooleanOption(configname))
@@ -202,7 +201,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         self.suppress[6].trace_add("write", self._onChangeQuotes)
         self.suppress[7].trace_add("write", self._onChangeQuotes)
 
-    # Called when Step is activated, and when the source dir or language code changes.
+    # Called when Step is activated, and when the working directory or language code changes.
     # Sets compare_dir, based on existence of project info, if any.
     # May set standard chapter title, based on project info, if any.
     def set_language_fields(self, code, dir):
@@ -284,9 +283,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             objections.append(f"The usfm file folder ({dir})\n  can't be the same as its Source text folder.")
 
         if not objections:  # Only do this check if all other checks pass
-            my = ManifestYaml()
-            my.load(dir)
-            if mycode := my.getLanguageId():
+            if mycode := g_util.get_language_code(dir):
                 if mycode != code:
                     objections.append(f"Language code doesn't match manifest at {dir}")
                     objections.append(f"{code} vs. {mycode}")
@@ -353,16 +350,14 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
 
     def _onChangeWorkDir(self, *args):
         self.changingVars = True
-        dir = self.work_dir.get()
+        workdir = self.work_dir.get()
         code = self.language_code.get()
-        if os.path.isdir(dir):
-            my = ManifestYaml()
-            my.load(dir)
-            code = my.getLanguageId()
-            if code != self.language_code.get():
-                self.language_code.set(code)    # this will invoke _onChangeLanguage()
+        if os.path.isdir(workdir):
+            my_code = g_util.get_language_code(workdir)
+            if my_code != code:
+                self.language_code.set(my_code)    # this will invoke _onChangeLanguage()
             else:
-                self.set_language_fields(code, dir)
+                self.set_language_fields(code, workdir)
         self.changingVars = False
         self._set_button_status()
 

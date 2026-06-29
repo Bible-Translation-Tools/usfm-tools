@@ -12,7 +12,6 @@ import g_util
 import g_step
 import os
 from projectinfo import ProjectInfo
-from manifestyaml import ManifestYaml
 
 stepname = 'UsfmCleanup'   # equals the main class name in this module
 
@@ -296,9 +295,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
             objections.append(f"The usfm file folder ({dir})\n  can't be the same as its Source text folder.")
 
         if not objections:  # Only do this check if all other checks pass
-            my = ManifestYaml()
-            my.load(dir)
-            if mycode := my.getLanguageId():
+            if mycode := g_util.get_language_code(dir):
                 if mycode != code:
                     objections.append(f"Language code doesn't match manifest at {dir}")
                     objections.append(f"{code} vs. {mycode}")
@@ -345,9 +342,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         self.changingVars = True
         dir = self.work_dir.get()
         if os.path.isdir(dir):
-            my = ManifestYaml()
-            my.load(dir)
-            language_code = my.getLanguageId()
+            language_code = g_util.get_language_code(dir)
             if language_code != self.language_code.get():   # to avoid xs callbacks
                 self.language_code.set(language_code)       # will invoke _onChangeLanguage
             else:
