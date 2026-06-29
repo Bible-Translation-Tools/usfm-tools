@@ -6,6 +6,7 @@
 from tkinter import ttk
 from tkinter import StringVar, BooleanVar, W, DISABLED
 from idlelib.tooltip import Hovertip
+from pathlib import Path
 import os
 import g_util
 import g_step
@@ -60,8 +61,8 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.source_dir = StringVar()
         self.work_dir = StringVar()
         self.lang_cbname = self.language_code.trace_add("write", self._onChangeEntry)
-        self.source_cbname = self.source_dir.trace_add("write", self._onChangeSourceDir)
-        self.work_cbname = self.work_dir.trace_add("write", self._onChangeEntry)
+        self.source_cbname = self.source_dir.trace_add("write", self._onChangeTxtDir)
+        self.work_cbname = self.work_dir.trace_add("write", self._onChangeWorkDir)
         self.headings = BooleanVar(value = False)
         for col in [2,3]:
             self.columnconfigure(col, weight=1)   # keep column 1 from expanding
@@ -127,8 +128,8 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.controller.showbutton(4, "Usfm folder", self._onOpenWorkDir)
         self.controller.showbutton(5, ">>>", self._onSkip, tip="Verify USFM")
         self.lang_cbname = self.language_code.trace_add("write", self._onChangeEntry)
-        self.source_cbname = self.source_dir.trace_add("write", self._onChangeSourceDir)
-        self.work_cbname = self.work_dir.trace_add("write", self._onChangeEntry)
+        self.source_cbname = self.source_dir.trace_add("write", self._onChangeTxtDir)
+        self.work_cbname = self.work_dir.trace_add("write", self._onChangeWorkDir)
         self._set_button_status()
 
     # Returns the current entered values in a dict.
@@ -144,8 +145,13 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.controller.askdir(self.source_dir)
     def _onFindWorkDir(self, *args):
         self.controller.askdir(self.work_dir)
-    def _onChangeSourceDir(self, *args):
+    def _onChangeTxtDir(self, *args):
         self.language_code.set("")
+        self._reconcile_language(work=False)
+        self._set_button_status()
+    def _onChangeWorkDir(self, *args):
+        self.language_code.set("")
+        self._reconcile_language(work=True)
         self._set_button_status()
     def _onChangeEntry(self, *args):
         self._set_button_status()
@@ -159,6 +165,22 @@ class Text2USFM_Frame(g_step.Step_Frame):
 run the conversion both ways and keep the better result.\n"
         self.clear_show(msg)
 
+    # Prevent txt dir and work dir being from different languages.
+    # Set the language_code if txt dir and work dir agree.
+    def _reconcile_language(self, work:bool):
+        txtdir = self.source_dir.get()
+        workdir = self.work_dir.get()
+        if os.path.isdir(txtdir) and (os.path.isdir(workdir) or os.path.isdir( os.path.dirname(workdir) )):
+            txtpath = Path(txtdir)
+            txtparent = txtpath.parent
+            work_parent_resolve = Path(os.path.dirname(workdir)).resolve()
+            if txtparent.resolve() != work_parent_resolve and txtparent.parent.resolve() != work_parent_resolve:
+                clear_dir = self.source_dir if work else self.work_dir
+                clear_dir.set("")
+            else:
+                if language := g_util.get_language_code(workdir):
+                    self.language_code.set(language)
+
     # Returns a list of incomplete or incorrect inputs.
     # Used by _onExecute().
     # Is also called before values are saved to configuration files.
@@ -171,11 +193,18 @@ run the conversion both ways and keep the better result.\n"
 
         if not code:
             objections.append("Language code is required.")
-        if not os.path.isdir(dir):
+        if not dir:
+            objections.append("Source folder name is required.")
+        elif not os.path.isdir(dir):
             objections.append(f"{dir} is not a valid folder.")
-        work_parent = os.path.dirname(workdir)
-        if not os.path.isdir(work_parent):
-            objections.append(f"{workdir} cannot be created.")
+        elif Path(dir).resolve() == Path(workdir).resolve():
+            objections.append("Input and output folders are the same.")
+        if not workdir:
+            objections.append("Destination folder is required.")
+        else:
+            work_parent = os.path.dirname(workdir)
+            if not os.path.isdir(work_parent):
+                objections.append(f"{workdir} cannot be created.")
         return objections
 
     def onScriptEnd(self):
