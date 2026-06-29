@@ -241,6 +241,9 @@ class MakeMetadata_Frame(g_step.Step_Frame):
             language_code = my.getLanguageId()
             if language_code != self.language_code.get():   # to avoid xs callbacks
                 self.language_code.set(language_code)       # will invoke _onChangeLanguage
+            language_name = my.getLanguageName()
+            if language_name != self.language_name_en.get():
+                self.language_name_en.set(language_name)
         self.changingVars = False
         self._set_button_status()
 
