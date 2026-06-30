@@ -29,6 +29,8 @@ class ManifestYaml:
     # Loads specified file into self.contents, if not already loaded.
     # Returns list of error strings if not successful.
     def load(self, project_dir, filename="manifest.yaml"):
+        if not os.path.isdir(project_dir):
+            return
         path = os.path.join(project_dir, filename)
         errors = []
         reload_needed = False
