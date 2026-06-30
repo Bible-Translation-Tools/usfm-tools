@@ -178,7 +178,6 @@ then you don't need to run this process.")
         return workdir
 
     def show_values(self):
-        self.changingVars = True
         code = self.getOption('language_code')
         dir = self.getWorkDirConfigValue()
         self.work_dir.set(dir)
@@ -204,7 +203,6 @@ then you don't need to run this process.")
                                    tip="Restore any and all .usfmorig backup files in the folder.")
         self.controller.enablebutton(4, False)
         self.controller.showbutton(5, ">>>", self._onNext, tip="Next step")
-        self.changingVars = False
         self._set_button_status()
         self.language_code.trace_add("write", self._onChangeLanguage)
         self.work_dir.trace_add("write", self._onChangeWorkDir)
@@ -213,9 +211,9 @@ then you don't need to run this process.")
 
     # May be called when Step is activated, and when the work dir changes.
     def set_language_code(self, dir):
-        if code := g_util.get_language_code(dir):   # from manifest
-            if code != self.language_code.get():
-                self.language_code.set(code)    # this will invoke _onChangeLanguage()
+        code = g_util.get_language_code(dir)   # from manifest
+        if code != self.language_code.get():
+            self.language_code.set(code)    # this will invoke _onChangeLanguage()
 
     # Called when Step is activated, and when the language code changes.
     # Sets model_dir, based on existence of project info, if any.
@@ -302,6 +300,7 @@ then you don't need to run this process.")
             objections.append("The two file folders can't be the same.")
         return objections
 
+    # Called from _save_values() after fields have been validated.
     def save_project_info(self):
         projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
         if self.model_dir.get() != projectInfo.getSourceDir():
