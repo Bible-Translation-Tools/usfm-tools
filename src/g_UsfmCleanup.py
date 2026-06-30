@@ -214,19 +214,18 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
     # May set standard chapter title, based on project info, if any.
     def set_language_fields(self, code, dir):
         projectInfo = None
-        if dir and code:
+        if dir and code and os.path.isdir(dir):
             projectInfo = ProjectInfo(dir, code)
             cmp = projectInfo.getSourceDir()
             if not cmp:
-                # cmp = self._getCompareValue(dir, code, "")
                 if not projectInfo.getMainSource():
                     projectInfo.useManifest(docreate=False)
                 if mainsrc := projectInfo.getMainSource():
                     cmp = f"(locate folder containing {mainsrc['language_id']}_{mainsrc['resource_id']}, vrsn ~{mainsrc['version']})"
                     if "nspecified" in cmp or "nknown" in cmp:
                         cmp = ""
-                else:
-                    cmp = ""
+                # else:
+                #     cmp = ""
         else:
             cmp = ""
         self.compare_dir.set(cmp)   # calls _set_button_status() implicitly

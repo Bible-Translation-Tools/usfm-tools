@@ -27,15 +27,16 @@ class ProjectInfo:
     # Loads the manifest file, if any.
     # Syncs the project info and manifest info, if any.
     def useManifest(self, docreate):
-        if not self.manifest:
-            if docreate:
-                self._makeManifest()     # makes and loads manifest
-        else:
-            self.manifest.load(self.project_dir)
-        if self.manifest and self.manifest.getLanguageId() != self.getLanguageCode():
-            self.manifest = None
-        if self.manifest:
-            self.sync()
+        if os.path.isdir(self.project_dir):
+            if not self.manifest:
+                if docreate:
+                    self._makeManifest()     # makes and loads manifest
+            else:
+                self.manifest.load(self.project_dir)
+            if self.manifest and self.manifest.getLanguageId() != self.getLanguageCode():
+                self.manifest = None
+            if self.manifest:
+                self.sync()
 
     def disuseManifest(self):
         self.manifest = None
@@ -44,10 +45,10 @@ class ProjectInfo:
     # Overwrites manifest if it exists and is corrupted.
     # Does not overwrite a syntactically valid manifest.
     def _makeManifest(self):
-        if not self.manifest:
+        if os.path.isdir(self.project_dir) and not self.manifest:
             self.manifest = ManifestYaml()
             errors = self.manifest.load(self.project_dir)
-            if len(errors) > 0:
+            if errors:
                 if yamlpath := self.manifest.getPath():
                     timestamp = get_timestamp(yamlpath)
                     bakpath = os.path.join(os.path.dirname(yamlpath), f"manifest-{timestamp}.yaml")
@@ -143,7 +144,7 @@ class ProjectInfo:
 
     def setSourceDir(self, source_dir):
         self.languageInfo.setSourceDir(source_dir)
-    def getSourceDir(self):
+    def getSourceDir(self) -> str:
         return self.languageInfo.getSourceDir()
     def setStandardChapterTitle(self, title):
         self.languageInfo.addChapterTitle(title)

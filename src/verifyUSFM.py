@@ -636,13 +636,14 @@ def wordkey(item):
 
 # Returns information about the resource from the manifest file in the specified folder.
 def identifyResource(dir):
-    srcmy = ManifestYaml()
-    errors = srcmy.load(dir)
     resource = dict()
-    if not errors:
-        resource['language_id'] = srcmy.getLanguageId()
-        resource['resource_id'] = srcmy.getResourceId()
-        resource['version'] = srcmy.getVersion()
+    if os.path.isdir(dir):
+        srcmy = ManifestYaml()
+        errors = srcmy.load(dir)
+        if not errors:
+            resource['language_id'] = srcmy.getLanguageId()
+            resource['resource_id'] = srcmy.getResourceId()
+            resource['version'] = srcmy.getVersion()
     return resource
 
 # Returns information about the resource in the specified folder, as a string.

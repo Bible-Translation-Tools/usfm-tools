@@ -460,10 +460,13 @@ def scanSourceFile(path):
 
 # Returns the language code, resource identifier and version as a string.
 def identifySource(sourcedir):
-    from manifestyaml import ManifestYaml
-    my = ManifestYaml()
-    my.load(sourcedir)
-    id = my.getLanguageId() + "_" + my.getResourceId() + " " + my.getVersion()
+    if os.path.isdir(sourcedir):
+        from manifestyaml import ManifestYaml
+        my = ManifestYaml()
+        my.load(sourcedir)
+        id = my.getLanguageId() + "_" + my.getResourceId() + " " + my.getVersion()
+    else:
+        id = ""
     return id
 
 # Loads the source text for the current book if compare_dir is set.

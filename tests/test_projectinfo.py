@@ -53,6 +53,18 @@ def test_init_oldfile():
     projectInfo = ProjectInfo(test_dir, '')
     assert projectInfo.getLanguageCode() == ''
 
+def test_bad_dir():
+    bad_dir = r'C:\DCS\Test\nonexistent_dir'
+    language_code = 'test_bad_dir'
+    projectInfo = ProjectInfo(bad_dir, language_code)
+    assert projectInfo
+    projectInfo.useManifest(True)
+    assert not projectInfo.manifest
+    assert projectInfo.getSources() == []
+    assert not projectInfo.getMainSource()
+    assert projectInfo.getWords() == []
+    assert projectInfo.getLanguageCode() == language_code
+
 def test_language_name():
     language_name = 'Test ProjectInfo'
     projectInfo = ProjectInfo(test_dir, language_code)
