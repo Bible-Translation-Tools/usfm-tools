@@ -839,9 +839,9 @@ def verifyTocYaml(contents, tocpath):
 # Returns the contents of the file if no errors.
 def yamlcontents(dir, filename):
     my = ManifestYaml()
-    errors = my.load(dir)
-    for error in errors:
-        reportError(error)
+    if errors := my.load(dir, filename):
+        for error in errors:
+            reportError(error)
     return my.contents if not errors else None
 
 # For tA projects, verify that each folder has a valid toc.yaml and config.yaml file.

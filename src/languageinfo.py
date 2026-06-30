@@ -98,7 +98,7 @@ class LanguageInfo:
 
     def setSourceDir(self, source_dir):
         self.info['source_dir'] = source_dir
-    def getSourceDir(self):
+    def getSourceDir(self) -> str:
         assert 'source_dir' in self.info
         return self.info['source_dir']
 

@@ -60,9 +60,6 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.language_code = StringVar()
         self.source_dir = StringVar()
         self.work_dir = StringVar()
-        self.lang_cbname = self.language_code.trace_add("write", self._onChangeEntry)
-        self.source_cbname = self.source_dir.trace_add("write", self._onChangeTxtDir)
-        self.work_cbname = self.work_dir.trace_add("write", self._onChangeWorkDir)
         self.headings = BooleanVar(value = False)
         for col in [2,3]:
             self.columnconfigure(col, weight=1)   # keep column 1 from expanding
@@ -109,10 +106,6 @@ class Text2USFM_Frame(g_step.Step_Frame):
 
     # Called when the frame is first activated. Populate the initial values.
     def show_values(self):
-        self.language_code.trace_remove("write", self.lang_cbname)
-        self.source_dir.trace_remove("write", self.source_cbname)
-        self.work_dir.trace_remove("write", self.work_cbname)
-
         self.language_code.set(self.getOption('language_code'))
         self.source_dir.set(self.getOption('source_dir'))
         self.work_dir.set( self.getWorkDirConfigValue() )
@@ -127,9 +120,9 @@ class Text2USFM_Frame(g_step.Step_Frame):
                                    tip="Open the folder containing the files to be converted.")
         self.controller.showbutton(4, "Usfm folder", self._onOpenWorkDir)
         self.controller.showbutton(5, ">>>", self._onSkip, tip="Verify USFM")
-        self.lang_cbname = self.language_code.trace_add("write", self._onChangeEntry)
-        self.source_cbname = self.source_dir.trace_add("write", self._onChangeTxtDir)
-        self.work_cbname = self.work_dir.trace_add("write", self._onChangeWorkDir)
+        self.language_code.trace_add("write", self._set_button_status)
+        self.source_dir.trace_add("write", self._onChangeTxtDir)
+        self.work_dir.trace_add("write", self._onChangeWorkDir)
         self._set_button_status()
 
     # Returns the current entered values in a dict.
@@ -153,8 +146,6 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.language_code.set("")
         self._reconcile_language(work=True)
         self._set_button_status()
-    def _onChangeEntry(self, *args):
-        self._set_button_status()
     def _onOpenTextDir(self, *args):
         os.startfile(self.source_dir.get())
     def _onOpenWorkDir(self, *args):
@@ -166,7 +157,7 @@ run the conversion both ways and keep the better result.\n"
         self.clear_show(msg)
 
     # Prevent txt dir and work dir being from different languages.
-    # Set the language_code if txt dir and work dir agree.
+    # Set the language_code if txt dir and work dir agree, and if known.
     def _reconcile_language(self, work:bool):
         txtdir = self.source_dir.get()
         workdir = self.work_dir.get()
@@ -212,7 +203,7 @@ run the conversion both ways and keep the better result.\n"
         self.controller.showbutton(5, ">>>", self._onNext, tip="Verify USFM")
         self._set_button_status()
 
-    def _set_button_status(self):
+    def _set_button_status(self, *args):
         self.controller.enablebutton(2, len(self.invalidInputs()) == 0)
         self.controller.enablebutton(3, os.path.isdir(self.source_dir.get()))
         self.controller.enablebutton(4, os.path.isdir(self.work_dir.get()))
