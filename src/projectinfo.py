@@ -89,7 +89,7 @@ class ProjectInfo:
     # and manifest.yaml, if it is in use.
     def save(self):
         self.languageInfo.save()
-        is_valid, msg = self.burrito.save()
+        is_valid1, msg = self.burrito.save()
         if msg:
             msg = "Burrito " + msg
         if self.manifest:
@@ -97,8 +97,8 @@ class ProjectInfo:
             if self.manifest.getVersion() == "":
                 if mainsource := self.getMainSource():
                     self.manifest.setVersion(mainsource['version'] + ".1")
-            self.manifest.save()
-        return is_valid, msg
+            is_valid2, msg2 = self.manifest.save()
+        return (is_valid1 and is_valid2), (msg if msg else msg2)
 
     # Sets the generator information in the burrito metadata.
     def setGenerator(self, name, version):

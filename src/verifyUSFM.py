@@ -45,7 +45,7 @@ import io
 import footnotes
 import usfm_verses
 import re
-from projectinfo import SaidWords, ProjectInfo
+from projectinfo import ProjectInfo, SaidWords
 from manifestyaml import ManifestYaml
 import usfm_utils
 import sentences
@@ -1646,7 +1646,9 @@ def syncProjectInfo():
     config = ToolsConfigManager()
     project_info = ProjectInfo(getWorkDir(), config.get('VerifyUSFM', 'language_code'))
     project_info.useManifest(docreate=True)     # syncs automatically
-    project_info.save()
+    is_valid, msg = project_info.save()
+    if not is_valid:
+        reportError(msg, 83)
     if src := identifyResource(config.get('VerifyUSFM', 'compare_dir')):    # from other manifest.yaml
         project_info.disuseManifest()
         if not project_info.knownSource(src['language_id'], src['resource_id'], src['version']):

@@ -85,9 +85,12 @@ class ManifestYaml:
             self.save()
 
     # Sorts the projects and contributors.
-    # [Over]writes the current manifest.yaml file.
+    # [Over]writes the current manifest.yaml file, if in-memory contents are valid.
     # Does nothing if contents is not initialized.
+    # Returns Tuple of (is_valid: bool, message: str)
     def save(self):
+        is_valid = True
+        msg = ""
         if self.path and self.contents:
             try:
                 self.contents['projects'].sort(key=operator.itemgetter('sort'))
@@ -102,9 +105,14 @@ class ManifestYaml:
             self.contents['dublin_core']['contributor'] = newlist
             self.contents['dublin_core']['contributor'].sort()
 
-            with io.open(self.path, "tw", encoding='utf-8', newline='\n') as file:
-                yaml.safe_dump(self.contents, stream=file, allow_unicode=True, sort_keys=False)
-            self.last_load_time = os.path.getmtime(self.path)
+            try:
+                with io.open(self.path, "tw", encoding='utf-8', newline='\n') as file:
+                    yaml.safe_dump(self.contents, stream=file, allow_unicode=True, sort_keys=False)
+                self.last_load_time = os.path.getmtime(self.path)
+            except PermissionError as e:
+                is_valid = False
+                msg = f"File permission error: {e}"
+        return (is_valid, msg)
 
     # Returns the full path of the current manifest file.
     def getPath(self):

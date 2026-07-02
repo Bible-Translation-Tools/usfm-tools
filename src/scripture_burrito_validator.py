@@ -2515,7 +2515,7 @@ def validate(burrito_json):
         # Validate
         validator = Draft7Validator(main_schema, registry=registry)
         validator.validate(data)
-        return True, "Burrito metadata is valid"
+        return True, ""
     except ValidationError as e:
         return False, f"Validation error: {e.message}"
     except json.JSONDecodeError as e:

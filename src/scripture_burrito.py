@@ -39,6 +39,7 @@ class Burrito:
     # Returns tuple of (is_valid: bool, message: str).
     def load(self):
         is_valid = False
+        msg = ""
         path = os.path.join(self.resource_dir, "metadata.json")
         if os.path.isfile(path):
             with open(path, "r", encoding='utf-8') as file:
@@ -71,8 +72,12 @@ class Burrito:
                 is_valid, msg = scripture_burrito_validator.validate(self.contents)
                 if is_valid:
                     path = os.path.join(self.resource_dir, "metadata.json")
-                    with io.open(path, 'w', newline='\n') as json_file:
-                        json.dump(self.contents, json_file, indent=2)
+                    try:
+                        with io.open(path, 'w', newline='\n') as json_file:
+                            json.dump(self.contents, json_file, indent=2)
+                    except PermissionError as e:
+                        is_valid = False
+                        msg = f"file permission error: {e}"
         else:
             is_valid = False
             msg = "No contents to save."
