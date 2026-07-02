@@ -128,6 +128,7 @@ def verifyLicense():
 def verifyWacsRepo():
     global burrito_contents
     if 'wacs' in burrito_contents['identification']['primary']:
+        reportStatus("Checking existences of WACS repository. Please wait ...")
         repo_info = burrito_contents['identification']['primary']['wacs']
         for repo in repo_info.keys():
             url = os.path.join("https://content.bibletranslationtools.org/", repo)

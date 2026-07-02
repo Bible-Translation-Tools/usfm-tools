@@ -37,11 +37,12 @@ def main(app = None):
     gui = app
     nIssues = verifyManifest(gui)
     reportProgress(f"Finished checking manifest.yaml, found {nIssues} issue(s).")
+    reportStatus(f"\nChecking metadata.json...")
     nBurritoIssues = verifyBurrito(gui)
     if nBurritoIssues == 0:
         reportStatus("\nNo issues found in metadata.json.")
     nIssues += nBurritoIssues
-    reportProgress(f"\nDone, found {nIssues} issue(s).")
+    reportProgress(f"\nDone, found {nIssues} issue(s) total.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 
