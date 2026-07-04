@@ -33,7 +33,7 @@ class MarkParagraphs(g_step.Step):
         self.script = "mark_paragraphs"
         self.mainapp.execute_script(self.script, count)
         self.frame.clear_messages()
-        self.executed = False
+        self.executed = True
 
     # Temporary function, until "source_dir" is fully retired.
     def getWorkDir(self):

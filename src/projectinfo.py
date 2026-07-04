@@ -90,6 +90,8 @@ class ProjectInfo:
     def save(self):
         self.languageInfo.save()
         is_valid1, msg = self.burrito.save()
+        is_valid2 = True
+        msg2 = ""
         if msg:
             msg = "Burrito " + msg
         if self.manifest:
