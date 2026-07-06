@@ -42,14 +42,21 @@ def stream(msg, msgtype, stream):
     except UnicodeEncodeError as e:
         stream.write(f"{msgtype} message not shown, contains Unicode.\n")
 
+# Checks if url exists.
+# Returns response code, if received.
+# Returns 520 if it took more than 3 seconds to check.
+# Returns 530 on other exceptions.
 def check_url_exists(url):
     import requests
+    status = 0
     try:
-        response = requests.head(url, allow_redirects=True)
-        exists = response.status_code < 400
+        response = requests.head(url, allow_redirects=True, timeout=3)
+        status = response.status_code
+    except requests.exceptions.Timeout as e:
+        status = 520
     except requests.exceptions.RequestException as e:
-        exists = False
-    return exists
+        status = 530
+    return status
 
 # Verifies the syntactical correctness of the metadata.json file for now.
 # Returns the number of issues found.
@@ -128,14 +135,18 @@ def verifyLicense():
 def verifyWacsRepo():
     global burrito_contents
     if 'wacs' in burrito_contents['identification']['primary']:
-        reportStatus("Checking existences of WACS repository. Please wait ...")
         repo_info = burrito_contents['identification']['primary']['wacs']
         for repo in repo_info.keys():
             url = os.path.join("https://content.bibletranslationtools.org/", repo)
-            if not check_url_exists(url):
-                reportError(f"WACS repository does not exist yet: {repo}")
+            status = check_url_exists(url)
+            if status == 520:
+                reportWarning(f"The check for {repo} repo on WACS timed out")
+            elif status == 404:
+                reportError(f"WACS repository not found: {repo}")
+            elif status >= 400:
+                reportError(f"Can't confirm WACS repository exists: {repo}")
     else:
-        reportWarning("No WACS repository specified in metadata.json primary identification.")
+        reportWarning("No WACS repository identified in metadata.json as primary.")
 
 def main(app = None):
     verifyBurrito(app)
