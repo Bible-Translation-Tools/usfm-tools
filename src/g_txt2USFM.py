@@ -57,6 +57,7 @@ class Text2USFM_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
 
+        self.tracing = False
         self.language_code = StringVar()
         self.source_dir = StringVar()
         self.work_dir = StringVar()
@@ -120,10 +121,13 @@ class Text2USFM_Frame(g_step.Step_Frame):
                                    tip="Open the folder containing the files to be converted.")
         self.controller.showbutton(4, "Usfm folder", self._onOpenWorkDir)
         self.controller.showbutton(5, ">>>", self._onSkip, tip="Verify USFM")
-        self.language_code.trace_add("write", self._set_button_status)
-        self.source_dir.trace_add("write", self._onChangeTxtDir)
-        self.work_dir.trace_add("write", self._onChangeWorkDir)
-        self._set_button_status()
+
+        if not self.tracing:
+            self.language_code.trace_add("write", self._set_button_status)
+            self.source_dir.trace_add("write", self._onChangeTxtDir)
+            self.work_dir.trace_add("write", self._onChangeWorkDir)
+            self._set_button_status()
+            self.tracing = True
 
     # Returns the current entered values in a dict.
     def get_entered_values(self):

@@ -41,6 +41,7 @@ class MakeMetadata_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
         self.changingVars = False
+        self.tracing = False
 
         self.language_code = StringVar()
         self.language_name_en = StringVar()
@@ -112,18 +113,21 @@ class MakeMetadata_Frame(g_step.Step_Frame):
     def show_values(self):
         self.changingVars = True
         self.language_code.set(self.getOption('language_code'))
-        self.language_name_en.set(self.getOption('language_name_en'))
+        self.language_name_en.set("")
         direction = self.getOption('direction')
         self.direction.set(direction if direction else 'ltr')
-        self.localized_name.set(self.getOption('localized_name'))
+        self.localized_name.set("")
         self.work_dir.set(self.getOption('work_dir'))
         self.license_file.set(self.getOption('license_file'))
         license_type = self.getOption('license_type')
         self.license_type.set(license_type if license_type else 'CC-BY-SA 4.0')
         owner = self.getOption('repo_owner')
         self.repo_owner.set(owner if owner else 'Tech_Advance')
-        repo = self.getOption('repo_name')
-        self.repo_name.set(repo if repo else f"{self.language_code.get()}_reg")
+        if self.language_code.get():
+            repo = f"{self.language_code.get()}_reg"
+        else:
+            repo = self.getOption('repo_name')
+        self.repo_name.set(repo)
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack, tip="Verify USFM")
@@ -133,14 +137,17 @@ class MakeMetadata_Frame(g_step.Step_Frame):
         self.controller.showbutton(4, "VERIFY", self._onVerifyMetadata, tip="(Not implemented yet) Verify existing metadata files")
         self.controller.showbutton(5, ">>>", self._onNext, tip="Next step")
 
-        self.language_code.trace_add("write", self._onChangeLanguage)
-        self.language_name_en.trace_add("write", self._onChangeLanguageName)
-        self.localized_name.trace_add("write", self._onChangeLanguageName)
-        self.work_dir.trace_add("write", self._onChangeWorkDir)
-        self.license_file.trace_add("write", self._set_button_status)
-        self.license_type.trace_add("write", self._set_button_status)
-        self.repo_owner.trace_add("write", self._set_button_status)
-        self.repo_name.trace_add("write", self._set_button_status)
+        if not self.tracing:
+            self.language_code.trace_add("write", self._onChangeLanguage)
+            self.language_name_en.trace_add("write", self._onChangeLanguageName)
+            self.localized_name.trace_add("write", self._onChangeLanguageName)
+            self.work_dir.trace_add("write", self._onChangeWorkDir)
+            self.license_file.trace_add("write", self._set_button_status)
+            self.license_type.trace_add("write", self._set_button_status)
+            self.repo_owner.trace_add("write", self._set_button_status)
+            self.repo_name.trace_add("write", self._set_button_status)
+            self.tracing = True
+            self._onChangeWorkDir()
         self.changingVars = False
         self._set_button_status()
 
@@ -217,15 +224,16 @@ class MakeMetadata_Frame(g_step.Step_Frame):
         code = self.language_code.get()
         if not code:
             self.language_name_en.set("")
+            self.localized_name.set("")
             self.repo_name.set("")
         else:
             self.repo_name.set(f"{code}_reg")
             self._set_button_status()
 
     def _onChangeLanguageName(self, *args):
-        language_name = self.language_name_en.get()
-        if not language_name.isascii():
-            self.clear_show(f"Warning: '{language_name}' is not entirely ASCII. Make sure this is the anglicized name.")
+        language_name_en = self.language_name_en.get()
+        if not language_name_en.isascii():
+            self.clear_show(f"Warning: '{language_name_en}' is not entirely ASCII. Make sure this is the anglicized name.")
         self._set_button_status()
 
     def _onChangeWorkDir(self, *args):

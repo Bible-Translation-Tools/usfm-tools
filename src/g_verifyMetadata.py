@@ -46,7 +46,7 @@ class VerifyMetadata_Frame(g_step.Step_Frame):
         super().__init__(parent,controller)
 
         self.work_dir = StringVar()
-        self.work_dir.trace_add("write", self._onChangeWorkDir)
+        self.work_dir.trace_add("write", self._set_button_status)
         self.bibletype = BooleanVar(value = True)
         for col in (3,5):
             self.columnconfigure(col, weight=1)   # keep columns 1,4 from expanding
@@ -114,8 +114,6 @@ class VerifyMetadata_Frame(g_step.Step_Frame):
 
     def _onFindSrcDir(self, *args):
         self.controller.askdir(self.work_dir)
-    def _onChangeWorkDir(self, *args):
-        self._set_button_status()
 
     def _onOpenManifest(self, *args):
         self._save_values()
@@ -125,7 +123,7 @@ class VerifyMetadata_Frame(g_step.Step_Frame):
         self._save_values()
         os.startfile(self.work_dir.get())
 
-    def _set_button_status(self):
+    def _set_button_status(self, *args):
         valid = not self.invalidInputs()
         self.controller.enablebutton(2, valid)
         self.controller.enablebutton(4, valid)

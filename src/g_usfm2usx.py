@@ -58,7 +58,7 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         self.rc_dir = StringVar()
         for var in (self.language_code, self.language_name, self.bible_id, self.pub_date,
                     self.license, self.version, self.work_dir, self.filename, self.rc_dir):
-            var.trace_add("write", self._onChangeEntry)
+            var.trace_add("write", self._set_button_status)
         self.bible_name.trace_add("write", self._onChangeBible)
 
         self.grid_columnconfigure(4, weight=1)
@@ -189,15 +189,13 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
             self.rc_dir.set(r"~\AppData\Local\BTT-Writer\library")
         self.controller.askdir(self.rc_dir)
 
-    def _onChangeEntry(self, *args):
-        self._set_button_status()
     # Called when the Bible name changes
     def _onChangeBible(self, *args):
         if len(self.bible_name.get()) > 3 and not self.bible_id:
             self.bible_id.set( self.bible_name.get().lower()[0:3] )
         self._set_button_status()
 
-    def _set_button_status(self):
+    def _set_button_status(self, *args):
         dirs_ok = os.path.isdir(self.work_dir.get()) and os.path.isdir(self.rc_dir.get())
         if dirs_ok and self.filename.get():
             path = os.path.join(self.work_dir.get(), self.filename.get())

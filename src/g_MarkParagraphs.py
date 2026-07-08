@@ -82,6 +82,7 @@ class MarkParagraphs_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
         self.changingVars = False
+        self.tracing = False
 
         self.language_code = StringVar()  # Unused by mark_paragephs.py, but used here for proving other inputs
         self.work_dir = StringVar()
@@ -204,10 +205,12 @@ then you don't need to run this process.")
         self.controller.enablebutton(4, False)
         self.controller.showbutton(5, ">>>", self._onNext, tip="Next step")
         self._set_button_status()
-        self.language_code.trace_add("write", self._onChangeLanguage)
-        self.work_dir.trace_add("write", self._onChangeWorkDir)
-        self.model_dir.trace_add("write", self._set_button_status)
-        self.filename.trace_add("write", self._set_button_status)
+        if not self.tracing:
+            self.language_code.trace_add("write", self._onChangeLanguage)
+            self.work_dir.trace_add("write", self._onChangeWorkDir)
+            self.model_dir.trace_add("write", self._set_button_status)
+            self.filename.trace_add("write", self._set_button_status)
+            self.tracing = True
 
     # May be called when Step is activated, and when the work dir changes.
     def set_language_code(self, dir):

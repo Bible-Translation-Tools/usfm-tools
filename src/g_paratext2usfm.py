@@ -29,14 +29,11 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
 
+        self.tracing = False
         self.language_code = StringVar()
         self.ptx_dir = StringVar()
         self.work_dir = StringVar()
         self.filename = StringVar()
-        self.lang_cbname = self.language_code.trace_add("write", self._onChangeEntry)
-        self.source_cbname = self.ptx_dir.trace_add("write", self._onChangeEntry)
-        self.work_cbname = self.work_dir.trace_add("write", self._onChangeEntry)
-        self.filename_cbname = self.filename.trace_add("write", self._onChangeEntry)
 
         self.grid_columnconfigure(5, weight=1)
         self.grid_columnconfigure(6, weight=0)
@@ -81,11 +78,6 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         return workdir
 
     def show_values(self):
-        self.language_code.trace_remove("write", self.lang_cbname)
-        self.ptx_dir.trace_remove("write", self.source_cbname)
-        self.work_dir.trace_remove("write", self.work_cbname)
-        self.filename.trace_remove("write", self.filename_cbname)
-
         self.language_code.set(self.getOption('language_code'))
         self.ptx_dir.set(self.getOption('paratext_dir'))
         self.work_dir.set(self.getWorkDirConfigValue())
@@ -99,11 +91,13 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         self.controller.showbutton(4, "\"To\" folder", self._onOpenWorkDir, tip="Open the destination folder.")
         self.controller.hidebutton(5)
 
-        self.lang_cbname = self.language_code.trace_add("write", self._onChangeEntry)
-        self.source_cbname = self.ptx_dir.trace_add("write", self._onChangeEntry)
-        self.work_cbname = self.work_dir.trace_add("write", self._onChangeEntry)
-        self.filename_cbname = self.filename.trace_add("write", self._onChangeEntry)
-        self._set_button_status()
+        if not self.tracing:
+            self.language_code.trace_add("write", self._set_button_status)
+            self.ptx_dir.trace_add("write", self._set_button_status)
+            self.work_dir.trace_add("write", self._set_button_status)
+            self.filename.trace_add("write", self._set_button_status)
+            self.tracing = True
+            self._set_button_status()
 
     # Returns a list of incomplete or incorrect inputs.
     # Used by _onExecute().
@@ -163,10 +157,7 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         if path:
             self.filename.set(os.path.basename(path))
 
-    def _onChangeEntry(self, *args):
-        self._set_button_status()
-
-    def _set_button_status(self):
+    def _set_button_status(self, *args):
         self.controller.enablebutton(2, len(self.invalidInputs()) == 0)
         ptx_ok = os.path.isdir(self.ptx_dir.get())
         self.controller.enablebutton(3, ptx_ok)

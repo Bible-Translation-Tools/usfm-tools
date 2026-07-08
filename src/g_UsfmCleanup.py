@@ -65,6 +65,7 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
         self.changingVars = False
+        self.tracing = False
 
         self.language_code = StringVar()
         self.work_dir = StringVar()
@@ -201,13 +202,15 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         # self.controller.bindButtonEvent(4, "<Enter>", self._onCheckInputs)
         self.controller.showbutton(5, ">>>", self._onNext, tip="Next step")
 
-        self.language_code.trace_add("write", self._onChangeLanguage)
-        self.work_dir.trace_add("write", self._onChangeWorkDir)
-        self.filename.trace_add("write", self._set_button_status)
-        self.compare_dir.trace_add("write", self._set_button_status)
-        self.enable[3].trace_add("write", self._onChangeQuotes)
-        self.enable[4].trace_add("write", self._onChangeQuotes)
-        self._set_button_status()
+        if not self.tracing:
+            self.language_code.trace_add("write", self._onChangeLanguage)
+            self.work_dir.trace_add("write", self._onChangeWorkDir)
+            self.filename.trace_add("write", self._set_button_status)
+            self.compare_dir.trace_add("write", self._set_button_status)
+            self.enable[3].trace_add("write", self._onChangeQuotes)
+            self.enable[4].trace_add("write", self._onChangeQuotes)
+            self.tracing = True
+            self._set_button_status()
 
     # Called when Step is activated, and when the source dir or language code changes.
     # Sets compare_dir, based on existence of project info, if any.

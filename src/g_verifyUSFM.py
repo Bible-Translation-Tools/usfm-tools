@@ -51,6 +51,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
         self.changingVars = False
+        self.tracing = False
 
         self.language_code = StringVar()
         self.work_dir = StringVar()
@@ -193,13 +194,16 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
                                    tip="Open issues.txt file in your default editor")
         self.controller.showbutton(5, ">>>", self._onNext)
         self._set_button_status()
-        self.language_code.trace_add("write", self._onChangeLanguage)
-        self.work_dir.trace_add("write", self._onChangeWorkDir)
-        self.filename.trace_add("write", self._set_button_status)
-        self.compare_dir.trace_add("write", self._set_button_status)
-        self._onChangeQuotes()
-        self.suppress[6].trace_add("write", self._onChangeQuotes)
-        self.suppress[7].trace_add("write", self._onChangeQuotes)
+
+        if not self.tracing:
+            self.language_code.trace_add("write", self._onChangeLanguage)
+            self.work_dir.trace_add("write", self._onChangeWorkDir)
+            self.filename.trace_add("write", self._set_button_status)
+            self.compare_dir.trace_add("write", self._set_button_status)
+            self.suppress[6].trace_add("write", self._onChangeQuotes)
+            self.suppress[7].trace_add("write", self._onChangeQuotes)
+            self.tracing = True
+            self._onChangeQuotes()
 
     # Called when Step is activated, and when the working directory or language code changes.
     # Sets compare_dir, based on existence of project info, if any.

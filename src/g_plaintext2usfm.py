@@ -50,7 +50,7 @@ class Plaintext2Usfm_Frame(g_step.Step_Frame):
         self.source_dir = StringVar()
         self.work_dir = StringVar()
         for var in (self.source_dir, self.work_dir):
-            var.trace_add("write", self._onChangeEntry)
+            var.trace_add("write", self._set_button_status)
         for col in [3,4]:
             self.columnconfigure(col, weight=1)   # keep column 1 from expanding
 
@@ -136,8 +136,6 @@ The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
                                            filetypes=[('Text file', '*.txt')])
         if path:
             self.filename.set(os.path.basename(path))
-    def _onChangeEntry(self, *args):
-        self._set_button_status()
     def _onOpenTextDir(self, *args):
         os.startfile(self.source_dir.get())
     def _onOpenWorkDir(self, *args):
@@ -147,7 +145,7 @@ The resulting USFM file(s) need to be verified and probably cleaned up a bit.")
         self.message_area['state'] = DISABLED   # prevents insertions to message area
         self.controller.showbutton(5, ">>>", self._onNext, tip="Verify USFM")
 
-    def _set_button_status(self):
+    def _set_button_status(self, *args):
         good_sourcedir = os.path.isdir(self.source_dir.get())
         okay = (good_sourcedir and self.work_dir.get())
         self.controller.enablebutton(2, okay)
