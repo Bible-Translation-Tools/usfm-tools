@@ -62,6 +62,8 @@ main_schema = {
     }
 }
 
+registry = None
+
 agencies = Resource.from_contents({
     "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "https://burrito.bible/schema/agencies.schema.json",
@@ -2448,7 +2450,7 @@ x_flavor = Resource.from_contents({
     "additionalProperties": True
 })
 
-# Validates a Scripture Burrito JSON against the schema.
+# Validates a Scripture Burrito against the schema.
 # burrito_json may be a Dictionary, or JSON string to validate, or path to a .json file.
 # Returns Tuple of (is_valid: bool, message: str)
 def validate(burrito_json):
@@ -2462,7 +2464,9 @@ def validate(burrito_json):
         else:
             data = burrito_json
 
-        registry = Registry().with_resources(
+        global registry
+        if not registry:
+            registry = Registry().with_resources(
             [
              ("agencies.schema.json", agencies),
              ("agency.schema.json", agency),
