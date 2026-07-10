@@ -906,7 +906,7 @@ def main(app = None):
     if nConverted > 0:
         is_valid, msg = projectInfo.save()
         if not is_valid:
-            reportError(f"Error saving project info: {msg}")
+            reportError(f"Error saving {msg}")
         else:
             reportStatus("\nDone.")
     if gui:

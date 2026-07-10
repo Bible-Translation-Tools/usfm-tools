@@ -1646,9 +1646,7 @@ def syncProjectInfo():
     config = ToolsConfigManager()
     project_info = ProjectInfo(getWorkDir(), config.get('VerifyUSFM', 'language_code'))
     project_info.useManifest(docreate=True)     # syncs automatically
-    is_valid, msg = project_info.save()
-    if not is_valid:
-        reportError(msg, 83)
+    project_info.save()
     if src := identifyResource(config.get('VerifyUSFM', 'compare_dir')):    # from other manifest.yaml
         project_info.disuseManifest()
         if not project_info.knownSource(src['language_id'], src['resource_id'], src['version']):
