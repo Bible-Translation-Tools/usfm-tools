@@ -643,7 +643,7 @@ def convertChunk(schap, strChunk, firstinchapter, lastref, chapterTitle, lastchu
     strChunk = strChunk.replace(" \n", "\n")
 
     config = ToolsConfigManager()
-    if config.getboolean('Txt2USFM', 'section_headings'): # and not conflict_re.search(strChunk):
+    if config.getboolean('Txt2USFM', 'section_headings') and not conflict_re.search(strChunk):
         strChunk = mark_section_headings(strChunk, lastref, lastchunk)
 
     if config.getboolean('Txt2USFM', 'mark_chunks'):
