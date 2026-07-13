@@ -632,6 +632,7 @@ def newline_markers(s:str):
     return s
 
 condense_re = re.compile(r'[ \t][ \t]+')
+conflict_re = re.compile(f'<<< +HEAD|>>>>>|=====')
 
 # Converts the section string by adding chapter, label, chunk, and p parkers where needed.
 # Starts each usfm marker on a new line.
@@ -642,7 +643,7 @@ def convertChunk(schap, strChunk, firstinchapter, lastref, chapterTitle, lastchu
     strChunk = strChunk.replace(" \n", "\n")
 
     config = ToolsConfigManager()
-    if config.getboolean('Txt2USFM', 'section_headings'):
+    if config.getboolean('Txt2USFM', 'section_headings'): # and not conflict_re.search(strChunk):
         strChunk = mark_section_headings(strChunk, lastref, lastchunk)
 
     if config.getboolean('Txt2USFM', 'mark_chunks'):
