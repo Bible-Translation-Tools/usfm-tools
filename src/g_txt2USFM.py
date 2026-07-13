@@ -125,7 +125,7 @@ class Text2USFM_Frame(g_step.Step_Frame):
         if not self.tracing:
             self.language_code.trace_add("write", self._set_button_status)
             self.source_dir.trace_add("write", self._onChangeTxtDir)
-            self.work_dir.trace_add("write", self._onChangeWorkDir)
+            self.work_dir.trace_add("write", self._set_button_status)
             self._set_button_status()
             self.tracing = True
 
@@ -144,11 +144,6 @@ class Text2USFM_Frame(g_step.Step_Frame):
         self.controller.askdir(self.work_dir)
     def _onChangeTxtDir(self, *args):
         self.language_code.set("")
-        self._reconcile_language(work=False)
-        self._set_button_status()
-    def _onChangeWorkDir(self, *args):
-        self.language_code.set("")
-        self._reconcile_language(work=True)
         self._set_button_status()
     def _onOpenTextDir(self, *args):
         os.startfile(self.source_dir.get())
@@ -159,22 +154,6 @@ class Text2USFM_Frame(g_step.Step_Frame):
         msg = "If you don't know whether the text contains section headings,\n\
 run the conversion both ways and keep the better result.\n"
         self.clear_show(msg)
-
-    # Prevent txt dir and work dir being from different languages.
-    # Set the language_code if txt dir and work dir agree, and if known.
-    def _reconcile_language(self, work:bool):
-        txtdir = self.source_dir.get()
-        workdir = self.work_dir.get()
-        if os.path.isdir(txtdir) and (os.path.isdir(workdir) or os.path.isdir( os.path.dirname(workdir) )):
-            txtpath = Path(txtdir)
-            txtparent = txtpath.parent
-            work_parent_resolve = Path(os.path.dirname(workdir)).resolve()
-            if txtparent.resolve() != work_parent_resolve and txtparent.parent.resolve() != work_parent_resolve:
-                clear_dir = self.source_dir if work else self.work_dir
-                clear_dir.set("")
-            else:
-                if language := g_util.get_language_code(workdir):
-                    self.language_code.set(language)
 
     # Returns a list of incomplete or incorrect inputs.
     # Used by _onExecute().
@@ -192,8 +171,20 @@ run the conversion both ways and keep the better result.\n"
             objections.append("Source folder name is required.")
         elif not os.path.isdir(dir):
             objections.append(f"{dir} is not a valid folder.")
-        elif Path(dir).resolve() == Path(workdir).resolve():
-            objections.append("Input and output folders are the same.")
+        elif workdir:
+            dirpath = Path(dir).resolve()
+            workdirpath = Path(workdir).resolve()
+            if dirpath == workdirpath:
+                objections.append("Input and output folders are the same.")
+            else:
+                common = os.path.commonpath([dirpath, workdirpath])
+                if common == str(dirpath) or common == str(workdirpath):
+                    objections.append("One folder is a subfolder of the other.")
+                # The following check necessarily assumes that language folders are placed
+                # directly under C:\DCS or C:\WACS or another top level folder on Windows.
+                # It should also work correctly for language folders directly under a 2nd level folder on Linux.
+                if len(common) < 10 or (common.count('\\') < 2 and common.count('/') < 3):
+                    objections.append("Input and output folders are for different languages.")
         if not workdir:
             objections.append("Destination folder is required.")
         else:
