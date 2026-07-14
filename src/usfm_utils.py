@@ -89,7 +89,7 @@ def unicodeBlock(text):
 def isCaseless(text):
     block = unicodeBlock(text)
     return (block in {'ARABIC','BENGALI','CJK','DEVANAGARI','ETHIOPIC','GUJARATI','GURMUKHI',
-                      'HEBREW','HIRAGANA','KANNADA','LAO','ORIYA','TAMIL','TELUGU'})
+                      'HEBREW','HIRAGANA','KANNADA','LAO','MYANMAR','ORIYA','TAMIL','TELUGU'})
 
 backslash_re = re.compile(r'\\\s')
 jammed_re = re.compile(r'(\\v +[-0-9]+[^-\s0-9])', re.UNICODE)
