@@ -157,6 +157,10 @@ class State:
         self.reference = self.ID + " " + c
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = C
+        self.lastparen = (str(), str()) # reset at start of each chapter
+        self.lastsquare = (str(), str())
+        self.lastbrace = (str(), str())
+        self.lastangle = (str(), str())
 
     # Isolate the word/phrase for "chapter" from the given string.
     # Add it to the list of chapter titles.
@@ -1190,41 +1194,42 @@ def reportNumbers(t, footnote):
 leftright_re = re.compile(r'[()<>\[\]{}]')
 
 def reportUnmatched(t):
-    for leftright in leftright_re.finditer(t):
+    marks = leftright_re.findall(t)
+    for leftright in marks:
         report = None
         char = leftright[0]
         match char:
             case '(':
-                if state.lastparen[0] == '(':
-                    report = ("parenthesis", state.lastparen[1], 56)
+                if state.lastparen[0] == '(' and marks.count('(') != marks.count(')'):
+                    report = ("left parenthesis", state.lastparen[1], 56)
                 state.lastparen = (char, state.getReference())
             case ')':
-                if state.lastparen[0] in {'', ')'}:
-                    report = ("parenthesis", state.getReference(), 56)
+                if state.lastparen[0] in {'', ')'} and marks.count('(') != marks.count(')'):
+                    report = ("right parenthesis", state.getReference(), 56)
                 state.lastparen = (char, state.getReference())
             case '<' if not "<<<" in t:
-                if state.lastangle[0] == '<':
-                    report = ("angle bracket", state.lastangle[1], 56.1)
+                if state.lastangle[0] == '<' and marks.count('<') != marks.count('>'):
+                    report = ("left angle bracket", state.lastangle[1], 56.1)
                 state.lastangle = (char, state.getReference())
             case '>' if not ">>>" in t:
-                if state.lastangle[0] in {'', '>'}:
-                    report = ("angle bracket", state.getReference(), 56.1)
+                if state.lastangle[0] in {'', '>'} and marks.count('<') != marks.count('>'):
+                    report = ("right angle bracket", state.getReference(), 56.1)
                 state.lastangle = (char, state.getReference())
             case '[':
-                if state.lastsquare[0] == '[':
-                    report = ("square bracket", state.lastsquare[1], 56.2)
+                if state.lastsquare[0] == '[' and marks.count('[') != marks.count(']'):
+                    report = ("left square bracket", state.lastsquare[1], 56.2)
                 state.lastsquare = (char, state.getReference())
             case ']':
-                if state.lastsquare[0] in {'', ']'}:
-                    report = ("square bracket", state.getReference(), 56.2)
+                if state.lastsquare[0] in {'', ']'} and marks.count('[') != marks.count(']'):
+                    report = ("right square bracket", state.getReference(), 56.2)
                 state.lastsquare = (char, state.getReference())
             case '{':
-                if state.lastbrace[0] == '{':
-                    report = ("curly brace", state.lastbrace[1], 56.3)
+                if state.lastbrace[0] == '{' and marks.count('{') != marks.count('}'):
+                    report = ("left curly brace", state.lastbrace[1], 56.3)
                 state.lastbrace = (char, state.getReference())
             case '}':
-                if state.lastbrace[0] in {'', '}'}:
-                    report = ("curly brace", state.getReference(), 56.3)
+                if state.lastbrace[0] in {'', '}'} and marks.count('{') != marks.count('}'):
+                    report = ("right curly brace", state.getReference(), 56.3)
                 state.lastbrace = (char, state.getReference())
         if report:
             reportIssue(f"Unmatched {report[0]} at {report[1]}", report[2])
