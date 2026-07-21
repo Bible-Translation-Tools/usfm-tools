@@ -441,3 +441,26 @@ def test_capitalizeAsNeeded(text, expected):
         expected = text
     result = usfm_cleanup.capitalizeAsNeeded(text)
     assert result == expected
+
+@pytest.mark.parametrize('text, expected',
+    [(r'Sentence 1. next sentence 2.', ''),
+     (r'\v 25 But immediately \f + \ft Some do not have, \fqa But \fqa* . \f* . a woman',
+      r'\v 25 But immediately\f + \ft Some do not have, \fqa But. \fqa* \f*. a woman'),
+     (r'\v 25 But immediately \f + \ft Some do not have \f*. A woman',
+      r'\v 25 But immediately\f + \ft Some do not have \f*. A woman'),
+     (r'the seaside." \f + \ft Some add: \fqa When he comes, by, \fqa*   . BB. \f* . Ccc',
+      r'the seaside."\f + \ft Some add: \fqa When he comes, by,\fqa*. BB.\f*. Ccc'),
+     (r'the seaside." \f + \ft Some add: \fqa When he comes, by, \fqa*. \f*.',
+      r'the seaside."\f + \ft Some add: \fqa When he comes, by, \fqa*. \f*.'),
+     (r'to say."   \f + \ft Instead of \fqa to say, \fqa* some have, \fqa instructed to say.\fqa* BB.\f*',
+      r'to say."\f + \ft Instead of \fqa to say, \fqa* some have, \fqa instructed to say.\fqa* BB.\f*'),
+     (r'to say."\f + \ft Instead of \fqa to say, \fqa* some have, \fqa instructed to say.\fqa* BB\f* .',
+      r'to say."\f + \ft Instead of \fqa to say, \fqa* some have, \fqa instructed to say.\fqa* BB. \f* '),
+     (r'Kittites,\f + \ft read, \fqa Kittim \fqa* . \f*',
+      r'Kittites,\f + \ft read, \fqa Kittim. \fqa* \f*'),
+    ])
+def test_fix_footnotes(text, expected):
+    if not expected:
+        expected = text
+    result = usfm_cleanup.fix_footnotes(text)
+    assert result == expected

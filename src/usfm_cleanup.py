@@ -525,7 +525,7 @@ def mark_sections_in_block(block):
     (changed, line1) = mark_sections(line1)
     if changed:
         block = line1 + sep + remainder
-    return (changed, block)
+    return block
 
 chap_re = re.compile(r'\\c +([0-9]+)')
 verse_re = re.compile(r'\\v +([0-9]+)')
@@ -572,11 +572,33 @@ def mark_sections(line):
     mark_sections.sentenceended = changed or (sentences.endsSentence(line, checkquotes=True) != '')
     return (changed, line)
 
+
+err1_re = re.compile(r'\s+\\f\s')   # space before \f
+err3_re = re.compile(r'[.?!;:,] *(\\fqa\*|\\f\*) +[.?!;:,]')   # space before punctuation after \fqa*, and punctuation before \fqa*
+err4_re = re.compile(r'[^.?!;:, ] *(\\fqa\* |\\f\* ) *([.?!;:,]) *')   # space before punctuation after \fqa*, and no punctuation before
+
+# Removes space before \f.
+# Fixes phrase-ending punctuation around \f* and \fqa*.
+# All this helps PTXP format the footnote text correctly.
+# As prescribed in the 8/4/25 discussion in the Repo Conversion channel chat.
+def fix_footnotes(line):
+    origline = line
+    if "\\f" in line:
+        line = re.sub(err1_re, r'\\f ', line)
+        err3 = err3_re.search(line)
+        while err3:
+            # Remove space before and after \fqa* when punctuation follows \fqa*
+            line = line[0:err3.start()+1] +err3.group(1) + line[err3.end()-1:]
+            err3 = err3_re.search(line)
+        if err4 := err4_re.search(line):
+            # Move the punctuation before \fqa* and prefer space before \fqa*
+            line = line[0:err4.start(1)].rstrip() + err4.group(2) + " " + err4.group(1) + line[err4.end():]
+    return line
+
 vperiod_re = re.compile(r'\\v +[\d\-]+([).])([^\s]?)')
 
 # Removed periods or right parens after verse numbers.
 def remove_periods(line):
-    changed = False
     vperiod = vperiod_re.search(line)
     while vperiod:
         elide = vperiod.end(1)
@@ -585,11 +607,11 @@ def remove_periods(line):
         else:
             sp = ''
         line = line[0:elide-1] + sp + line[elide:]
-        changed = True
         vperiod = vperiod_re.search(line, vperiod.end()-1)
-    return (changed, line)
+    return line
 
-# Rewrites the file line by line, making changes to individual lines
+# Rewrites the file line by line, making changes to individual lines.
+# A series of lines of pure text are treated as a block, and changes are made to the block as a whole.
 # Returns True if any changes are made
 def convert_by_line(path):
     state.initBook()
@@ -597,14 +619,15 @@ def convert_by_line(path):
     shutil.copyfile(path, inputpath)
     output = usfmWriter.usfmWriter(path)
     changedfile = False
-    changed3 = False
 
     for block in usfm_utils.nextblock(inputpath):
+        origblock = block
         state.addLine(block)
         if enable[7]:
-            (changed3, block) = mark_sections_in_block(block)
-        (changed4, block) = remove_periods(block)
-        if changed3 or changed4:
+            block = mark_sections_in_block(block)
+        block = remove_periods(block)
+        block = fix_footnotes(block)
+        if not changedfile and block != origblock:
             changedfile = True
         output.writeStr(block)
     output.close()

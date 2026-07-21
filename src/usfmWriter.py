@@ -75,7 +75,12 @@ class usfmWriter:
     def writeUsfm(self, key, value=None):
         if self._file:
             if key in inline_tags:
-                intro = " \\" if key[-1] != '*' and self._add_space_before("\\") else "\\"
+                if key in {'f','fe'} or key[-1] == '*':
+                    intro = "\\"
+                elif not self._add_space_before("\\"):
+                    intro = "\\"
+                else:
+                    intro = " \\"
             else:
                 intro = "\\" if self._newlined else "\n\\"
             if value:
