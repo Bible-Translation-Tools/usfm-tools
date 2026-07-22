@@ -13,29 +13,6 @@ from usfm_utils import isCaseless
 exclude_eol_checks = ['LEV 18:5','LEV 19:4',
     'MAT 15:31', 'LUK 2:11', 'LUK 17:32', 'JHN 19:19', 'ACT 16:20', 'COL 3:22', '2TI 4:18', 'REV 22:9', 'REV 22:20']
 
-startword_re = re.compile(r'[\w "‘“\'\()]')
-
-# Intended for single words, and may not work correctly for phrases.
-# Differs from str.istitle() in how apostrophes and hyphens are treated.
-# Considered numbers to be uncapitalized words.
-# istitle("Paul's") returns False.
-# _isCapitalized("Paul's") returns True.
-# _isCapitalized("E'Besusaida") returns True.
-# Hyphenated words like Two-sided and Two-Sided return True.
-def _isCapitalized(word):
-    if not startword_re.match(word):
-        result = False
-    elif word.istitle():
-        result = True
-    else:
-        strings = re.split("['’-]", word)
-        result = strings[0].istitle()
-        if result:
-            for i in range(1,len(strings)):
-                if not (strings[i].islower() or strings[i].istitle()):
-                    result = False
-    return result
-
 # The special Unicode characters are identified in sentences.py.
 punct_re = re.compile(r'[()*+,./:;<=>!?@[\]^{|}~\u0964\u0965\u1361\u1362\u061F\u06D4]')
 
@@ -50,7 +27,7 @@ def percentTitleOrCaps(s):
         n = 0
         words = s.split()
         for word in words:
-            if _isCapitalized(word) or word.isupper():
+            if sentences.isCapitalized(word) or word.isupper():
                 n += 1
         percent = n / (len(words) if words else 1)
     return percent
@@ -172,10 +149,10 @@ def _titlecase_threshold(s):
                 adj = 0.99
         else:
             firstword = sentences.firstword(s)
-            if _isCapitalized(firstword) or firstword.isupper():
+            if sentences.isCapitalized(firstword) or firstword.isupper():
                 adj -= 0.24
         lastword = sentences.lastword(s)
-        if _isCapitalized(lastword) or lastword.isupper():
+        if sentences.isCapitalized(lastword) or lastword.isupper():
             adj -= 0.08
         if adj == 0.67:
             adj = 0.66

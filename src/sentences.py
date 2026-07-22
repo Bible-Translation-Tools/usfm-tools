@@ -95,3 +95,26 @@ def capitalize(str, startsSentence=True):
 def sentenceCount(str):
     startposlist = [pos for pos in nextstartpos(str)]
     return len(startposlist)
+
+startword_re = re.compile(r'[\w "‘“\'\()]')
+
+# Intended for single words, and may not work correctly for phrases.
+# Differs from str.istitle() in how apostrophes and hyphens are treated.
+# Considered numbers to be uncapitalized words.
+# istitle("Paul's") returns False.
+# _isCapitalized("Paul's") returns True.
+# _isCapitalized("E'Besusaida") returns True.
+# Hyphenated words like Two-sided and Two-Sided return True.
+def isCapitalized(word:str):
+    if not startword_re.match(word):
+        result = False
+    elif word.istitle():
+        result = True
+    else:
+        strings = re.split("['’-]", word)
+        result = strings[0].istitle()
+        if result:
+            for i in range(1,len(strings)):
+                if not (strings[i].islower() or strings[i].istitle()):
+                    result = False
+    return result
