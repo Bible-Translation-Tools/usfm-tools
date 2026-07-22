@@ -43,6 +43,11 @@ class LanguageInfo:
         with io.open(self.jsonpath, 'w', newline='\n') as json_file:
             json.dump(self.info, json_file, indent=4)
 
+    def setGenerator(self, version:str):
+        self.info['meta'] = {'softwareVersion': version}
+    def getGenerator(self):
+        return self.info['meta']['softwareVersion'] if 'meta' in self.info else ""
+
     def setLanguageName(self, name):
         self.info['language']['name'] = name
     def setLanguageDirection(self, direction):

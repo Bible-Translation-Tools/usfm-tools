@@ -1438,13 +1438,14 @@ def verifyWholeFile(contents, path):
 
 said_re = re.compile(r'(\w+)[,:] ["«“‘]\w')
 
-# Returns a word in the line that introduces a quotation, or None.
+# Returns non-capitalized word in the line that introduces a quotation.
 # Only returns the first such word if there are more than one.
-def said_word(line):
+def said_word(line:str):
     word = None
-    if line:
-        if said := said_re.search(line):
+    for said in said_re.finditer(line):
+        if not sentences.isCapitalized( said.group(1) ):
             word = said.group(1)
+            break
     return word
 
 fspace_re = re.compile(r' \\(f|fe|x)\s')
@@ -1651,6 +1652,9 @@ def syncProjectInfo():
     config = ToolsConfigManager()
     project_info = ProjectInfo(getWorkDir(), config.get('VerifyUSFM', 'language_code'))
     project_info.useManifest(docreate=True)     # syncs automatically
+    if not project_info.get_LI_Generator():
+        project_info.clearWords()    # old versions of said words are unreliable
+    project_info.setGenerator("", config.get('UsfmWizard', 'version'))  # name="" won't affect existing burrito
     project_info.save()
     if src := identifyResource(config.get('VerifyUSFM', 'compare_dir')):    # from other manifest.yaml
         project_info.disuseManifest()
@@ -1685,7 +1689,7 @@ def saveResults():
         manifestyaml.save()
     if saidwords:
         global nFiles
-        saidwords.save(mincount = 4 if nFiles < 40 else 6)
+        saidwords.save(wordlist, mincount = 4 if nFiles < 40 else 6)
 
 def getWorkDir():
     config = ToolsConfigManager()

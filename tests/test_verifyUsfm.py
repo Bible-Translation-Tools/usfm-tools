@@ -238,13 +238,13 @@ def test_peripheral(fname, expected):
 
 @pytest.mark.parametrize('line, expected',
     [
-        (None, None),
         ('', None),
         ('A line, with nothing quoted.', None),
         ('\\v 1 A real, "test"', 'real'),
         ('\\v 2 A colon: «test', 'colon'),
         ('\\v 3 A single quote, \'quotation.\'', None),
         ('\\v 4 A backward, ”quotation.“', None),
+        ('\\v 5 A proner Name, "test"', None),
     ])
 def test_said_word(line, expected):
     word = verifyUSFM.said_word(line)

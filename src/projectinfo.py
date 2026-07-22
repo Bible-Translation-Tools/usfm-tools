@@ -100,9 +100,12 @@ class ProjectInfo:
             is_valid2, msg2 = self.manifest.save()
         return (is_valid1 and is_valid2), ("Burrito: " + msg1 if msg1 else "Manifest: " + msg2)
 
-    # Sets the generator information in the burrito metadata.
+    # Sets the generator information in LanguageInfo and burrito metadata.
     def setGenerator(self, name, version):
         self.burrito.setGenerator(name, version)
+        self.languageInfo.setGenerator(version)
+    def get_LI_Generator(self):
+        return self.languageInfo.getGenerator()
 
     def setLanguage(self, name, locale='en', direction=""):
         if locale == 'en':
@@ -178,11 +181,14 @@ class ProjectInfo:
         identity = self.languageInfo.getLanguageName() + " Bible"
         self.burrito.setIdentification(locale='en', identity=identity, abbrev="Bible", repo=f"{owner}/{name}")
 
-    # Adds or updates the specified word in ProjectInfo.
+    def clearWords(self):
+        self.languageInfo.clearWords()
+
+    # Adds or updates the specified word in LanguageInfo.
     def addWord(self, word, count):
         self.languageInfo.addWord(word, count)
 
-    # Returns the list of words with count greater than mincount.
+    # Returns the list of words with count >= mincount.
     def getWords(self, mincount=1):
         return self.languageInfo.getWords(mincount)
 
@@ -210,13 +216,18 @@ class SaidWords:
     def _clearWords(self):
         self.words = dict()
 
-    # Saves the current information to LanguageInfo, which serializes the
-    # top "said" words in the language info file.
-    def save(self, mincount=1):
+    # Saves the top "said" words to LanguageInfo, which serializes the
+    # them in the language info file.
+    # To be saved, at least 12% of the occurrences of the word must have been in a "said" context,
+    # and it must not be capitalized.
+    def save(self, wordlist, mincount=4):
         li = LanguageInfo(self.project_dir, self.language_code)
         for word in self.words:
-            if self.words[word] >= mincount:
-                li.addWord(word, self.words[word])
+            saidcount = self.words[word]
+            if saidcount >= mincount:
+                allcount = wordlist[word][0] if word in wordlist else 9999
+                if saidcount / allcount >= 0.12:
+                    li.addWord(word, saidcount)
         if not self.words and mincount >= 1000:
             li.clearWords()
         li.save()
