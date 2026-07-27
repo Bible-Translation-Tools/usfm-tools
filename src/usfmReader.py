@@ -128,7 +128,7 @@ def nextpair(text):
 cnum_re = re.compile(r'\s+([0-9]+)')
 # vnum_re = re.compile(r'\s+([0-9\-]+)\s*')
 vnum_re = re.compile(r'\s+([0-9\-]+)( +|\\|$)')
-plus_re = re.compile(r'\s+([\-+])\s+')
+plus_re = re.compile(r'\s+([\-+])(\s+|$)')
 
 
 def parseString(s):
