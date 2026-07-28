@@ -273,7 +273,7 @@ class State:
         self.prevItemCategory = self.currItemCategory
         self.currItemCategory = OTHER
         self.needVerseText = False
-        if text and text not in '-+':
+        if text and not self.inFootnote():
             self.versetext += text + " "
         self.textOkayHere = True
         if not text.isascii():
@@ -311,7 +311,8 @@ class State:
         self.textOkayHere = True
 
     # Returns the length of the source text for the current verse or verse bridge.
-    def sourcelength(self):
+    # Handles verse bridges.
+    def sourcelength_current(self):
         if sourcebook:
             if self.isVerseInBridge(self.verse):
                 length = 0
@@ -689,16 +690,32 @@ psalmv1_re = re.compile(r'PSA \d+:1(-|$)')
 # Returns 1.0 for the first verse of every Psalm.
 # Returns 1.0 if the verse isn't in the source text.
 # Returns (length of verse) / 100 if the verse is less than 12 characters and is not in the list of known short verses.
-def relative_length(ref):
+def relative_length_current():
     rlen = 1.0
+    ref = state.getReference()
     if not psalmv1_re.match(ref):
-        sourcelength = state.sourcelength()
+        sourcelength = state.sourcelength_current()
         txln_len = state.getTextLength()
         if sourcelength > 1:
             rlen = txln_len / (sourcelength * (state.booklength / state.booklength_src))
         elif txln_len < 12 and not usfm_verses.isShortVerse(ref):
             rlen = txln_len / 100.0
     return rlen
+
+def relative_length(ref, chap, verse, txln_len):
+    rlen = 1.0
+    if not psalmv1_re.match(ref):
+        sourcelength = source_length(chap, verse)
+        if sourcelength > 1:
+            rlen = txln_len / (sourcelength * (state.booklength / state.booklength_src))
+        elif txln_len < 12 and not usfm_verses.isShortVerse(ref):
+            rlen = txln_len / 100.0
+    return rlen
+
+# Returns the length of the specified verse in the source text.
+# Returns 1 if unknown.
+def source_length(chap, verse):
+    return sourcebook.getVerseLength(chap, verse) if sourcebook else 1
 
 # Returns Jaccard Similarity value, and number of words of length > 2 in common.
 def similarity(strA, strB):
@@ -726,7 +743,7 @@ def previousVerseCheck():
             reportIssue("Empty verse: " + state.getReference(), 1)
             empty = True
         else:
-            rel = relative_length(state.getReference())
+            rel = relative_length_current()
             if rel < 0.4 or (state.bridge_start < state.bridge_end and rel < 0.5):
                 reportIssue(f"Translation is very short compared to {state.source_id} source: {state.getReference()}", 2)
             # elif rel > 3.2:     # not safe, at least until chunks and verse bridges are supported
@@ -1471,11 +1488,15 @@ def reportSectionTitles(block, reference, chap, verse):
     if reference != reportSectionTitles.lastHd:
         pheading = find_section_heading(block, chap, verse, reportSectionTitles.prevline, reportSectionTitles.sentenceended)
         if pheading:
-            reportSectionTitles.lastHd = reference
             if pheading == block:
                 reportIssue(f"Possible section title on a line by itself at {reference}", 76)
             else:
-                reportIssue(f"Possible section title at end of {reference}", 76.1)
+                asserted_len = length_before_heading(block, pheading)
+                rel = relative_length(reference, chap, verse, asserted_len)
+                if rel >= 0.6:
+                    reportIssue(f"Possible section title at end of {reference}", 76.1)
+        if pheading:
+            reportSectionTitles.lastHd = reference
 
     reportSectionTitles.prevline = block
     reportSectionTitles.sentenceended = (sentences.endsSentence(block, checkquotes=True) != '')
@@ -1495,6 +1516,13 @@ def find_section_heading(block, chap, verse, prevline, sentenceended):
             if not state or state.reference not in section_titles.exclude_eol_checks:
                 pheading = section_titles.find_eol_heading(block, 0.100)
     return pheading
+
+# Returns the length of the text occuring before the heading in the block.
+# Discounts the verse marker.
+# Understates length if the verse marker occurred on a previous line.
+def length_before_heading(block, heading):
+    pos = block.find(heading)
+    return pos - 6
 
 conflict_head_re = re.compile(r'<+ HEAD')   # conflict resolution tag
 conflict_tail_re = re.compile(r'>>>')   # conflict resolution tag

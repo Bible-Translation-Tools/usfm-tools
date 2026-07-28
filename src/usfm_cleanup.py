@@ -46,6 +46,7 @@ issuesFile = None
 corrupt_file = False
 saidwords = []
 sourcebook = None
+current_booklength = 1
 
 # Manages the state for a single usfm file. Used when converting by token.
 # @TODO Move needcaps and in_footnote into the State object.
@@ -332,6 +333,8 @@ def convert_wholefile(path):
     with io.open(path, "tr", encoding="utf-8-sig") as input:
         try:
             alltext = input.read()
+            global current_booklength
+            current_booklength = len(alltext)
             corrupt_file = (len(alltext) < 100)
             if corrupt_file:
                 reportError("File is truncated: " + shortname(path))
@@ -515,10 +518,29 @@ def find_section_heading(line, chap, verse, prevline, sentenceended):
             pheading = line.lstrip()
         if not pheading:
             pheading = section_titles.find_parenthesized_heading(line, 0.249)
-        if not pheading and sentences.sentenceCount(line) > 1:
-            if not state or state.reference not in section_titles.exclude_eol_checks:
-                pheading = section_titles.find_eol_heading(line, 0.100)
+        if not pheading and state.reference not in section_titles.exclude_eol_checks:
+            pheading = section_titles.find_eol_heading(line, 0.100)
+            if pheading:
+                asserted_len = length_before_heading(line, pheading)
+                rel = relative_length(state.reference, chap, verse, asserted_len)
+                if rel < 0.6:
+                    pheading = ""  # Don't mark section title if the remainder of the verse (before supposed title) would be too short
     return pheading
+
+# Returns the length of the text occuring before the heading in the block.
+# Discounts the verse marker.
+# Understates length if the verse marker occurred on a previous line.
+def length_before_heading(block, heading):
+    pos = block.find(heading)
+    return pos - 6
+
+def relative_length(ref, chap, verse, txln_len):
+    rlen = 1.0
+    if sourcebook:
+        sourcelength = sourcebook.getVerseLength(chap, verse)
+        if sourcelength > 1:
+            rlen = txln_len / (sourcelength * (current_booklength / sourcebook.getBookLength()))
+    return rlen
 
 def mark_sections_in_block(block):
     (line1, sep, remainder) = block.partition("\n")
@@ -557,7 +579,7 @@ def mark_sections(line):
         changed = (len(line) < origlen)
 
     pheading = ""
-    if mark_sections.chapter > 0 and mark_sections.lasttitleverse != mark_sections.verse:
+    if mark_sections.chapter > 0 and not c and mark_sections.lasttitleverse != mark_sections.verse:
         pheading = find_section_heading(line, mark_sections.chapter, mark_sections.verse, mark_sections.prevline, mark_sections.sentenceended)
     if pheading:
         mark_sections.lasttitleverse = mark_sections.verse
