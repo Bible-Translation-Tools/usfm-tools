@@ -181,3 +181,18 @@ def test_insert_heading(preheading, heading, postheading, expected):
 def test_wordcount(s, expected):
     result = section_titles._wordcount(s)
     assert result == expected
+
+@pytest.mark.parametrize('s, expected',
+    [('Sentence 1. Sentence 2.', False),
+     (' Amen ', True),
+     (' sela ', True),
+     ('over me. Selah', False),
+     ('abide. \\em asdf\\em*', True),
+     ('(Looks Good)', False),
+     ('(Look)', False),
+     ('Look)', False),
+     ('', True),
+    ])
+def test_disqualified(s, expected):
+    result = section_titles.disqualified(s)
+    assert result == expected

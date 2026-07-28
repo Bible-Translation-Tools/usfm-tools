@@ -113,15 +113,18 @@ def prob_heading(s):
 
 anyMarker_re = re.compile(r'\\[a-z]+[a-z1-5]* ?[0-9]*')
 amen_re = re.compile(r'[AE]m[ei]+n', flags=re.IGNORECASE)
-selah_re = re.compile(r'Selah', flags=re.IGNORECASE)
+selah_re = re.compile(r'Sela', flags=re.IGNORECASE)
 quotes_re = re.compile(r'["“‘‹«”›»]')
 singleWordInParens_re = re.compile(r'\(\s*\w+\s*\)')
 
 # Returns True if the string has any disqualifying characteristics.
-def disqualified(s):
-    disqual = (not s or\
-               anyMarker_re.search(s) or s[0] == '\\' or\
-               ((amen_re.search(s) or selah_re.search(s)) and _wordcount(s) == 1))
+def disqualified(s) -> bool:
+    if (not s or\
+        anyMarker_re.search(s) or s[0] == '\\' or\
+        ((amen_re.search(s) or selah_re.search(s)) and _wordcount(s) == 1)):
+        disqual = True
+    else:
+        disqual = False
     return disqual
 
 goodstart_re = re.compile(r'[\w\(]')
