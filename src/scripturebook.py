@@ -44,9 +44,8 @@ class ScriptureBook:
     def getText(self, chapter, verse ):
         ref = f"{chapter}:{verse}"
         return self.text[ref] if ref in self.text else ""
-    def getVerseLength(self, chapter, verse):
-        ref = f"{chapter}:{verse}"
-        return len(self.text[ref]) if ref in self.text else 0
+    def getVerseLength(self, chapter, verse) -> int:
+        return len(self.getText(chapter, verse))
     def getFootnote(self, chapter, verse ):
         ref = f"{chapter}:{verse}"
         return self.footnote[ref] if ref in self.footnote else ""
@@ -85,12 +84,19 @@ class ScriptureBook:
         if not self.errors:
             with io.open(self.usfmpath, "tr", 1, encoding="utf-8-sig") as input:
                 contents = input.read(-1)
-                if "lemma=" in contents or "x-occurrences" in contents:
-                    contents = usfm_utils.unalign_usfm(contents)
-                self.booklength = len(contents)
-                tokens = usfmReader.parseString(contents)
-                for token in tokens:
-                    self._take(token)
+        if "lemma=" in contents or "x-occurrences" in contents:
+            contents = usfm_utils.unalign_usfm(contents)
+        tokens = usfmReader.parseString(contents)
+        for token in tokens:
+            self._take(token)
+        self.booklength = len(contents) - self.length_of_all_footnotes()
+
+    # Returns the sum of the length of all footnotes, including a small allowance for usfm tags therein.
+    def length_of_all_footnotes(self):
+        length = 0
+        for ref in self.footnote:
+            length += 8 + len(self.footnote[ref])
+        return length
 
     # Analyzes the specified token in the model file.
     # Only cares about locations of paragraphs.
