@@ -84,12 +84,12 @@ class ScriptureBook:
         if not self.errors:
             with io.open(self.usfmpath, "tr", 1, encoding="utf-8-sig") as input:
                 contents = input.read(-1)
-        if "lemma=" in contents or "x-occurrences" in contents:
-            contents = usfm_utils.unalign_usfm(contents)
-        tokens = usfmReader.parseString(contents)
-        for token in tokens:
-            self._take(token)
-        self.booklength = len(contents) - self.length_of_all_footnotes()
+            if "lemma=" in contents or "x-occurrences" in contents:
+                contents = usfm_utils.unalign_usfm(contents)
+            tokens = usfmReader.parseString(contents)
+            for token in tokens:
+                self._take(token)
+            self.booklength = len(contents) - self.length_of_all_footnotes()
 
     # Returns the sum of the length of all footnotes, including a small allowance for usfm tags therein.
     def length_of_all_footnotes(self):
