@@ -61,22 +61,23 @@ def test_mark_heading_bos(chunk, newstr):
 @pytest.mark.parametrize('chunk, wanted',
     [
         ('', ''),
-        ('This Fine House', '\\s This Fine House\n\\p\n'),
-        ('   Spaces ', '\\s Spaces\n\\p\n'),
+        ('First sentence. This Fine House', 'First sentence.\n\\s This Fine House\n\\p\n'),
+        ('1st sentence.   Spaces ', '1st sentence.\n\\s Spaces\n\\p\n'),
         ('\\c 1 \\v 1 this is a verse', ''),
         ('\\c 2 St      \\v 2 asdfasdf', ''),
         ('\\c 3 Strong Possibility \\v 3', ''),
         ('\\c 33 Before Verse \\v 33 After Verse', ''),
-        ('\\c 34 Before Verse \\v 34 After Verse. Better Choice', '\\c 34 Before Verse \\v 34 After Verse.\n\\s Better Choice\n\\p\n'),
-        ('\\v 35 This is A Verse. \\v 35 Another Verse. Better Choice', '\\v 35 This is A Verse. \\v 35 Another Verse.\n\\s Better Choice\n\\p\n'),
-        ('\\v 36 Sentence One. Sentence Two. \\v 36 Another Verse. Better Choice', '\\v 36 Sentence One. Sentence Two. \\v 36 Another Verse.\n\\s Better Choice\n\\p\n'),
+        ('\\c 34 Before Verse \\v 34 After Verse 34. Better Choice', '\\c 34 Before Verse \\v 34 After Verse 34.\n\\s Better Choice\n\\p\n'),
+        ('\\v 35 This is A Verse. \\v 35 Here is Another Verse. Better Choice', '\\v 35 This is A Verse. \\v 35 Here is Another Verse.\n\\s Better Choice\n\\p\n'),
+        # ('\\v 36 Sentence One. Sentence Two. \\v 36 Another Verse. Better Choice', '\\v 36 Sentence One. Sentence Two. \\v 36 Another Verse.\n\\s Better Choice\n\\p\n'),
+        ('\\v 36 A Longer Sentence. Like A Title \\v 36 Short Verse. Needs Longer Verse', ''),
         ('\\v 37 Sentence One. Sentence Two. \\v 36 Another Verse Bad Choice', ''),
         ('Strong Possibility \\v 4', ''),   # heading must follow \v marker
         ('Weak possibility \\v 5', ''),
         ('\\c 6 Lame Possibility', ''),   # only one sentence after last usfm marker
         ('\\c 7 Lame Possibility!', ''),
         ('   \\v 8 No Possibility', ''),
-        ('Before Chapter\n\\c 9 \\v 9 verse.    After Verse', 'Before Chapter\n\\c 9 \\v 9 verse.\n\\s After Verse\n\\p\n'),
+        ('Before Chapter\n\\c 9 \\v 9 Long enough verse.    After Verse', 'Before Chapter\n\\c 9 \\v 9 Long enough verse.\n\\s After Verse\n\\p\n'),
         ('  Strong Possibility   \\v 9 No Possibility \\c 9', ''),
         ('  Don''t Want This To Be a Heading  \\c 1', ''),
         ('Don''t Want This To Be a Heading  \\c 2 ', ''),
@@ -85,6 +86,7 @@ def test_mark_heading_bos(chunk, newstr):
         ('\\v 3 Here is a verse. Here Is A Candidate\\f + \\ft Footnote \\f*', ''),
         ('mu syaki syange.’” Olukaado Lw’omuyofu', 'mu syaki syange.’”\n\\s Olukaado Lw’omuyofu\n\\p\n'),
         ('\\f + \\ft Footnote.\\f* Postfootnote', ''),  # only one sentence after last usfm marker
+        ('\\v 6 Ana. Kutellẹ Na Kristi', ''),  # Ana. is too short to leave as the verse.
     ])
 def test_mark_heading_eos(chunk, wanted):
     if not wanted:

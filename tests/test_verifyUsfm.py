@@ -221,6 +221,8 @@ def test_validBracketedFootnote(text, expected):
         ('012345 789012 4567890', 7, -1, '789012 4567890'),
         ('012345 789012 4567890', 5, -1, '012345 789012 4567890'),
         ('012345 789012 4567890  ', 5, -1, '012345 789012 4567890'),
+        ('"123"567"', 4, 5, '"123"567"'),
+        (' "123"567" ', 4, 5, '"123"567"'),
     ])
 def test_context(text, start, end, expected):
     result = verifyUSFM.context(text, start, end)
