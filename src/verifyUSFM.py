@@ -1293,6 +1293,12 @@ def takeText(t, footnote=False):
     state.addText(t)
 
 split_re = re.compile(r' | |--|—')  # space, no-break-space, double hyphen, em dash
+midpunc_re = re.compile(   r"[\d\x00.።,፣:፥;፤!?+\\\[\]{}()<>\"‹«“‘”»›*]")    # punc include digits and null character
+quoteend_re = re.compile(  r"[.።,፣:፥;፤!?+-\\\[\]{}()<>'\"‹«“‘’”»›`*/]['’]$")    # punct ' EOL
+endpunc =                    ".።,፣:፥;፤!?+-\\[]{}()<>\"‹«“‘”»›`*/"
+quotebegin_re = re.compile(r"['’]([.።,፣:፥;፤!?+-\\\[\]{}()<>'\"‹«“‘’”»›`*/])")    # ' punct
+notnumberinfootnote_re = re.compile(r'[^\d:\-.,]')
+singleWordInQuotes_re = re.compile(r"['’]([\w'’]+)['’]") # quotes that are possible word-forming characters
 
 # Returns a list of the words in the specified text string.
 def listwords(t):
@@ -1310,13 +1316,6 @@ def listwords(t):
             if any(c.isalpha() for c in word) and not midpunc_re.search(word):
                 words.append(word)
     return words
-
-midpunc_re = re.compile(   r"[\d.።,፣:፥;፤!?+\\\[\]{}()<>\"‹«“‘”»›*]")    # punc include digits
-quoteend_re = re.compile(  r"[.።,፣:፥;፤!?+-\\\[\]{}()<>'\"‹«“‘’”»›`*/]['’]$")    # punct ' EOL
-endpunc =                    ".።,፣:፥;፤!?+-\\[]{}()<>\"‹«“‘”»›`*/"
-quotebegin_re = re.compile(r"['’]([.።,፣:፥;፤!?+-\\\[\]{}()<>'\"‹«“‘’”»›`*/])")    # ' punct
-notnumberinfootnote_re = re.compile(r'[^\d:\-.,]')
-singleWordInQuotes_re = re.compile(r"['’]([\w'’]+)['’]") # quotes that are possible word-forming characters
 
 # Parses all the words out of the t string and adds them to the wordlist[].
 def addWords(t):
@@ -1425,14 +1424,14 @@ curly_re = re.compile(r'[{}]')
 # Receives the text of an entire book as input.
 # Verifies things that are better done as a whole file.
 def verifyWholeFile(contents, path):
-    if not contents.startswith("\\id "):
-        reportIssue(f"USFM file does not start with book id: {shortname(path)}", 74.1)
+    (marker, value, _) = usfm_utils.parseLine(contents[0:10])
+    if marker != 'id' or len(value) != 3:
+        reportIssue(f"USFM file does not start with valid book id: {shortname(path)}", 74.1)
     else:
-        (_, bookid, _) = usfm_utils.parseLine(contents[0:10])
-        state.addID(bookid.upper())
+        state.addID(value.upper())
     verifyChapterAndVerseMarkers(contents, shortname(path))
 
-    lines = contents.split('\n')
+    # lines = contents.split('\n')
     verifyBlockByBlock(path)
 
     if not suppress[6]:
