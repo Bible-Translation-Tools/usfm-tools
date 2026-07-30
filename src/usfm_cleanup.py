@@ -84,7 +84,7 @@ class State:
             self.currMarker = marker
         match marker:
             case 'id':
-                self.bookId = remainder[0:3].upper()
+                self.bookId = value.upper()
                 self.reference = self.bookId + " header/intro"
             case 'c':
                 self.strChapter = value

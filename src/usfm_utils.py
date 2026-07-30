@@ -18,7 +18,7 @@ cvnumber_re = re.compile(r'[1-9][-0-9]*')
 
 # Simplistically parses a single line as usfm.
 # Assumes markers, if any, occur only at beginning of line.
-# Sets value to chapter or verse number if applicable, otherwise "".
+# Sets value to chapter or verse number or id if applicable, otherwise "".
 # Returns a tuple of (marker, value, remainder)
 def parseLine(line):
     marker = value = remainder = ""
@@ -31,6 +31,9 @@ def parseLine(line):
                 remainder = remainder[len(value):].strip()
             else:
                 marker = ""
+        elif marker == 'id':
+            value = remainder[0:3]
+            remainder = remainder[3:].strip()
     if not marker:
         remainder = line
     return (marker, value, remainder)

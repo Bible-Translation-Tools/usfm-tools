@@ -681,6 +681,9 @@ def load_source(fname):
         if os.path.isfile(sourcepath):
             global sourcebook
             sourcebook = ScriptureBook(sourcepath)
+            if errors := sourcebook.getErrors():
+                for error in errors:
+                    reportError(f"Cannot load source text due to error: {error}", 0.8)
             state.booklength_src = sourcebook.getBookLength()
 
 psalmv1_re = re.compile(r'PSA \d+:1(-|$)')
@@ -1146,9 +1149,11 @@ def reportPunctuation(text):
     if "''" in text or '""' in text:
         reportIssue("Repeated quotes at " + state.getReference(), 51)
     bad = wordmedial_punct_re.search(text)
-    if bad and text[bad.end()-1] not in "0123456789":
+    while bad and text[bad.end()-1] not in "0123456789":
         s = context(text, bad.start(), bad.end())
         reportIssue(f"Word medial punctuation in {state.getReference()}: {s}", 52)
+        pos = text.find(' ', bad.end())
+        bad = wordmedial_punct_re.search(text, pos) if pos > 0 else None
     if backs_re.search(text):
         reportIssue(f"Backslash (\\) near {state.getReference()}", 52.2)
     if unusual := unusual_re.findall(text):
@@ -1422,6 +1427,9 @@ curly_re = re.compile(r'[{}]')
 def verifyWholeFile(contents, path):
     if not contents.startswith("\\id "):
         reportIssue(f"USFM file does not start with book id: {shortname(path)}", 74.1)
+    else:
+        (_, bookid, _) = usfm_utils.parseLine(contents[0:10])
+        state.addID(bookid.upper())
     verifyChapterAndVerseMarkers(contents, shortname(path))
 
     lines = contents.split('\n')
@@ -1537,7 +1545,7 @@ def verifyBlockByBlock(path):
         marker, value, remainder = usfm_utils.parseLine(block)
         match marker:
             case 'id':
-                localstate.addID(remainder[0:3].upper())
+                localstate.addID(value.upper())
             case 'c':
                 localstate.addChapter(value)
             case 'v':
