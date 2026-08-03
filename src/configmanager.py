@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # USFM Wizard tools config file manager
 
-from configparser import ConfigParser, SectionProxy
+from configparser import ConfigParser
 import os, platform
 import io
 
@@ -33,6 +33,8 @@ class ToolsConfigManager:
         if not self.cfgParser.sections():
             self._make_default_config()
             self.cfgParser.read(self.configpath, encoding='utf-8')
+        else:
+            self.remove_obsolete()
 
     def __repr__(self):
         return f'ToolsConfigManager({self.configpath})'
@@ -204,3 +206,18 @@ class ToolsConfigManager:
             case _:
                 sec = {}
         return sec
+
+    def remove_obsolete(self):
+        for section in ['VerifyManifest', 'VerseLength']:
+            if self.cfgParser.has_section(section):
+                self.cfgParser.remove_section(section)
+        for (section,key) in [
+            ('MarkParagraphs','sentence_sensitive'), ('MarkParagraphs','source_dir'), ('MarkParagraphs','standard_chapter_title'),
+            ('Paratext2Usfm', 'target_dir'), ('Plaintext2Usfm', 'target_dir'),
+            ('RevertChanges', 'source_dir'),
+            ('Txt2USFM', 'target_dir'),
+            ('UsfmCleanup', 'source_dir'), ('UsfmCleanup', 'enable0'),
+            ('VerifyUSFM', 'source_dir'), ('VerifyUSFM', 'suppress0'), ('VerifyUsfm', 'usfm_version'),
+            ('Usfm2Usx', 'source_dir'), ('Usx2Usfm', 'usfm_dir')]:
+            if self.cfgParser.has_section(section):
+                self.cfgParser.remove_option(section, key)
