@@ -71,15 +71,8 @@ class VerifyMetadata_Frame(g_step.Step_Frame):
         xs.grid(row=89, column = 1, columnspan=4, sticky = 'ew')
         self.message_area['xscrollcommand'] = xs.set
 
-    # Temporary function, until "source_dir" is fully retired.
-    def getWorkDirConfigValue(self):
-        workdir = self.getOption('work_dir')
-        if not workdir:
-            workdir = self.getOption('source_dir')  # the old name
-        return workdir
-
     def show_values(self):
-        self.work_dir.set( self.getWorkDirConfigValue())
+        self.work_dir.set( self.getOption('work_dir'))
         self.bibletype.set(self.getBooleanOption('bibletype'))
 
         # Create buttons

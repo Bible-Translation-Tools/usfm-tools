@@ -39,14 +39,6 @@ def undoFolder(folder, backupExt, correctExt):
         if nChanged >= maxChanged:
             break
 
-# Temporary function, until all references to "source_dir" are removed.
-def getWorkDir():
-    config = ToolsConfigManager()
-    workdir = config.get('RevertChanges', 'work_dir')
-    if not workdir:
-        workdir = config.get('RevertChanges', 'source_dir')    # the old name
-    return workdir
-
 def main(app = None):
     global gui
     global nChanged
@@ -54,7 +46,7 @@ def main(app = None):
     gui = app
     nChanged = 0
     config = ToolsConfigManager()
-    work_dir = getWorkDir()
+    work_dir = config.get('RevertChanges', 'work_dir')
     backupExt = config.get('RevertChanges', 'backupExt')
     correctExt = config.get('RevertChanges', 'correctExt')
     undoFolder(work_dir, backupExt, correctExt)

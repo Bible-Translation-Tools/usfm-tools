@@ -881,10 +881,7 @@ def convert(dir):
 # Temporary function, until all references to "target_dir" are removed.
 def getWorkDir():
     config = ToolsConfigManager()
-    workdir = config.get('Txt2USFM', 'work_dir')
-    if not workdir:
-        workdir = config.get('Txt2USFM', 'target_dir')    # the old name
-    return workdir
+    return config.get('Txt2USFM', 'work_dir')
 
 # Processes each directory and its files one at a time
 def main(app = None):

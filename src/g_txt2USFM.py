@@ -98,18 +98,11 @@ class Text2USFM_Frame(g_step.Step_Frame):
         headings_help.grid(row=6, column=2, sticky=W)
         language_code_entry.focus()
 
-    # Temporary function, until "target_dir" is fully retired.
-    def getWorkDirConfigValue(self):
-        workdir = self.getOption('work_dir')
-        if not workdir:
-            workdir = self.getOption('target_dir')
-        return workdir
-
     # Called when the frame is first activated. Populate the initial values.
     def show_values(self):
         self.language_code.set(self.getOption('language_code'))
         self.source_dir.set(self.getOption('source_dir'))
-        self.work_dir.set( self.getWorkDirConfigValue() )
+        self.work_dir.set( self.getOption('work_dir') )
         # self.headings.set(values['section_headings'] if 'section_headings' in values else False)
         self.headings.set(self.getBooleanOption('section_headings'))
 

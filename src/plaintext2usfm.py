@@ -550,9 +550,10 @@ def shortname(longpath):
 
 # Generates name for usfm file
 def makeUsfmPath(bookId):
-    return os.path.join(getWorkDir(), makeUsfmFilename(bookId))
+    workdir = ToolsConfigManager().get('Plaintext2Usfm', 'work_dir')
+    return os.path.join(workdir, makeUsfmFilename(bookId))
 
-    # Generates name for usfm file
+# Generates name for usfm file
 def makeUsfmFilename(bookId):
     num = usfm_verses.verseCounts[bookId]['usfm_number']
     return num + '-' + bookId + '.usfm'
@@ -615,14 +616,6 @@ def convertFolder(folder):
                 elif not state.title:
                     reportError("Book title not found in: " + shortname(path))
 
-# Temporary function, until all references to "target_dir" are removed.
-def getWorkDir():
-    config = ToolsConfigManager()
-    workdir = config.get('Plaintext2Usfm', 'work_dir')
-    if not workdir:
-        workdir = config.get('Plaintext2Usfm', 'target_dir')    # the old name
-    return workdir
-
 def main(app = None):
     global gui
     gui = app
@@ -630,7 +623,7 @@ def main(app = None):
     config = ToolsConfigManager()
     source_dir = config.get('Plaintext2Usfm', 'source_dir')
     file = config.get('Plaintext2Usfm', 'filename')
-    work_dir = getWorkDir()
+    work_dir = config.get('Plaintext2Usfm', 'work_dir')
     Path(work_dir).mkdir(exist_ok=True)
 
     if file:

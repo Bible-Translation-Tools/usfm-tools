@@ -70,17 +70,10 @@ class Paratext2Usfm_Frame(g_step.Step_Frame):
         file_find.grid(row=6, column=3, sticky=W)
         language_code_entry.focus()
 
-    # Temporary function, until "target_dir" is fully retired.
-    def getWorkDirConfigValue(self):
-        workdir = self.getOption('work_dir')
-        if not workdir:
-            workdir = self.getOption('target_dir')  # the old name
-        return workdir
-
     def show_values(self):
         self.language_code.set(self.getOption('language_code'))
         self.ptx_dir.set(self.getOption('paratext_dir'))
-        self.work_dir.set(self.getWorkDirConfigValue())
+        self.work_dir.set(self.getOption('work_dir'))
         self.filename.set(self.getOption('filename'))
 
         # Create buttons

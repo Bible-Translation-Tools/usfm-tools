@@ -71,7 +71,7 @@ class State:
     def addFile(self, fname):
         self.reset_data(fname)
         ## Open output USFM file for writing.
-        work_dir = getWorkDir()
+        work_dir = ToolsConfigManager().get('MarkParagraphs', 'work_dir')
         tmpPath = os.path.join(work_dir, fname + ".tmp")
         self.usfm = usfmWriter.usfmWriter(tmpPath)
 
@@ -568,7 +568,7 @@ def get_timestamp(path):
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        workdir = getWorkDir()
+        workdir = ToolsConfigManager().get('MarkParagraphs', 'work_dir')
         path = os.path.join(workdir, "issues.mark_paragraphs.txt")
         if os.path.exists(path):
             timestamp = get_timestamp(path)
@@ -741,14 +741,6 @@ def processFile(path):
     else:
         reportError("Model file not found; file cannot be processed: " + fname)
 
-# Temporary function, until all references to "source_dir" are removed.
-def getWorkDir():
-    config = ToolsConfigManager()
-    workdir = config.get('MarkParagraphs', 'work_dir')
-    if not workdir:
-        workdir = config.get('MarkParagraphs', 'source_dir')    # the old name
-    return workdir
-
 state = State()
 
 # Processes each directory and its files one at a time
@@ -772,8 +764,7 @@ def main(app = None):
     punctuate = config.getboolean('MarkParagraphs', 'punctuate')
     mark_every_verse = config.getboolean('MarkParagraphs', 'mark_every_verse')
     identifyModel(config.get('MarkParagraphs', 'model_dir'))
-    work_dir = getWorkDir()
-
+    work_dir = config.get('MarkParagraphs', 'work_dir')
     file = config.get('MarkParagraphs', 'filename')
     if file:
         path = os.path.join(work_dir, file)

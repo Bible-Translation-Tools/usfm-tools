@@ -90,7 +90,8 @@ def get_bookId(path:Path):
 # Ultimately adds to manifest.yaml.
 def appendToProjects(bookId, bookTitle):
     global projectInfo
-    usfmPath = os.path.join(getWorkDir(), makeUsfmFilename(bookId))
+    work_dir = ToolsConfigManager().get('Paratext2Usfm', 'work_dir')
+    usfmPath = os.path.join(work_dir, makeUsfmFilename(bookId))
     projectInfo.addProject(bookTitle, bookId, usfmPath)
 
 def copyfile(path, newpath):
@@ -151,20 +152,12 @@ def convertSettingsFile(source_dir, work_dir):
     else:
         reportError(f"Settings.xml file not found")
 
-# Temporary function, until all references to "target_dir" are removed.
-def getWorkDir():
-    config = ToolsConfigManager()
-    workdir = config.get('Paratext2Usfm', 'work_dir')
-    if not workdir:
-        workdir = config.get('Paratext2Usfm', 'target_dir')    # the old name
-    return workdir
-
 def main(app = None):
     global gui
     gui = app
     config = ToolsConfigManager()
     ptx_dir = config.get('Paratext2Usfm', 'paratext_dir')
-    usfm_dir = getWorkDir()
+    usfm_dir = config.get('Paratext2Usfm', 'work_dir')
     filename = config.get('Paratext2Usfm', 'filename')
     if not os.path.isdir(ptx_dir):
         reportError(f"Invalid paratext folder: {ptx_dir}")

@@ -35,16 +35,9 @@ class MarkParagraphs(g_step.Step):
         self.frame.clear_messages()
         self.executed = True
 
-    # Temporary function, until "source_dir" is fully retired.
-    def getWorkDir(self):
-        workdir = self.getOption('work_dir')
-        if not workdir:
-            workdir = self.getOption('source_dir')
-        return workdir
-
     # Runs the revertChanges script to revert mark_paragraphs changes.
     def revertChanges(self):
-        sec = {'work_dir': self.getWorkDir(),
+        sec = {'work_dir': self.getOption('work_dir'),
                'backupExt': ".usfmorig",
                'correctExt': ".usfm"}
         self.mainapp.save_values('RevertChanges', sec)
@@ -171,16 +164,9 @@ a model text to the file(s) that you specify. If paragraphs are sufficiently mar
 and you don't need the \\s5 markers copied over, \
 then you don't need to run this process.")
 
-    # Temporary function, until "source_dir" is fully retired.
-    def getWorkDirConfigValue(self):
-        workdir = self.getOption('work_dir')
-        if not workdir:
-            workdir = self.getOption('source_dir')  # the old name
-        return workdir
-
     def show_values(self):
         code = self.getOption('language_code')
-        dir = self.getWorkDirConfigValue()
+        dir = self.getOption('work_dir')
         self.work_dir.set(dir)
         self.language_code.set(code)
         if not code:
@@ -335,7 +321,7 @@ then you don't need to run this process.")
 
     def _onOpenIssues(self, *args):
         self._save_values()
-        path = os.path.join(self.getWorkDirConfigValue(), "issues.mark_paragraphs.txt")
+        path = os.path.join(self.getOption('work_dir'), "issues.mark_paragraphs.txt")
         if os.path.isfile(path):
             os.startfile(path)
         else:

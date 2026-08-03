@@ -287,10 +287,7 @@ def convertFolder(folder):
 # Temporary function, until all references to "usfm_dir" are removed.
 def getWorkDir():
     config = ToolsConfigManager()
-    workdir = config.get('Usx2Usfm', 'work_dir')
-    if not workdir:
-        workdir = config.get('Usx2Usfm', 'usfm_dir')    # the old name
-    return workdir
+    return config.get('Usx2Usfm', 'work_dir')
 
 def main(app=None):
     global gui

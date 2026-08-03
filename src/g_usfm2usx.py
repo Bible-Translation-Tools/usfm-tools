@@ -129,13 +129,6 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         rc_dir_find = ttk.Button(self, text="...", width=2, command=self._onFindRcDir)
         rc_dir_find.grid(row=10, column=5, sticky=W)
 
-    # Temporary function, until "source_dir" is fully retired.
-    def getWorkDirConfigValue(self):
-        workdir = self.getOption('work_dir')
-        if not workdir:
-            workdir = self.getOption('source_dir')  # the old name
-        return workdir
-
     def show_values(self):
         self.language_code.set(self.getOption('language_code'))
         self.language_name.set(self.getOption('language_name'))
@@ -145,7 +138,7 @@ class Usfm2Usx_Frame(g_step.Step_Frame):
         self.pub_date.set(self.getOption('pub_date'))
         self.license.set(self.getOption('license'))
         self.version.set(self.getOption('version'))
-        self.work_dir.set( self.getWorkDirConfigValue() )
+        self.work_dir.set( self.getOption('work_dir') )
         self.filename.set(self.getOption('filename'))
         self.rc_dir.set(self.getOption('rc_dir'))
 

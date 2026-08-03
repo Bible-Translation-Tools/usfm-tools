@@ -415,14 +415,6 @@ def make_dir(folder):
             os.mkdir(folder)
     return os.path.isdir(folder)
 
-# Temporary function, until all references to "source_dir" are removed.
-def getWorkDir():
-    config = ToolsConfigManager()
-    workdir = config.get('Usfm2Usx', 'work_dir')
-    if not workdir:
-        workdir = config.get('Usfm2Usx', 'source_dir')    # the old name
-    return workdir
-
 def main(app = None):
     global nConverted
     global gui
@@ -433,7 +425,7 @@ def main(app = None):
     state = State()
     # config = configmanager.ToolsConfigManager().get_section('Usfm2Usx')   # configmanager version
     config = ToolsConfigManager()
-    work_dir = getWorkDir()
+    work_dir = config.get('Usfm2Usx', 'work_dir')
     rc_dir = config.get('Usfm2Usx', 'rc_dir')
     if not make_dir(rc_dir):
         reportError("Invalid resource_containers folder: " + rc_dir)

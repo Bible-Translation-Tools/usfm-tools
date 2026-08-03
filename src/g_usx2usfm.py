@@ -88,18 +88,11 @@ class Usx2Usfm_Frame(g_step.Step_Frame):
 
         usx_dir_entry.focus()
 
-    # Temporary function, until "usfm_dir" is fully retired.
-    def getWorkDirConfigValue(self):
-        workdir = self.getOption('work_dir')
-        if not workdir:
-            workdir = self.getOption('usfm_dir')  # the old name
-        return workdir
-
     # Called when the frame is first activated. Populate the initial values.
     def show_values(self):
         self.filename.set(self.getOption('filename'))
         self.usx_dir.set(self.getOption('usx_dir'))
-        self.work_dir.set(self.getWorkDirConfigValue())
+        self.work_dir.set(self.getOption('work_dir'))
         self.notes.set(self.getOption('notes'))
 
         # Create buttons

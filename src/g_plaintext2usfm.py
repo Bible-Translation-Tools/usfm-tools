@@ -83,18 +83,11 @@ class Plaintext2Usfm_Frame(g_step.Step_Frame):
 
         source_dir_entry.focus()
 
-    # Temporary function, until "target_dir" is fully retired.
-    def getWorkDirConfigValue(self):
-        workdir = self.getOption('work_dir')
-        if not workdir:
-            workdir = self.getOption('target_dir')  # the old name
-        return workdir
-
     # Called when the frame is first activated. Populate the initial values.
     def show_values(self):
         self.filename.set(self.getOption('filename'))
         self.source_dir.set(self.getOption('source_dir'))
-        self.work_dir.set(self.getWorkDirConfigValue())
+        self.work_dir.set(self.getOption('work_dir'))
 
         # Create buttons
         self.controller.showbutton(1, "<<<", self._onBack)

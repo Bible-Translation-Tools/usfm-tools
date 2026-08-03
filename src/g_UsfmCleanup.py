@@ -41,16 +41,9 @@ class UsfmCleanup(g_step.Step):
         self.frame.clear_messages()
         self.executed = True
 
-    # Temporary function, until "source_dir" is fully retired.
-    def getWorkDir(self):
-        workdir = self.getOption('work_dir')
-        if not workdir:
-            workdir = self.getOption('source_dir')
-        return workdir
-
     # Runs the revertChanges script to revert usfm_cleanup changes.
     def revertChanges(self):
-        sec = {'work_dir': self.getWorkDir(),
+        sec = {'work_dir': self.getOption('work_dir'),
                'backupExt': ".usfm.orig",
                'correctExt': ".usfm"}
         self.mainapp.save_values('RevertChanges', sec)
@@ -174,16 +167,9 @@ class UsfmCleanup_Frame(g_step.Step_Frame):
         #      text="Standardize chapter labels.")
         # self.enable8_checkbox.state(['disabled'])
 
-    # Temporary function, until "source_dir" is fully retired.
-    def getWorkDirConfigValue(self):
-        workdir = self.getOption('work_dir')
-        if not workdir:
-            workdir = self.getOption('source_dir')  # the old name
-        return workdir
-
     def show_values(self):
         code = self.getOption('language_code')
-        dir = self.getWorkDirConfigValue()
+        dir = self.getOption('work_dir')
         self.language_code.set(code)
         self.work_dir.set(dir)
         self.filename.set(self.getOption('filename'))

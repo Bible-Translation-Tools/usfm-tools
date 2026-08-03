@@ -96,7 +96,7 @@ class State:
 state = State()
 
 def shortname(longpath):
-    work_dir = getWorkDir()
+    work_dir = ToolsConfigManager().get('UsfmCleanup', 'work_dir')
     shortname = str(longpath)
     if shortname.startswith(work_dir):
         shortname = os.path.relpath(shortname, work_dir)
@@ -138,7 +138,7 @@ def updateBurrito(work_dir):
 def openIssuesFile():
     global issuesFile
     if not issuesFile:
-        work_dir = getWorkDir()
+        work_dir = ToolsConfigManager().get('UsfmCleanup', 'work_dir')
         if os.path.isdir(work_dir):
             path = os.path.join(work_dir, "issues.txt")
             issuesFile = io.open(path, "tw", buffering=4096, encoding='utf-8', newline='\n')
@@ -813,14 +813,6 @@ def set_std_title(title):
     global std_title
     std_title = title
 
-# Temporary function, until all references to "source_dir" are removed.
-def getWorkDir():
-    config = ToolsConfigManager()
-    workdir = config.get('UsfmCleanup', 'work_dir')
-    if not workdir:
-        workdir = config.get('UsfmCleanup', 'source_dir')    # the old name
-    return workdir
-
 def main(app = None):
     global gui
     global std_title
@@ -830,7 +822,7 @@ def main(app = None):
     config = ToolsConfigManager()
 
     std_title = config.get('UsfmCleanup', 'standard_chapter_title')
-    work_dir = getWorkDir()
+    work_dir = config.get('UsfmCleanup', 'work_dir')
     if work_dir:
         getSaidWords(work_dir)
         for i in range(1, len(enable)):

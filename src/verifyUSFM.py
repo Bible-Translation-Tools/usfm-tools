@@ -382,7 +382,7 @@ def bookTitleEnglish(id):
     return usfm_verses.verseCounts[id]['en_name'] if id in usfm_verses.verseCounts else ""
 
 def shortname(longpath):
-    workdir = Path(getWorkDir())
+    workdir = Path(ToolsConfigManager().get('VerifyUSFM', 'work_dir'))
     shortname = Path(longpath)
     if shortname.is_relative_to(workdir):
         shortname = shortname.relative_to(workdir)
@@ -402,7 +402,7 @@ def openIssuesFile():
     global issuesFile
     if not issuesFile:
         config = ToolsConfigManager()
-        workdir = getWorkDir()
+        workdir = config.get('VerifyUSFM', 'work_dir')
         path = os.path.join(workdir, "issues.txt")
         if os.path.exists(path):
             timestamp = get_timestamp(path)
@@ -542,7 +542,7 @@ def dumpWords():
     path = None
     config = ToolsConfigManager()
     if len(books) > 1:
-        path = os.path.join(getWorkDir(), "wordlist.tsv")
+        path = os.path.join( config.get('VerifyUSFM', 'work_dir'), "wordlist.tsv" )
     if path:
         with io.open(path, "tw", encoding='utf-8', newline = '\n') as file:
             file.write(f"Word\tOccurrences\tReference\n")
@@ -1585,7 +1585,7 @@ def peripheral(fname):
 # Resets state for next file.
 def close_book(filename):
     if state.ID:
-        usfmPath = os.path.join(getWorkDir(), filename)
+        usfmPath = os.path.join( ToolsConfigManager().get('VerifyUSFM', 'work_dir'), filename )
         manifestyaml.addProject(bookTitle(), state.ID,  usfmPath)
     state.addID("")
     sys.stderr.flush()
@@ -1685,7 +1685,8 @@ def initializeGlobals():
 
 def syncProjectInfo():
     config = ToolsConfigManager()
-    project_info = ProjectInfo(getWorkDir(), config.get('VerifyUSFM', 'language_code'))
+    workdir = config.get('VerifyUSFM', 'work_dir')
+    project_info = ProjectInfo(workdir, config.get('VerifyUSFM', 'language_code'))
     project_info.useManifest(docreate=True)     # syncs automatically
     if not project_info.get_LI_Generator():
         project_info.clearWords()    # old versions of said words are unreliable
@@ -1702,7 +1703,7 @@ def syncProjectInfo():
 def startAddedOutputs():
     global saidwords
     config = ToolsConfigManager()
-    workdir = getWorkDir()
+    workdir = config.get('VerifyUSFM', 'work_dir')
     saidwords = SaidWords(workdir, config.get('VerifyUSFM', 'language_code'))
     global manifestyaml
     manifestyaml = ManifestYaml()
@@ -1726,21 +1727,15 @@ def saveResults():
         global nFiles
         saidwords.save(wordlist, mincount = 4 if nFiles < 40 else 6)
 
-def getWorkDir():
-    config = ToolsConfigManager()
-    workdir = config.get('VerifyUSFM', 'work_dir')
-    if not workdir:
-        workdir = config.get('VerifyUSFM', 'source_dir')    # the old name
-    return workdir
-
 def main(app=None):
     global gui
     gui = app
     initializeGlobals()
     syncProjectInfo()
     startAddedOutputs()
-    workdir = getWorkDir()
-    file = ToolsConfigManager().get('VerifyUSFM', 'filename')
+    config = ToolsConfigManager()
+    workdir = config.get('VerifyUSFM', 'work_dir')
+    file = config.get('VerifyUSFM', 'filename')
     if file:
         path = os.path.join(workdir, file)
         if os.path.isfile(path):

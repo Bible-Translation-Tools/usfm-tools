@@ -167,16 +167,9 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
         xs.grid(row=89, column = 1, columnspan=4, sticky = 'ew')
         self.message_area['xscrollcommand'] = xs.set
 
-    # Temporary function, until "source_dir" is fully retired.
-    def getWorkDirConfigValue(self):
-        workdir = self.getOption('work_dir')
-        if not workdir:
-            workdir = self.getOption('source_dir')
-        return workdir
-
     def show_values(self):
         code = self.getOption('language_code')
-        workdir = self.getWorkDirConfigValue()
+        workdir = self.getOption('work_dir')
         self.work_dir.set(workdir)
         self.language_code.set(code)
         self.filename.set(self.getOption('filename'))
@@ -233,7 +226,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
             self.std_titles.set(title)
 
     def onScriptEnd(self):
-        issuespath = os.path.join(self.getWorkDirConfigValue(), "issues.txt")
+        issuespath = os.path.join(self.getOption('work_dir'), "issues.txt")
         exists = os.path.isfile(issuespath)
         self.controller.enablebutton(3, exists)
         self.controller.enablebutton(2, self.verify_ready)
@@ -374,7 +367,7 @@ class VerifyUSFM_Frame(g_step.Step_Frame):
 
     def _onOpenIssues(self, *args):
         # self._save_values()
-        path = os.path.join(self.getWorkDirConfigValue(), "issues.txt")
+        path = os.path.join(self.getOption('work_dir'), "issues.txt")
         os.startfile(path)
     # Opens usfm folder, or specific usfm file
     def _onOpenUsfm(self, *args):
