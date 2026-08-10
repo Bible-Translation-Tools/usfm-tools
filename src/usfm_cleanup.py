@@ -839,6 +839,10 @@ def main(app = None):
         updateBurrito(work_dir)
         reportStatus("\nDone. Changed " + str(nChanged) + " files.")
 
+        from projectinfo import ProjectInfo
+        from languageinfo import LanguageInfo
+        reportStatus(f"{ProjectInfo.instances} ProjectInfo instances, {LanguageInfo.instances} LanguageInfo instances.")
+
     if aligned_usfm:
         reportError("Sorry, cannot deal with aligned USFM.")
     if gui:

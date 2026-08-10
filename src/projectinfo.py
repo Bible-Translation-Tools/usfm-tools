@@ -11,10 +11,13 @@ from scripture_burrito import Burrito
 import os
 
 class ProjectInfo:
+    instances = 0
+
     def __init__(self, project_dir, language_code):
         self.project_dir = project_dir
         self.languageInfo = LanguageInfo(project_dir, language_code)
         self.burrito = Burrito(project_dir)
+        ProjectInfo.instances += 1
         is_valid, _ = self.burrito.load()
         if not is_valid:
             self.burrito.create()
@@ -216,7 +219,7 @@ class SaidWords:
     def _clearWords(self):
         self.words = dict()
 
-    # Saves the top "said" words to LanguageInfo, which serializes the
+    # Saves the top "said" words to LanguageInfo, which serializes
     # them in the language info file.
     # To be saved, at least 12% of the occurrences of the word must have been in a "said" context,
     # and it must not be capitalized.

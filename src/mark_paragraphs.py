@@ -223,6 +223,7 @@ class State:
     def identifyModel(self, identity):
         self.model = identity
 
+    # Sets the Unicode block of the current text.
     def setModelBlock(self, block:str):
         self.modelBlock = block
     def getModelBlock(self):
@@ -294,8 +295,6 @@ def mayInsertS5(newchapter=False):
         smark = punct = ''
         if not newchapter:
             (smark, punct) = state.smarkInModel()
-
-        # if (newchapter and s5_only) or (smark == "s5" and not removeS5markers):
         if smark == "s5" or newchapter:
             mayTerminateLastSentence(punct)
             state.usfm.writeUsfm("s5")
@@ -780,6 +779,11 @@ def main(app = None):
     reportStatus(f"\nDone.")
     if nChanges > 0 and not config.getboolean('MarkParagraphs', 'diagnostics'):
         reportStatus("Changes were made.")
+
+    from projectinfo import ProjectInfo
+    from languageinfo import LanguageInfo
+    reportStatus(f"{ProjectInfo.instances} ProjectInfo instances, {LanguageInfo.instances} LanguageInfo instances.")
+
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 

@@ -11,9 +11,12 @@ import io
 import operator
 
 class LanguageInfo:
+    instances = 0
+
     def __init__(self, project_dir, language_code):
         self.info = {}
         self.jsonpath = ""
+        LanguageInfo.instances += 1
         if os.path.exists( os.path.dirname(project_dir) ):
             self.jsonpath = os.path.join(os.path.dirname(project_dir), language_code+".json")
             if os.path.isfile(self.jsonpath):
