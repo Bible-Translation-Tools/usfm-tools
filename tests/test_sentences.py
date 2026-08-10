@@ -175,3 +175,34 @@ def test_sentenceCount(str, expected):
 def test_endsSentence(str, checkquotes, expected):
     returned = sentences.endsSentence(str, checkquotes)
     assert returned == expected
+
+@pytest.mark.parametrize('s, expected',
+    [('N’amamera', True),
+     ('text', False),
+     ('5', False),
+     ('', False),
+     ('(Parenthesized)', True),
+     ('.;-%  ', False),
+     ('.;-%Word', False),
+     ('"Quotes"', True),
+     ("'Quoted", True),
+     ("Endquoted'", True),
+     (' Spaced', True),
+     ("Paul's", True),
+     ("E'Besusaida", True),
+     ("Syo’mufwire", True),
+     ("syo’Mufwire", False),
+     ("Syo’Mufwire", True),
+     ("Syo’muFwire", False),
+     ("Syo’MUFWIRE", False),
+     (" E'siwanwa Syo’Mufwire'lower", False),   # isCapitalized(word) does not support phrases
+     ("Orang-orang", True),
+     ("Orang-Orang", True),
+     ("Orang-ORang", False),
+     ("orang-Orang", False),
+     ('"Hosana!', True),
+     ('After-all', True),
+     ('Иона', True),
+    ])
+def test_isCapitalized(s, expected):
+    assert sentences.isCapitalized(s) == expected

@@ -115,36 +115,6 @@ def test_find_eol_heading(line, expected):
 def test_percentTitleCase(s, expected):
     assert section_titles.percentTitleOrCaps(s) == expected
 
-@pytest.mark.parametrize('s, expected',
-    [('N’amamera', True),
-     ('text', False),
-     ('5', False),
-     ('', False),
-     ('(Parenthesized)', True),
-     ('.;-%  ', False),
-     ('.;-%Word', False),
-     ('"Quotes"', True),
-     ("'Quoted", True),
-     ("Endquoted'", True),
-     (' Spaced', True),
-     ("Paul's", True),
-     ("E'Besusaida", True),
-     ("Syo’mufwire", True),
-     ("syo’Mufwire", False),
-     ("Syo’Mufwire", True),
-     ("Syo’muFwire", False),
-     ("Syo’MUFWIRE", False),
-     (" E'siwanwa Syo’Mufwire'lower", False),   # _isCapitalized(word) does not support phrases
-     ("Orang-orang", True),
-     ("Orang-Orang", True),
-     ("Orang-ORang", False),
-     ("orang-Orang", False),
-     ('"Hosana!', True),
-     ('After-all', True),
-    ])
-def test_isCapitalized(s, expected):
-    assert section_titles._isCapitalized(s) == expected
-
 # @pytest.mark.parametrize('s, expected',
 #     [('మొదటి ప్రార్థన (మార్కు 14:35. లూకా 22:41;42)', 0.555),
 # ])
