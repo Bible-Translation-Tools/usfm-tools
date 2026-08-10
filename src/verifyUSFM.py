@@ -119,7 +119,6 @@ class State:
         return f'State({self.reference})'
 
     # Resets state data for a new book
-    # The scan parameter is set when source text is being parsed.
     def addID(self, id):
         self.initBook()
         self.reference = id + " header/intro"
@@ -908,8 +907,6 @@ def takeID(id):
     if len(id) < 3:
         reportIssue("Invalid ID: " + id, 22)
     id = id[0:3].upper()
-    if id in state.IDs:
-        reportIssue("Duplicate ID: " + id, 23)
     state.addID(id)
 
 def reportParagraphMarkerErrors(type):
@@ -1428,7 +1425,10 @@ def verifyWholeFile(contents, path):
     if marker != 'id' or len(value) != 3:
         reportIssue(f"USFM file does not start with valid book id: {shortname(path)}", 74.1)
     else:
-        state.addID(value.upper())
+        id = value.upper()
+        if id in state.IDs:
+            reportIssue("Duplicate ID: " + id, 23)
+        state.addID(id)
     verifyChapterAndVerseMarkers(contents, shortname(path))
 
     # lines = contents.split('\n')
@@ -1750,6 +1750,10 @@ def main(app=None):
     reportSections()
     saveResults()
     reportStatus("\nDone.")
+
+    from languageinfo import LanguageInfo
+    reportStatus(f"{ProjectInfo.instances} ProjectInfo instances, {LanguageInfo.instances} LanguageInfo instances.")
+
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 
