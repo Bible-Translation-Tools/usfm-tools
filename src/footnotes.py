@@ -484,7 +484,7 @@ def getFootnotedVerses(dir=""):
 # Sets state.footnoteRefs and state.loadedDir, or leaves them unchanged.
 def _loadPrescanned(dir):
     global state
-    if dir != state.loadedDir:
+    if dir != state.loadedDir or len(state.footnoteRefs) == 0:
         fvpath = os.path.join(dir, "footnotedVerses.json")
         if os.path.isfile(fvpath):
             with io.open(fvpath, 'r') as json_file:

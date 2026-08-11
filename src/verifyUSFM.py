@@ -668,12 +668,12 @@ def load_source(fname):
 
         # Load footnote references first, for the whole directory
         global footnotedVerses_en_ulb
-        if len(footnotedVerses) == 0 and len(footnotedVerses_en_ulb) == 0:
+        if len(footnotedVerses) == 0:
             if not footnotes.preScanned(sourcedir):
                 reportStatus(f"Scanning source text for footnotes...")
             footnotedVerses = footnotes.getFootnotedVerses(sourcedir)
-            if len(footnotedVerses) == 0:
-                footnotedVerses_en_ulb = footnotes.footnotedVerses_en_ulb
+        if len(footnotedVerses) == 0 and len(footnotedVerses_en_ulb) == 0:
+            footnotedVerses_en_ulb = footnotes.footnotedVerses_en_ulb
 
         # Then parse the usfm for the current book.
         sourcepath = os.path.join(sourcedir, fname)
