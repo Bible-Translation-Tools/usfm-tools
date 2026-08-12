@@ -709,7 +709,7 @@ def takeText(s, usfm):
             vlen += 1
         s = s[vlen:].lstrip()
     s = add_spaces(s)
-    if enable[5] and not in_footnote:
+    if enable[5] and not in_footnote and state.reference != "MAT 5:22":
         s = capitalizeAsNeeded(s)
     s = change_quote_medial(s, enable[4])
     s = fix_saids(s)
