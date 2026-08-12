@@ -59,7 +59,7 @@ class Select_Frame(g_step.Step_Frame):
         process6_rb.grid(row=9, column=1, sticky=W)
         tip = Hovertip(process6_rb, hover_delay=500, text="Convert files to standard names and line endings.")
 
-        jump_label = ttk.Label(self, text="Jump to:", font=subheadingFont)
+        jump_label = ttk.Label(self, text="Single step:", font=subheadingFont)
         jump_label.grid(row=3, column=2, sticky=W, pady=(4,2))
         jump1 = ttk.Radiobutton(self, text='Validate USFM files', variable=self.process,
                                       command=self._onRbChange, value='SingleStep_VerifyUSFM')
