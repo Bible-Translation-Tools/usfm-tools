@@ -604,7 +604,7 @@ def category(token: usfmReader.Token):
         category = S
     return category
 
-def scategory(cat) -> str:
+def strcategory(cat) -> str:
     if cat == PP:
         scat = "paragraph"
     elif cat == QQ:
@@ -625,8 +625,8 @@ def reportBackToBackMarkers(token: usfmReader.Token):
         if cat != OTHER:
             prevcat = category(state.lastToken)
             if (cat == prevcat and cat != S) or (cat in {QQ,PP} and prevcat in {QQ,PP}):
-                scat = scategory(cat) if cat == prevcat else "paragraph/poetry"
-                reportIssue(f"Back to back {scat} markers after {state.reference}", 62)
+                strcat = strcategory(cat) if cat == prevcat else "paragraph/poetry"
+                reportIssue(f"Back to back {strcat} markers after {state.reference}", 62)
 
 def reportSections():
     if nFiles > 2 and nSectionHeadings > 0:
@@ -970,7 +970,7 @@ vinvalid_re = re.compile(r'[^\d\-]')
 # Reports missing text in previous verse.
 # Reports errors related to the verse number(s), such as missing or duplicated verses.
 def takeV(vstr):
-    if state.currItemCategory == B:
+    if state.currItemCategory == B and state.prevItemCategory not in {PP,QQ,B}:
         reportIssue(f"\\b should be used only between paragraphs. {state.reference}", 33)
     if vstr != "1" and vstr[0:2] != "1-":
         previousVerseCheck()   # Checks previous verse
