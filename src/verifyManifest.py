@@ -290,16 +290,18 @@ def verifyChapter(path):
 def verifyChecking(checking):
     verifyKeys('checking', checking, ['checking_entity', 'checking_level'])
     if 'checking_entity' in checking:
-        if len(checking['checking_entity']) < 1:
-            reportError("Missing checking_entity.")
+        # No longer checking 'checking_entity' because WA doesn't use it.
+        # if len(checking['checking_entity']) < 1:
+        #     reportError("Missing checking_entity.")
         for c in checking['checking_entity']:
             if not isinstance(c, str) or len(c) < 3:
                 reportError("Invalid checking_entity: " + str(c))
     if 'checking_level' in checking:
         if not isinstance(checking['checking_level'], str):
             reportError('checking_level must be a string')
-        elif checking['checking_level'] != '3' and projtype not in {'reg','tq'}:
-            reportError("Invalid value for checking_level: " + checking['checking_level'])
+        # No longer checking 'checking_level' because WA doesn't use it.
+        # elif checking['checking_level'] != '3' and projtype not in {'reg','tq'}:
+        #     reportError("Invalid value for checking_level: " + checking['checking_level'])
 
 badname_re = re.compile(r'.*\d\d\d\d+.*\.md$')
 issuesfile_re = re.compile(r'issues.*\.txt')
