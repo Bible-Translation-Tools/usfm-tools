@@ -66,6 +66,7 @@ from manifestyaml import ManifestYaml
 import io
 import numbers
 import re
+import sentences
 import usfm_verses
 import usfm_utils
 
@@ -225,8 +226,8 @@ def verifyBookTitlePairs(projects, id1, id2):
 def verifyBookTitle(booktitle, bookId, relpath):
     if booktitle.isascii() and not allowAsciiTitles:
         reportError("ASCII project:title: " + booktitle)
-    if booktitle.endswith('.'):
-        reportError(f"project:title has punctuation: {booktitle}")
+    if sentences.endsSentence(booktitle):
+        reportError(f"project:title has ending punctuation: {booktitle}")
 
     if digits := re.findall(r'[\d]', booktitle):
         unwanted = set(digits)

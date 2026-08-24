@@ -949,19 +949,36 @@ def takeSection(tag):
     state.addSection(tag)
 
 def takeTitle(token: usfmReader.Token):
+    booktitle = token.value
     if token.type == 'toc3':
-        state.addToc3(token.value)
+        state.addToc3(booktitle)
     elif token.value:
-        state.addTitle(token.value)
-    if token.type.startswith('mt') and token.value.isascii() and not suppress[9]:
+        state.addTitle(booktitle)
+    if token.type.startswith('mt') and booktitle.isascii() and not suppress[9]:
         reportIssue(f"{token.type} token has ASCII value in {state.reference}", 30)
-    if token.value.isupper() and not state.upperCaseReported and not suppress[8]:
+    if booktitle.isupper() and not state.upperCaseReported and not suppress[8]:
         reportIssue("Upper case book title in " + state.reference, 31)
         state.reportedUpperCase()
-    if token.value.startswith("Ii"):
-        reportIssue(f"Mixed case roman numerals in \\{token.type} field", 31.1)
+    if booktitle.startswith("Ii"):
+        reportIssue(f"Mixed case roman numerals in {state.ID} \\{token.type} field", 31.1)
+    if sentences.endsSentence(booktitle):
+        reportIssue(f"Book title in {state.ID} \\{token.type} field has ending punctuation", 31.2)
     if state.currItemCategory == B:
         reportIssue("\\b may not be used before or after titles or headings. " + state.reference, 32)
+
+    if digits := re.findall(r'[\d]', booktitle):
+        bookId = state.ID.lower()
+        unwanted = set(digits)
+        if bookId in {'1sa', '1ki', '1ch', '1co', '1th', '1ti', '1pe', '1jn'}:
+            unwanted -= {'1','२','১','၁','۱'}
+        elif bookId in {'2sa', '2ki', '2ch', '2co', '2th', '2ti', '2pe', '2jn'}:
+            unwanted -= {'2','२','২','၂','۲'}
+        elif bookId in {'3jn'}:
+            unwanted -= {'3','३','৩','၃','۳'}
+        if unwanted:
+            reportIssue(f"Unwanted digits in {state.ID} book title: {booktitle}", 32.1)
+        elif len(digits) > 1:
+            reportIssue(f"Extra digits in {state.ID} book title: {booktitle}", 32.2)
 
 vv_re = re.compile(r'([0-9]+)-([0-9]+)')
 vinvalid_re = re.compile(r'[^\d\-]')
