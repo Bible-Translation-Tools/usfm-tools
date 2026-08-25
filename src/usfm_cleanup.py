@@ -595,18 +595,19 @@ def mark_sections(line):
     return (changed, line)
 
 
-err1_re = re.compile(r'\s+\\f\s')   # space before \f
+err1_re = re.compile(r'\s+\\(f|x)\s')   # space before \f
 err3_re = re.compile(r'[.?!;:,] *(\\fqa\*|\\f\*) +[.?!;:,]')   # space before punctuation after \fqa*, and punctuation before \fqa*
 err4_re = re.compile(r'[^.?!;:, ] *(\\fqa\* |\\f\* ) *([.?!;:,]) *')   # space before punctuation after \fqa*, and no punctuation before
 
-# Removes space before \f.
+# Removes space before \f or \x.
 # Fixes phrase-ending punctuation around \f* and \fqa*.
 # All this helps PTXP format the footnote text correctly.
 # As prescribed in the 8/4/25 discussion in the Repo Conversion channel chat.
 def fix_footnotes(line):
-    origline = line
-    if "\\f" in line:
-        line = re.sub(err1_re, r'\\f ', line)
+    if "\\f" in line or "\\x" in line:
+        # line = re.sub(err1_re, r'\\f ', line)
+        if err1 := err1_re.search(line):
+            line = line[0:err1.start()] + "\\" + err1.group(1) + " " + line[err1.end():] if err1 else line
         err3 = err3_re.search(line)
         while err3:
             # Remove space before and after \fqa* when punctuation follows \fqa*
