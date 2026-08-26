@@ -27,7 +27,7 @@ def count_folders(path, pattern):
     return n
 
 # Returns the language code from the manifest.yaml file in the specified folder.
-# @TODO unit test
+# @TODO get language code from metadata.json as the first option
 def get_language_code(dir):
     code = ""
     if os.path.isdir(dir):
@@ -35,13 +35,3 @@ def get_language_code(dir):
         my.load(dir)
         code = my.getLanguageId()
     return code
-
-# Returns the language name from the manifest.yaml file in the specified folder.
-# @TODO unit test
-def get_language_name(dir):
-    name = ""
-    if os.path.isdir(dir):
-        my = ManifestYaml()
-        my.load(dir)
-        name = my.getLanguageName()
-    return name

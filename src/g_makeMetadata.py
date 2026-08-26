@@ -11,6 +11,7 @@ import g_util
 import g_step
 import os
 from scripture_burrito import Burrito
+from projectinfo import ProjectInfo
 
 stepname = 'MakeMetadata'   # equals the main class name in this module
 
@@ -113,10 +114,10 @@ class MakeMetadata_Frame(g_step.Step_Frame):
     def show_values(self):
         self.changingVars = True
         self.language_code.set(self.getOption('language_code'))
-        self.language_name_en.set("")
+        self.language_name_en.set(self.getOption("language_name_en"))
         direction = self.getOption('direction')
         self.direction.set(direction if direction else 'ltr')
-        self.localized_name.set("")
+        self.localized_name.set(self.getOption('localized_name'))
         self.work_dir.set(self.getOption('work_dir'))
         self.license_file.set(self.getOption('license_file'))
         license_type = self.getOption('license_type')
@@ -140,7 +141,7 @@ class MakeMetadata_Frame(g_step.Step_Frame):
         if not self.tracing:
             self.language_code.trace_add("write", self._onChangeLanguage)
             self.language_name_en.trace_add("write", self._onChangeLanguageName)
-            self.localized_name.trace_add("write", self._onChangeLanguageName)
+            self.localized_name.trace_add("write", self._set_button_status)
             self.work_dir.trace_add("write", self._onChangeWorkDir)
             self.license_file.trace_add("write", self._set_button_status)
             self.license_type.trace_add("write", self._set_button_status)
@@ -212,6 +213,16 @@ class MakeMetadata_Frame(g_step.Step_Frame):
                     objections.append(f"Language code {language_code} doesn't match existing metadata.json at {working_folder}")
         return objections
 
+    def save_project_info(self):
+        projectInfo = None
+        language_name_en = self.language_name_en.get()
+        projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
+        projectInfo.setLanguage(language_name_en, locale='en', direction=self.direction.get())
+        localized_name = self.localized_name.get()
+        if localized_name:
+            projectInfo.setLanguage(localized_name, locale=self.language_code.get(), direction=self.direction.get())
+        projectInfo.save()
+
     def _onFindWorkDir(self, *args):
         self.controller.askdir(self.work_dir)
     def _onFindFile(self, *args):
@@ -243,9 +254,14 @@ class MakeMetadata_Frame(g_step.Step_Frame):
             language_code = g_util.get_language_code(dir)
             if language_code != self.language_code.get():   # to avoid xs callbacks
                 self.language_code.set(language_code)       # will invoke _onChangeLanguage
-            language_name = g_util.get_language_name(dir)
+            pi = ProjectInfo(dir, language_code)
+            language_name = pi.getLanguageName()
             if language_name != self.language_name_en.get():
                 self.language_name_en.set(language_name)
+            localized_name = pi.getLanguageName(locale=language_code)
+            if localized_name != self.localized_name.get():
+                self.localized_name.set(localized_name)
+
         self.changingVars = False
         self._set_button_status()
 

@@ -65,11 +65,12 @@ class ProjectInfo:
             # Sync language attributes
             if not my.getLanguageId():
                 my.setLanguageId(self.languageInfo.getLanguageCode())
+
             language_name = self.languageInfo.getLanguageName()
-            if not my.getLanguageName() and language_name:
-                my.setLanguageName(language_name)
-            elif not language_name:
+            if not language_name:
                 self.languageInfo.setLanguageName(my.getLanguageName())
+            elif not my.getLanguageName():
+                my.setLanguageName(language_name)
 
             # Sync source translations
             # One-way sync from MY to LI. Different projects in the same langauge
@@ -124,8 +125,11 @@ class ProjectInfo:
 
     def getLanguageCode(self):
         return self.languageInfo.getLanguageCode()
-    def getLanguageName(self):
-        return self.languageInfo.getLanguageName()
+    def getLanguageName(self, locale='en'):
+        name = self.burrito.getLanguageName(locale)
+        if not name and locale == 'en':
+            name = self.languageInfo.getLanguageName()
+        return name
 
     # Overwrites the list of source translations
     def resetSources(self):

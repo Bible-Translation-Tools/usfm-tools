@@ -46,5 +46,4 @@ def test_get_language_code_and_name(tmp_path):
     )
 
     assert g_util.get_language_code(str(project_dir)) == "eng"
-    assert g_util.get_language_name(str(project_dir)) == "English"
     assert g_util.get_language_code(str(tmp_path / "missing")) == ""
