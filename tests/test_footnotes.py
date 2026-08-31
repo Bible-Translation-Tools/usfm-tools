@@ -55,7 +55,7 @@ def test_getPrescanned():
 def test_footnotedVerses(verse, expected):
     # Tests the initial, default set
     footnotes.reset()
-    fv = footnotes.getFootnotedVerses()
+    fv = footnotes.getFootnotedVerses()     # Returns default set after reset()
     result = (verse in fv)
     assert result == expected
     assert len(fv) == 384

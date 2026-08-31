@@ -8,11 +8,11 @@ import re
 """
 Special characters:
 \u0964 is the Devangari Danda । character that terminates a sentence.
-\u0965 is the Devangari Danda ॥ character that terminates a section or paragraph.
+\u0965 is the Devangari Double Danda ॥ character that terminates a section or paragraph.
 \u1361 is the Ethiopic Wordspace ፡ character that is often doubled up to use in place of \u1362.
 \u1362 is the Ethiopic Full Stop ። character that terminates a sentence.
 \u061F is the Arabic question mark ؟
-\u06D4 is the Arabic full stop
+\u06D4 is the Arabic full stop ۔
 \u2013 is an en dash
 \u2014 is an em dash
 """
