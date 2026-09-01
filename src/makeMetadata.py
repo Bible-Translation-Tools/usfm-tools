@@ -79,6 +79,10 @@ def getIdAndTitle(path):
                         titles.append(titleline.group(2))
                     elif title and id:
                         break
+            except UnicodeDecodeError as e:
+                reportError(f"File is not valid UTF-8: {shortname(path)} Skipping this file.")
+                reportError(f"UnicodeDecodeError: {e}")
+                break
             except StopIteration:
                 break
 
