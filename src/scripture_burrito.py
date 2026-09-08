@@ -17,7 +17,6 @@ def strToday():
 
 # Returns the size and md5 checksum of a file at the given path.
 def size_and_checksum(path):
-    import hashlib
     size = 0
     hash_md5 = hashlib.md5()
     with open(path, 'rb') as f:  # Open in binary read mode
@@ -154,11 +153,20 @@ class Burrito:
             self.contents['type']['flavorType']["currentScope"] = {}
         self.contents['type']['flavorType']["currentScope"][bookId] = []
 
+    def clearLicenses(self):
+        if "copyright" in self.contents and "licenses" in self.contents["copyright"]:
+            self.contents["copyright"]["licenses"] = []
     def addLicense(self, filename):
         if filename:
             newlicense = {"ingredient": filename}
             if newlicense not in self.contents["copyright"]["licenses"]:
                 self.contents["copyright"]["licenses"].append(newlicense)
+    def getLicenses(self):
+        licenses = []
+        if "copyright" in self.contents and "licenses" in self.contents["copyright"]:
+            for license in self.contents["copyright"]["licenses"]:
+                licenses.append(license.get("ingredient", ""))
+        return licenses
 
     # Recalculates size and checksum for each ingredient.
     # Also resets the timestamp.

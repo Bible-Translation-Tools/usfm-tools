@@ -179,10 +179,19 @@ class ProjectInfo:
         self.burrito.addProject(bookId, path)
         self.burrito.addName(bookId, self.getLanguageCode(), bookTitle)
 
+    # Stores the license file name in the burrito metadata, and the license rights in the manifest.
+    # Fow now, only supports one license file per project
     def addLicense(self, filename, rights):
         if self.manifest:
             self.manifest.setLicense(rights)
+        self.burrito.clearLicenses()
         self.burrito.addLicense(filename)
+    def getLicenseFile(self):
+        licenses = self.burrito.getLicenses()
+        return licenses[0] if licenses else ""
+    def getLicenseRights(self):
+        rights = self.manifest.getLicense() if self.manifest else ""
+        return rights
 
     def setIdentification(self, owner, name):
         identity = self.languageInfo.getLanguageName() + " Bible"

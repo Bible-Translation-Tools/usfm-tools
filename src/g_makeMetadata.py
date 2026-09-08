@@ -211,10 +211,13 @@ class MakeMetadata_Frame(g_step.Step_Frame):
             if burrito.load():
                 if burrito.contents and burrito.getLanguageCode() != language_code:
                     objections.append(f"Language code {language_code} doesn't match existing metadata.json at {working_folder}")
+            license_path = os.path.join(working_folder, license_file)
+            if not os.path.isfile(license_path):
+                objections.append(f"License file {license_file} not found in {working_folder}")
         return objections
 
+    # Called indirectly by save_values(), which is pretty often.
     def save_project_info(self):
-        projectInfo = None
         language_name_en = self.language_name_en.get()
         projectInfo = ProjectInfo(self.work_dir.get(), self.language_code.get())
         projectInfo.setLanguage(language_name_en, locale='en', direction=self.direction.get())
@@ -261,6 +264,9 @@ class MakeMetadata_Frame(g_step.Step_Frame):
             localized_name = pi.getLanguageName(locale=language_code)
             if localized_name != self.localized_name.get():
                 self.localized_name.set(localized_name)
+            self.license_file.set(pi.getLicenseFile())
+            pi.useManifest(docreate=False)
+            self.license_type.set(pi.getLicenseRights())
 
         self.changingVars = False
         self._set_button_status()
