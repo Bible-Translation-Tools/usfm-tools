@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Implements usfmReader object to parse usfm files.
+# See list of unsupported USFM markers at the bottom of this file.
 
 import re
 
@@ -168,3 +169,56 @@ def parseString(s):
         if leftover.lstrip():
             contents.append( Token('text', leftover.lstrip()) )
     return contents
+
+'''
+USFM markers that are not supported yet in this module:
+~
+//
+ca ... ca*
+cd
+cd
+cls
+foca#
+fp
+fw ... fw*
+i#
+imte#
+ipr
+ipr
+jmp .. jmp*
+lf
+lh
+li#
+lik .. lik*
+lim#
+litl .. litl*
+liv ... liv*
+mixta .. xta*
+periph
+ph#
+png .. png*
+po
+pr
+pr
+qd
+qt#-s\\* .. qt#-e\\*
+rb .. rb*
+rq ... rq*
+sts
+tc#
+tcr#
+thr#
+tr
+ts\\*
+ts-s\\* ... ts-e\\*
+wa .. wa*
+xdc ... xdc*
+xk
+xnt ... xnt*
+xop .. xop*
+xot ... xot*
+xq
+xt .. xt*
+xta .. xta*
+z
+'''
