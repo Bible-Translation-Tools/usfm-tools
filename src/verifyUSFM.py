@@ -1705,7 +1705,7 @@ def syncProjectInfo():
     workdir = config.get('VerifyUSFM', 'work_dir')
     project_info = ProjectInfo(workdir, config.get('VerifyUSFM', 'language_code'))
     project_info.useManifest(docreate=True)     # syncs automatically
-    if not project_info.get_LI_Generator():
+    if config.get('VerifyUSFM', 'filename') == "":
         project_info.clearWords()    # old versions of said words are unreliable
     project_info.setGenerator("", config.get('UsfmWizard', 'version'))  # name="" won't affect existing burrito
     project_info.save()
