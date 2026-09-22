@@ -504,6 +504,20 @@ def change_floating_quotes(line, all):
                         line = line[0:pos+1] + line[pos+2:]
     return line
 
+qrend_re = re.compile(r'(["\'’”»])\s*([,.?!\u0964\u0965\u1361\u1362\u061F\u06D4])')
+
+# Moves punctuation inside closing quote if that's how it is in source text.
+def change_quote_endings(s):
+    qrend = qrend_re.search(s)
+    if qrend:
+        global sourcebook
+        src = sourcebook.getText(state.strChapter, state.strVerse) if sourcebook else ""
+        translation = qrend.group(1) + qrend.group(2)
+        reverse = qrend.group(2) + qrend.group(1)
+        if reverse in src and not translation in src:
+            s = s[:qrend.start(1)] + translation + s[qrend.end(2):]
+    return s
+
 chapstart_re = re.compile(r'(\\c|\\ca|\\cl|\\cp) ')
 
 def find_section_heading(line, chap, verse, prevline, sentenceended):
@@ -719,9 +733,11 @@ def takeText(s, usfm):
         s = quotes.promoteQuotes(s)
     elif enable[3]:
         s = quotes.promoteDoubleQuotes(s)
+    s = s.rstrip(' ')
+    if enable[2]:
+        s = change_quote_endings(s)
     if state.prevMarker == 'text':
         usfm.newline()
-    s = s.rstrip(' ')
     usfm.writeStr(s)
     return (s != origstr)
 
