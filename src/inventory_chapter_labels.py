@@ -89,3 +89,6 @@ def main(gui = None):
     caller = config.get('UsfmWizard', 'step')
     if caller:
         inventory(gui, caller)
+
+if __name__ == "__main__":
+    main()
