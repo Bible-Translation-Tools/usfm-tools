@@ -24,6 +24,7 @@ from scripturebook import ScriptureBook
 import usfm_utils
 import usfmWriter
 from datetime import date
+from usfm_utils import unicodeBlock
 
 gui = None
 enable = [True]*9
@@ -309,7 +310,7 @@ def fix_punctuation(str):
 
 # spacing_list is a list of compiled expressions where a space needs to be inserted
 # after the first matched character.
-spacing_list = [re.compile(r'[\.,;:)\]][\w]'),
+spacing_list = [re.compile(r'[\.,;:)\]،؛][\w]'),  # Arabic comma and semicolon included
                 re.compile(r'[^\s][(\[]') ]
 
 # Adds spaces where needed. spacing_list controls what happens.
@@ -320,9 +321,17 @@ def add_spaces(s):
         while found:
             pos = found.start()
             second = pos+1
-            if s[pos] not in ".,:" or not s[second].isdigit() or (pos>0 and not s[pos-1].isdigit()):
+            if s[pos] in ";)]،؛" or not s[second].isdigit() or (pos>0 and not s[pos-1].isdigit()):
                 s = s[:second] + ' ' + s[second:]
             found = sub_re.search(s, second)
+    return s
+
+def arabic_punctuation(s):
+    if unicodeBlock(s) == 'ARABIC':
+        s = s.replace('.', '۔')   # Replace period with Arabic full stop
+        s = s.replace('?', '؟')
+        s = s.replace(',', '،')
+        s = s.replace(',', '؛')
     return s
 
 # Rewrites file and returns True if any changes are made.
@@ -415,8 +424,8 @@ def find_matching_openquote(line: str, pos: int, singles):
                 break
     return openpos
 
-q1_re = re.compile(r'(\w+)[.?!;:,](["\'«“‘’”»])\w')    # adjacent punctuation where second char is a quote mark
-q2_re = re.compile(r'(\w+)[.?!;:,](["«“‘’”»])\w')
+q1_re = re.compile(r'(\w+)[.?!;:,،؛](["\'«“‘’”»])\w')    # adjacent punctuation where second char is a quote mark
+q2_re = re.compile(r'(\w+)[.?!;:,،؛](["«“‘’”»])\w')
 
 # Finds sequences of phrase-ending punctuation followed by a quote,
 #   adjacent to word-forming characters on both sides.
@@ -464,7 +473,7 @@ def pair_up_quotes(line, singles):
                 pairs.append((openpos, i))
     return pairs
 
-said_re = re.compile(r'(\w+)\s*([,:;\-]?)\s*(["\'«“‘]+)\s*')
+said_re = re.compile(r'(\w+)\s*([,:;\-،]?)\s*(["\'«“‘]+)\s*')
 
 # Corrects spacing after "said" word and following punctuation.
 def fix_saids(line):
@@ -475,7 +484,7 @@ def fix_saids(line):
             # Don't do anything if this is a word-medial apostrophe case
             if ' ' in line[saidquote.end(1):saidquote.start(3)] or comma or saidquote.group(3) not in "'‘":
                 if enable[2] and not comma:
-                    comma = ','
+                    comma = ',' if unicodeBlock(line) != 'ARABIC' else '،'
                 elif enable[2] and comma == ';':
                     comma = ':'
                 line = line[0:saidquote.end(1)] + comma + " " + saidquote.group(3) + line[saidquote.end():]
@@ -504,7 +513,7 @@ def change_floating_quotes(line, all):
                         line = line[0:pos+1] + line[pos+2:]
     return line
 
-qrend_re = re.compile(r'(["\'’”»])\s*([,.?!\u0964\u0965\u1361\u1362\u061F\u06D4])')
+qrend_re = re.compile(r'(["\'’”»])\s*([,.?!،\u0964\u0965\u1361\u1362\u061F\u06D4])')
 
 # Moves punctuation inside closing quote if that's how it is in source text.
 def change_quote_endings(s):
@@ -610,8 +619,8 @@ def mark_sections(line):
 
 
 err1_re = re.compile(r'\s+\\(f|x)\s')   # space before \f
-err3_re = re.compile(r'[.?!;:,] *(\\fqa\*|\\f\*) +[.?!;:,]')   # space before punctuation after \fqa*, and punctuation before \fqa*
-err4_re = re.compile(r'[^.?!;:, ] *(\\fqa\* |\\f\* ) *([.?!;:,]) *')   # space before punctuation after \fqa*, and no punctuation before
+err3_re = re.compile(r'[.?!;:,،؛] *(\\fqa\*|\\f\*) +[.?!;:,،؛]')   # space before punctuation after \fqa*, and punctuation before \fqa*
+err4_re = re.compile(r'[^.?!;:,،؛ ] *(\\fqa\* |\\f\* ) *([.?!;:,]) *')   # space before punctuation after \fqa*, and no punctuation before
 
 # Removes space before \f or \x.
 # Fixes phrase-ending punctuation around \f* and \fqa*.
@@ -723,7 +732,9 @@ def takeText(s, usfm):
         if vlen < len(s) and s[vlen] in '.)':   # period or paren is stuck to verse number
             vlen += 1
         s = s[vlen:].lstrip()
-    s = add_spaces(s)
+    if enable[2]:
+        s = add_spaces(s)
+        s = arabic_punctuation(s)
     if enable[5] and not in_footnote and state.reference != "MAT 5:22":
         s = capitalizeAsNeeded(s)
     s = change_quote_medial(s, enable[4])
