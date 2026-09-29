@@ -902,8 +902,7 @@ def main(app = None):
         is_valid, msg = projectInfo.save()
         if not is_valid:
             reportError(f"Error saving {msg}")
-        else:
-            reportStatus("\nDone.")
+    reportStatus("\nDone.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 
