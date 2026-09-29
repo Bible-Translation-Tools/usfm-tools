@@ -4,6 +4,9 @@
 # Checks burrito file metadata.json by calling verifyBurrito().
 
 import sys
+from configmanager import ToolsConfigManager
+from manifestyaml import ManifestYaml
+from scripture_burrito import Burrito
 from verifyManifest import verifyManifest
 from verifyBurrito import verifyBurrito
 
@@ -17,6 +20,11 @@ def reportStatus(msg):
 def reportProgress(msg):
     reportToGui('<<ScriptProgress>>', msg)
     print(msg)
+
+def reportError(msg):
+    reportToGui('<<ScriptMessage>>', msg)
+    stream(msg, "Error", sys.stderr)
+    sys.stderr.flush()
 
 def reportToGui(event, msg):
     if gui:
@@ -32,15 +40,34 @@ def stream(msg, msgtype, stream):
     except UnicodeEncodeError as e:
         stream.write(f"{msgtype} message not shown, contains Unicode.\n")
 
+# Intended to compare data points which should be identical in yaml and json files.
+def compare_data(workdir, gui):
+    nIssues = 0
+    my = ManifestYaml()
+    errors = my.load(workdir, "manifest.yaml")
+    if not errors:
+        burrito = Burrito(workdir)
+        is_valid, msg = burrito.load()
+        if is_valid:
+            if my.getLanguageId() != burrito.getLanguageCode():
+                reportError("Language code differs in manifest.yaml and metadata.json.")
+                nIssues += 1
+            if my.getLanguageDirection() != burrito.getLanguageDirection():
+                reportError("Language direction differs in manifest.yaml and metadata.json.")
+                nIssues += 1
+    return nIssues
+
 def main(app = None):
     global gui
     gui = app
     nIssues = verifyManifest(gui)
-    reportProgress(f"Finished checking manifest.yaml, found {nIssues} issue(s).")
+    workdir = ToolsConfigManager().get('VerifyMetadata', 'work_dir')
+    nIssues += compare_data(workdir, gui)
+    reportProgress(f"\nFinished checking manifest.yaml, found {nIssues} issue(s).")
     reportStatus(f"\nChecking metadata.json...")
     nBurritoIssues = verifyBurrito(gui)
     if nBurritoIssues == 0:
-        reportStatus("\nNo issues found in metadata.json.")
+        reportStatus("No issues found in metadata.json.")
     nIssues += nBurritoIssues
     reportProgress(f"\nDone, this process doesn't check book names against the\n\
 Print Preparation Checklist (PPC). If the PPC is available,\n\

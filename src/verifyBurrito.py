@@ -48,7 +48,6 @@ def stream(msg, msgtype, stream):
 # Returns 530 on other exceptions.
 def check_url_exists(url):
     import requests
-    status = 0
     try:
         response = requests.head(url, allow_redirects=True, timeout=3)
         status = response.status_code
