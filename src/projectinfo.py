@@ -137,10 +137,12 @@ class ProjectInfo:
         if self.manifest:
             self.manifest.resetSources()
             self.manifest.setVersion("")
+        self.burrito.resetSources()
     def addSource(self, language_id, resource_id, version):
         self.languageInfo.addSource(language_id, resource_id, version)
         if self.manifest:
             self.manifest.addSource(language_id, resource_id, version)
+        self.burrito.addSource(language_id, resource_id, version)
 
     def getSources(self):
         return self.languageInfo.getSources()

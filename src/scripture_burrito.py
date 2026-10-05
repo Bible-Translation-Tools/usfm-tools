@@ -125,6 +125,18 @@ class Burrito:
             direction = self.contents["languages"][0].get("scriptDirection", "")
         return direction
 
+    def resetSources(self):
+        if "relationships" in self.contents:
+            self.contents.pop('relationships')
+    # Adds a "source" relationship.
+    def addSource(self, lang, resource, version):
+        id = f"wycliffeassociates::{lang}/{resource}"
+        relationship = {'relationType': "source", "flavor": "textTranslation", "id": id, "revision": version}
+        if "relationships" not in self.contents:
+            self.contents["relationships"] = []
+        if relationship not in self.contents["relationships"]:
+            self.contents["relationships"].append(relationship)
+
     # Adds a localized book name to the dictionary.
     def addName(self, bookId, locale, shortname, longname="", abbr=""):
         if not "localizedNames" in self.contents:
