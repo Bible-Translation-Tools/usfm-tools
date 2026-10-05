@@ -60,6 +60,7 @@ def compare_data(workdir, gui):
 def main(app = None):
     global gui
     gui = app
+    reportStatus(f"Checking manifest.yaml...")
     nIssues = verifyManifest(gui)
     workdir = ToolsConfigManager().get('VerifyMetadata', 'work_dir')
     nIssues += compare_data(workdir, gui)
