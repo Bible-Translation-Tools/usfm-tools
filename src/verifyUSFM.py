@@ -484,14 +484,8 @@ def write(msg, stream):
         stream.write(state.getReference() + ": (Unicode...)\n")
 
 def reportSuppressedIssues():
-    any = False
-    for val in suppress[1:9]:
-        if val:
-            any = True
-    for val in suppress[10:]:
-        if val:
-            any = True
-    if any:
+    anysuppressed = suppress[3] or any(suppress[6:9]) or any(suppress[10:])
+    if anysuppressed:
         issuesfile = openIssuesFile()
         issuesfile.write(f"But these kinds of warnings were suppressed:\n")
         # if suppress[1]:
@@ -1103,7 +1097,7 @@ def reportCaps(s):
             else:
                 reportIssue(f"First word in sentence is not capitalized: \"{word}\" at {state.getReference()}", 44.1, suppress[10])
     for word in sentences.nextfirstwords(s):
-        if word[0].islower():
+        if word[0].islower() and state.reference != "MAT 5:22":
             reportIssue(f"First word in sentence is not capitalized: \"{word}\" in {state.getReference()}", 44.1, suppress[10])
 
 # Returns a string containing nonspace text preceding start position thru and following end position
