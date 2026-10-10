@@ -34,6 +34,7 @@ sourcebook = None
 nFiles = 0  # number of .usfm files verified
 nSectionHeadings = 0
 nNoPAfterC = 0
+report_sq_references = False   # whether to report verse references for straight quotes
 
 # from numpy import source
 from configmanager import ToolsConfigManager
@@ -74,6 +75,7 @@ class State:
         self.booklength = 1
         self.canContinue = True
         self.source_id = "en_ulb"
+        self.nStraightQuotes = 0
         self.initBook()
 
     def initBook(self):
@@ -1221,6 +1223,18 @@ def reportNumbers(t, footnote):
     elif leadzero := leadingzero_re.search(t):
         reportIssue(f"Invalid leading zero: {leadzero.group(0)} at {state.getReference()}", 61.2)
 
+allsq_re = re.compile(r'"\'')
+
+def reportSQreferences(t):
+    global report_sq_references
+    if report_sq_references and 0 < state.nStraightQuotes < 7:
+        if not suppress[7]:
+            if allsq_re.search(t):
+                reportIssue(f"Straight quote(s) in {state.getReference()}", 62.2)
+        elif not suppress[6]:
+            if '"' in t:
+                reportIssue(f"Straight quote(s) in {state.getReference()}", 62.2)
+
 leftright_re = re.compile(r'[()<>\[\]{}]')
 
 def reportUnmatched(t):
@@ -1295,6 +1309,7 @@ def takeText(t, footnote=False):
     # if not suppress[1]:
     reportNumbers(t, footnote)
     if not footnote:
+        reportSQreferences(t)
         reportCaps(t)
         state.endSentence( sentences.endsSentence(t) )
     addWords(t)
@@ -1427,7 +1442,8 @@ def verifyParagraphCounts():
             reportIssue(f"Possible error: one lone section is marked in {state.ID}", 73.6)
 
 embeddedquotes_re = re.compile(r"\w'\w")
-curly_re = re.compile(r'[{}]')
+braces_re = re.compile(r'[{}]')
+curlies_re = re.compile(r'[“”]')
 
 # Receives the text of an entire book as input.
 # Verifies things that are better done as a whole file.
@@ -1456,9 +1472,15 @@ def verifyWholeFile(contents, path):
                 reportIssue(f"Straight quotes in {shortname(path)}: {ndouble} doubles, {nsingle} singles not counting {nembedded} word-medial.", 75)
         elif nsingle > 0 and not suppress[7]:
             reportIssue(f"Straight quotes in {shortname(path)}: {nsingle} singles not counting {nembedded} word-medial.", 75)
+        state.nStraightQuotes = ndouble if suppress[7] else ndouble + nsingle
 
-    if curlies := curly_re.findall(contents):
-        reportIssue(f"Curly brace(s) ({len(curlies)}) found in " + shortname(path), 75.1)
+        global report_sq_references
+        ncurlies = len(curlies_re.findall(contents))
+        if ndouble > 0 and ncurlies / ndouble >= 0.1 and report_sq_references == False:
+            report_sq_references = True
+
+    if braces := braces_re.findall(contents):
+        reportIssue(f"Curly brace(s) ({len(braces)}) found in " + shortname(path), 75.1)
 
     if state.nconflicts > 0:
         # When there are unresolved conflicts, we must adjust state.booklength
@@ -1674,10 +1696,12 @@ def initializeGlobals():
     global nFiles
     global nSectionHeadings
     global nNoPAfterC
+    global report_sq_references
 
     nFiles = 0
     nSectionHeadings = 0
     nNoPAfterC = 0
+    report_sq_references = False
     wordlist = dict()
     config = ToolsConfigManager()
     for i in range(1, len(suppress)):
