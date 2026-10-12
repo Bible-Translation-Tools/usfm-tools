@@ -34,8 +34,9 @@ class ProjectInfo:
             if not self.manifest:
                 if docreate:
                     self._makeManifest()     # makes and loads manifest
-            else:
-                self.manifest.load(self.project_dir)
+                else:
+                    self.manifest = ManifestYaml()
+                    self.manifest.load(self.project_dir)
             if self.manifest and self.manifest.getLanguageId() != self.getLanguageCode():
                 self.manifest = None
             if self.manifest:
