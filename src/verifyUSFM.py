@@ -361,7 +361,7 @@ state: State
 # Tries to interpret the specified string as an integer, regardless of language.
 # Returns 0 if unable to interpret.
 def decimal_value(s):
-    s = s.strip()
+    s = s.strip().rstrip('.')
     return int(s) if s.isdecimal() else 0
 
 # Returns the number of chapters that the specified book should contain.
@@ -538,7 +538,7 @@ def dumpWords():
     config = ToolsConfigManager()
     if len(books) > 1:
         path = os.path.join( config.get('VerifyUSFM', 'work_dir'), "wordlist.tsv" )
-    if path:
+    if path and len(wordlist) > 0:
         with io.open(path, "tw", encoding='utf-8', newline = '\n') as file:
             file.write(f"Word\tOccurrences\tReference\n")
             for entry in sorted(wordlist.items(), key=wordkey):
@@ -547,7 +547,7 @@ def dumpWords():
                     line = line + "\t" + entry[1][1]
                     hapaxcount += 1
                 file.write(line + '\n')
-    if hapaxcount > 0 and not config.get('VerifyUSFM', 'filename'):
+    if len(wordlist) > 0 and not config.get('VerifyUSFM', 'filename'):
         percent = int(hapaxcount * 100 / len(wordlist))
         reportIssue(f"{len(wordlist)} unique words. {hapaxcount} ({percent}%) of them occur only once.", 0.2)
 
@@ -694,7 +694,7 @@ def relative_length_current():
     if not psalmv1_re.match(ref):
         sourcelength = state.sourcelength_current()
         txln_len = state.getTextLength()
-        if sourcelength > 1:
+        if sourcelength > 1 and state.booklength > 0 and state.booklength_src > 0:
             rlen = txln_len / (sourcelength * (state.booklength / state.booklength_src))
         elif txln_len < 12 and not usfm_verses.isShortVerse(ref):
             rlen = txln_len / 100.0
@@ -704,7 +704,7 @@ def relative_length(ref, chap, verse, txln_len):
     rlen = 1.0
     if not psalmv1_re.match(ref):
         sourcelength = source_length(chap, verse)
-        if sourcelength > 1:
+        if sourcelength > 1 and state.booklength > 0 and state.booklength_src > 0:
             rlen = txln_len / (sourcelength * (state.booklength / state.booklength_src))
         elif txln_len < 12 and not usfm_verses.isShortVerse(ref):
             rlen = txln_len / 100.0
@@ -1489,7 +1489,7 @@ def verifyWholeFile(contents, path):
             conflicted_portion = state.nconflicts / source_nchunks
         else:
             nchunks = sum(usfm_verses.verseCounts[state.ID]['verses']) / 2.4
-            conflicted_portion = state.nconflicts / nchunks
+            conflicted_portion = state.nconflicts / nchunks if nchunks > 0 else 0
         est = state.booklength * (1.0 - conflicted_portion * 0.55)
         state.booklength = int(est)
 
@@ -1601,7 +1601,7 @@ def verifyBlockByBlock(path):
                 if remainder:
                     reportFootnoteSpacing(block, localstate.reference)
 
-    suppress[9] = (nAscii / nblocks > 0.02)
+    suppress[9] = (nAscii / nblocks > 0.02) if nblocks > 0 else False
     global nFiles
     nFiles += 1
     state.setConflictCount(nconflicts)

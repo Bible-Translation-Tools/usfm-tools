@@ -326,6 +326,12 @@ def add_spaces(s):
             found = sub_re.search(s, second)
     return s
 
+'''
+\u061F is the Arabic question mark ؟
+\u06D4 is the Arabic full stop
+\u061B is the Arabic semicolon (used in usfm_cleanup.py)
+\u060C is the Arabic comma (used in usfm_cleanup.py)
+'''
 def arabic_punctuation(s):
     if unicodeBlock(s) == 'ARABIC':
         s = s.replace('.', '۔')   # Replace period with Arabic full stop
@@ -561,7 +567,7 @@ def relative_length(ref, chap, verse, txln_len):
     rlen = 1.0
     if sourcebook:
         sourcelength = sourcebook.getVerseLength(chap, verse)
-        if sourcelength > 1:
+        if sourcelength > 1 and sourcebook.getBookLength() > 0:
             rlen = txln_len / (sourcelength * (current_booklength / sourcebook.getBookLength()))
     return rlen
 
