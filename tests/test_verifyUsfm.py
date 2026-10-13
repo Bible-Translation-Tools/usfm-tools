@@ -144,6 +144,9 @@ def test_parseChapterLabel(s, nchapter, expname):
         ('۱', 1),
         ('۱۳', 13),
         ('  ۲۴  ', 24),
+        ('714.', 714),
+        ('.500', 0),
+        ('4.5', 0),
     ])
 def test_decimalvalue(s, expected):
     assert verifyUSFM.decimal_value(s) == expected

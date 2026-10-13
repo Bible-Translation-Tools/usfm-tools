@@ -23,9 +23,12 @@ import usfm_cleanup
         ('7:000', '7:000'),
         ('7,000', '7,000'),
         ('eos,s,t', 'eos, s, t'),
+        ('الْجِمَالِ،وَيَشُدُّ', 'الْجِمَالِ، وَيَشُدُّ'),  # Arabic comma
+        ('مَا يَعْمَلُونَ؛لأَنَّهُمْ', 'مَا يَعْمَلُونَ؛ لأَنَّهُمْ'),  # Arabic semicolon
     ])
 def test_add_spaces(s, expected):
-    assert usfm_cleanup.add_spaces(s) == expected
+    fixed = usfm_cleanup.add_spaces(s)
+    assert fixed == expected, f"EXPECTED {expected} BUT GOT {fixed}"
 
 @pytest.mark.parametrize('s, expected',
     [
