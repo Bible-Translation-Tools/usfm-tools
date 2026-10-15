@@ -371,12 +371,17 @@ def verifyCore(core):
         verifyVersion(core['version'], core['source'][0]['version'])
 
 def verifyDates(issued, modified):
-    issuedate = datetime.strptime(issued, "%Y-%m-%d").date()
-    moddate = datetime.strptime(modified, "%Y-%m-%d").date()
-    if moddate != date.today():
-        reportError("Modified date is not today: " + modified)
-    if issuedate > moddate:
-        reportError("Dates wrong - issued: " + issued + ", modified: " + modified)
+    issuedate = moddate = None
+    try:
+        issuedate = datetime.strptime(issued, "%Y-%m-%d").date()
+    except ValueError:
+        reportError(f"Invalid issued date format: {issued} Please use YYYY-MM-DD.")
+    try:
+        moddate = datetime.strptime(modified, "%Y-%m-%d").date()
+    except ValueError:
+        reportError(f"Invalid modified date format: {modified} Please use YYYY-MM-DD.")
+    if issuedate and moddate and issuedate > moddate:
+        reportError("Issued date is later than modified date.")
 
 # Checks the manifest.yaml file in the folder specified in the config.
 # Returns the number of issues found.
