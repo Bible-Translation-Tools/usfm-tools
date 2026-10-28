@@ -549,7 +549,7 @@ def dumpWords():
                 file.write(line + '\n')
     if len(wordlist) > 0 and not config.get('VerifyUSFM', 'filename'):
         percent = int(hapaxcount * 100 / len(wordlist))
-        reportIssue(f"{len(wordlist)} unique words. {hapaxcount} ({percent}%) of them occur only once.", 0.2)
+        reportIssue(f"{len(wordlist)} unique words. {hapaxcount} ({percent}%) of them occur only once. See wordlist.tsv.", 0.2)
 
 punct_table = str.maketrans('', '', "'’`\"-_()–&")
 
