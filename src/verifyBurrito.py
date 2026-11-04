@@ -82,7 +82,7 @@ def verifyBurrito(app = None):
         reportError(f"Invalid burrito data: {msg}")
     return nIssues
 
-issuesfile_re = re.compile(r'issues.*\.txt')
+issuesfile_re = re.compile(r'issues.*\.(txt|md)')
 readme_re = re.compile(r'readme(\.md|$)', re.IGNORECASE)
 
 # Checks for extraneous files

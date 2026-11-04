@@ -70,9 +70,7 @@ def main(app = None):
     if nBurritoIssues == 0:
         reportStatus("No issues found in metadata.json.")
     nIssues += nBurritoIssues
-    reportProgress(f"\nDone, this process doesn't check book names against the\n\
-Print Preparation Checklist (PPC). If the PPC is available,\n\
-please reconcile book names manually.")
+    reportProgress(f"\nDone.")
     if gui:
         gui.event_generate('<<ScriptEnd>>', when="tail")
 
