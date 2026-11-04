@@ -1127,7 +1127,7 @@ spacey4_re = re.compile(r'[\s][\(\'"«“‘’”»›]$', re.UNICODE)       # 
 wordmedial_punct_re = re.compile(r'[\w][.?!;:,()\[\]"«“‘”»›][.?!;:,()\[\]\'"«“‘’”»›]*[\w]')
 outsidequote_re = re.compile(r'([\'"’”»›][\.!])', re.UNICODE)   # Period or exclamation outside closing quote.
 backs_re = re.compile(r'\\([^+a-z]|$)')
-unusual_re = re.compile(r'[=+_*&^%$#@~/|¬]+')
+unusual_re = re.compile(r'[=+_*&^%$#@~`/|¬]+')
 
 def reportPunctuation(text):
     if bad := punctuation_re.search(text):
