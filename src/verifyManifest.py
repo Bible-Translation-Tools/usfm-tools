@@ -331,8 +331,10 @@ def verifyContributors(core):
         if len(core['contributor']) < 1:
             reportError("Missing contributors!")
         for c in core['contributor']:
-            if not isinstance(c, str) or len(c) < 3:
+            if not isinstance(c, str) or c.strip().isnumeric() or len(c.strip()) < 3:
                 reportError("Invalid contributor name: " + str(c))
+    else:
+        reportError("No contributors are listed.")
 
 rights_re = re.compile(r'CC[\- ]BY-SA[\- _]4\.0|Public Domain')
 
@@ -484,8 +486,8 @@ def verifyKeys(group, dict, keys):
 def verifyLanguage(language):
     verifyKeys("language", language, ['direction', 'identifier', 'title'])
     if 'direction' in language:
-        if language['direction'] != 'ltr' and language['direction'] != 'rtl':
-            reportError("Incorrect language direction: " + language['direction'])
+        if language['direction'] not in ['ltr','rtl']:
+            reportError(f"Invalid language direction: {language['direction']}")
     if 'identifier' in language:
         global language_code
         language_code = language['identifier']
