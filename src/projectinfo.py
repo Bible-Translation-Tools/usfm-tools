@@ -60,7 +60,7 @@ class ProjectInfo:
                         os.rename(yamlpath, bakpath)
                 self.manifest.create(self.project_dir, self.getLanguageCode())
 
-    # Syncs self.info and self.manifest if either is missing any values.
+    # Syncs languageInfo and Manifest and Burrito where values are missing.
     def sync(self):
         if my := self.manifest:
             # Sync language attributes
@@ -74,13 +74,17 @@ class ProjectInfo:
                 my.setLanguageName(language_name)
 
             # Sync source translations
-            # One-way sync from MY to LI. Different projects in the same langauge
+            # One-way sync from MY to LI and SB. Different projects in the same langauge
             # may have different sources. It is helpful to combine sources from
-            # any of them into LI. Copying sources from LI into individual
+            # any of them into LI and SB. Copying sources from LI into individual
             # manifest.yaml files, however, would not be valid.
             for mysource in my.getSources():
-                if not self.languageInfo.findSource(mysource['language'], mysource['identifier'], mysource['version']):
-                    self.languageInfo.addSource(mysource['language'], mysource['identifier'], mysource['version'])
+                lang = mysource['language']
+                res = mysource['identifier']
+                ver = mysource['version']
+                if not self.languageInfo.findSource(lang, res, ver):
+                    self.languageInfo.addSource(lang, res, ver)
+                self.burrito.addSource(lang, res, ver)
 
         self.burrito.setLanguage(self.languageInfo.getLanguageCode(),
                                   locale='en', name=self.languageInfo.getLanguageName(),

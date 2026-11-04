@@ -60,7 +60,7 @@ def shortname(longpath):
 
 title_re = re.compile(r'\\(id|h|mt|mt1|toc1|toc2) +(.+)')
 
-# Returnsbook id and title found in the first few lines of the specified usfm file.
+# Returns book id and title found in the first few lines of the specified usfm file.
 def getIdAndTitle(path):
     N = 16
     id = ""
@@ -106,7 +106,7 @@ def addBook(usfmpath):
         if not bookTitle:
             reportError("Unable to determine book title in " + shortname(usfmpath))
 
-# Converts the book or books contained in the specified folder
+# Adds the book or books contained in the specified folder to metadata.
 def addBooks(dir):
     for entry in os.listdir(dir):
         if entry.endswith(".usfm"):
@@ -130,6 +130,7 @@ def main(app = None):
     addBooks(work_dir)
     projectInfo.addLicense(config.get('MakeMetadata', 'license_file'), config.get('MakeMetadata', 'license_type'))
     projectInfo.setIdentification(config.get('MakeMetadata', 'repo_owner'), config.get('MakeMetadata', 'repo_name'))
+    projectInfo.sync()
 
     is_valid, msg = projectInfo.save()
     if not is_valid:
