@@ -136,6 +136,13 @@ class Burrito:
             self.contents["relationships"] = []
         if relationship not in self.contents["relationships"]:
             self.contents["relationships"].append(relationship)
+    def countRelations(self, relationType=""):
+        count = 0
+        if "relationships" in self.contents:
+            for relationship in self.contents["relationships"]:
+                if not relationType or relationship.get("relationType", "") == relationType:
+                    count += 1
+        return count
 
     # Adds a localized book name to the dictionary.
     def addName(self, bookId, locale, shortname, longname="", abbr=""):

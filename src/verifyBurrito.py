@@ -78,6 +78,8 @@ def verifyBurrito(app = None):
         verifyLanguage()
         verifyLicense()
         verifyWacsRepo()
+        if burrito.countRelations("source") < 1:
+            reportError("metadata.json doesn't list the source texts!")
     else:
         reportError(f"Invalid burrito data: {msg}")
     return nIssues
