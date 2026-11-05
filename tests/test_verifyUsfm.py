@@ -107,13 +107,40 @@ def test_isMixed(word, expected):
         ("’*def`'", ['def']),
         ("['ghi’]", ["'ghi’"]),
         ("('ghi)’)", ["'ghi"]),
-        ("’-’ghi'!", ["’ghi'"]),
+        ("’-’ghi'!", ["’ghi' (?)"]),
         ("**’ghi'`", ["’ghi'"]),
         ("asdf8jkl", []),   # digits disqualify
+        ("abc abc'", ["abc", "abc'"]),
+        ("mwiza w' umwizigigwa'!", ["mwiza", "w'", "umwizigigwa' (?)"]),
     ])
 def test_listwords(s, expected):
     result = verifyUSFM.listwords(s)
     assert result == expected
+
+@pytest.mark.parametrize('s, expected',
+    [
+        ('', ""),
+        ('XYZ', ""),
+        ('".', '".'),
+        ("word’", ""),
+        ("word’.", "word’."),
+        ("'Hello'.", "Hello'."),
+        ('"Hello!"', ''),
+        ("“Go”!", "Go”!"),
+        ("«Bonjour».", "Bonjour»."),
+        ("›Hi›!", "Hi›!"),
+        ("word?,", ""),
+        ('"Wait"... and "go".', 'go".'),
+        ('"Wait". Then "go"!', 'Wait".'),
+    ])
+def test_findOutsideQuote(s, expected):
+    result = verifyUSFM.findOutsideQuote(s)
+    assert result == expected, f"findOutsideQuote({s}) returned {result} expected {expected}"
+
+def test_findOutsideQuote_ignoresKnownWordEndingInApostrophe(monkeypatch):
+    monkeypatch.setattr(verifyUSFM, "wordlist", {"James'": True})
+
+    assert verifyUSFM.findOutsideQuote("\"James'\". Then \"go\"!") == 'go"!'
 
 @pytest.mark.parametrize('s, nchapter, expname',
     [

@@ -1115,6 +1115,27 @@ def context(text, start, end):
         s = text[start:end] if end >= start else text[start:]
     return s.strip()
 
+outsidequote_re = re.compile(r'([\'"’”»›][\.!])')   # Period or exclamation outside closing quote.
+word_re = re.compile(r'(\w[^ «“‘]*)$')
+
+# Finds the first word in the string with closing quote followed by punctuation.
+# Returns the word and the punctuation, or "" if not found.
+def findOutsideQuote(text):
+    global wordlist
+    bad = outsidequote_re.search(text)
+    while bad:
+        ignore = False
+        word = ""
+        i = bad.start()
+        if wordre := word_re.search(text[0:i+1]):
+            word = wordre.group(1)
+        if word and word[-1] == "'" and word in wordlist:
+            ignore = True
+        if not ignore and text[i+1:i+4] != "...":
+            return word + text[i+1:i+2]
+        bad = outsidequote_re.search(text, bad.end())
+    return ""
+
 punctuation_re = re.compile(r'([.?!;:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)   # phrase ending punctuation that doesn't actually end the phrase
 # note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
 spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)    # space before phrase-ending mark
@@ -1125,7 +1146,6 @@ spacey2_re = re.compile(r'[\s][\[\]\(\'"«“‘’”»›][\s]')
 spacey3_re = re.compile(r'[\(\'"«“‘’”»›][\s]', re.UNICODE)       # quote-space at beginning of verse
 spacey4_re = re.compile(r'[\s][\(\'"«“‘’”»›]$', re.UNICODE)       # quote-space at end of verse
 wordmedial_punct_re = re.compile(r'[\w][.?!;:,()\[\]"«“‘”»›][.?!;:,()\[\]\'"«“‘’”»›]*[\w]')
-outsidequote_re = re.compile(r'([\'"’”»›][\.!])', re.UNICODE)   # Period or exclamation outside closing quote.
 backs_re = re.compile(r'\\([^+a-z]|$)')
 unusual_re = re.compile(r'[=+_*&^%$#@~`/|¬]+')
 
@@ -1142,11 +1162,8 @@ def reportPunctuation(text):
                 #     s = context(text, bad.start()-2, bad.end()+1)
     if bad := spacey_re.search(text):
         reportIssue("Space before phrase ending mark at " + state.getReference() + ": " + bad.group(1), 48)
-    if bad := outsidequote_re.search(text):
-        i = bad.start()
-        if text[i+1:i+4] != "...":
-            reportIssue(f"Punctuation after quote mark at {state.getReference()}: {bad.group(1)}", 50)
-
+    if issue := findOutsideQuote(text):
+        reportIssue(f"Punctuation after quote mark at {state.getReference()}: {issue}", 50)
     if bad := spacey2_re.search(text):
         s = context(text, bad.start()-2, bad.end()+2)
     elif bad := spacey3_re.match(text):
@@ -1283,6 +1300,7 @@ badmarker_re = re.compile(r'\\\w+\*?')
 
 # Performs checks on some text, usually a verse in length.
 def takeText(t, footnote=False):
+    addWords(t)
     if bad := badmarker_re.search(t):
         reportIssue(f'Unsupported USFM marker ({bad.group(0)}) near {state.reference}', 53)
     if not state.textOkay() and not isTextCarryingToken(state.lastToken):
@@ -1312,8 +1330,21 @@ def takeText(t, footnote=False):
         reportSQreferences(t)
         reportCaps(t)
         state.endSentence( sentences.endsSentence(t) )
-    addWords(t)
     state.addText(t)
+
+# Returns True if the word ending with a single quote is ambiguous, meaning that it could be a word or a word plus a misplaced quote.
+# Also returns the word without a quote if the word has only occurred without the quote multiple times.
+def ambiguous_word_ending(word, t):
+    ambiguous = False
+    if word[-1] in "'’":
+        if re.findall(word+r"[.!]", t):
+            global wordlist
+            minword_count = wordlist.get(word[:-1], (0, None))[0]
+            if word not in wordlist and minword_count < min(nFiles+1,4):
+                ambiguous = True
+            elif minword_count > min(nFiles,4):
+                word = word[:-1]
+    return ambiguous, word
 
 split_re = re.compile(r' | |--|—')  # space, no-break-space, double hyphen, em dash
 midpunc_re = re.compile(   r"[\d\x00.።,፣:፥;፤!?+\\\[\]{}()<>\"‹«“‘”»›*]")    # punc include digits and null character
@@ -1335,9 +1366,11 @@ def listwords(t):
             word = word[0:-2].rstrip(endpunc)
         if quotebegin_re.match(word):
             word = word[2:].lstrip(endpunc)
-        if word:
-            if any(c.isalpha() for c in word) and not midpunc_re.search(word):
-                words.append(word)
+        if word and any(c.isalpha() for c in word) and not midpunc_re.search(word):
+            ambiguous, word = ambiguous_word_ending(word, t)
+            if ambiguous:
+                word += " (?)"
+            words.append(word)
     return words
 
 # Parses all the words out of the t string and adds them to the wordlist[].
