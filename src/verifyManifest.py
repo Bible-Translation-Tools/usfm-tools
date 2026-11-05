@@ -730,7 +730,7 @@ def verifyRelations(relations):
 # Validates the source field, which is an array of dictionaries.
 def verifySource(source):
     if not source or len(source) < 1:
-        reportError("Invalid source spec: should be a non-empty list of source texts.")
+        reportError("Source texts are missing!")
     for dict in source:
         verifyKeys("source[x]", dict, ['language', 'identifier', 'version'])
 
