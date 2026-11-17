@@ -1122,6 +1122,7 @@ word_re = re.compile(r'(\w[^ «“‘]*)$')
 # Returns the word and the punctuation, or "" if not found.
 def findOutsideQuote(text):
     global wordlist
+    issue = ""
     bad = outsidequote_re.search(text)
     while bad:
         ignore = False
@@ -1131,10 +1132,18 @@ def findOutsideQuote(text):
             word = wordre.group(1)
         if word and word[-1] == "'" and word in wordlist:
             ignore = True
+        elif sourcebook and sourceOutsideQuote():
+            ignore = True
         if not ignore and text[i+1:i+4] != "...":
-            return word + text[i+1:i+2]
+            issue = word + text[i+1:i+2]
+            break
         bad = outsidequote_re.search(text, bad.end())
-    return ""
+    return issue
+
+# Returns True if the source text has sentence ending punctuation outside a closing quote.
+def sourceOutsideQuote():
+    sourcetext = sourcebook.getText(state.chapter, state.verse) if sourcebook else ""
+    return True if outsidequote_re.search(sourcetext) else False
 
 punctuation_re = re.compile(r'([.?!;:,][^\s\u200b\)\]\'"’”»›])')  # phrase ending punctuation that doesn't actually end the phrase
 # note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
@@ -1159,9 +1168,8 @@ def reportPunctuation(text):
                 reportIssue("Check the punctuation at " + state.getReference() + ": " + s, 45)
     if bad := spacey_re.search(text):
         reportIssue("Space before phrase ending mark at " + state.getReference() + ": " + bad.group(1), 48)
-    # temporarily out, until we compare to source text and determine whether it's a real problem
-    # if issue := findOutsideQuote(text):
-    #     reportIssue(f"Punctuation after quote mark at {state.getReference()}: {issue}", 50)
+    if issue := findOutsideQuote(text):
+        reportIssue(f"Punctuation after closing quote at {state.getReference()}: {issue}", 50)
     if bad := spacey2_re.search(text):
         s = context(text, bad.start()-2, bad.end()+2)
     elif bad := spacey3_re.match(text):
