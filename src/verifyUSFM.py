@@ -1136,7 +1136,7 @@ def findOutsideQuote(text):
         bad = outsidequote_re.search(text, bad.end())
     return ""
 
-punctuation_re = re.compile(r'([.?!;:,][^\s\u200b\)\]\'"’”»›])', re.UNICODE)   # phrase ending punctuation that doesn't actually end the phrase
+punctuation_re = re.compile(r'([.?!;:,][^\s\u200b\)\]\'"’”»›])')  # phrase ending punctuation that doesn't actually end the phrase
 # note: \u200b indicates word boundaries in scripts that do not use explicit spacing, but is used (seemingly incorrectly) like a space in Laotian
 spacey_re = re.compile(r'[\s\n]([\.\?!;\:,\)’”»›])', re.UNICODE)    # space before phrase-ending mark
 # Indonesian TBI version of this expression:
@@ -1154,16 +1154,14 @@ def reportPunctuation(text):
         i = bad.start()
         if text[i:i+3] != '...' or text[i:i+4] == "....":
             chars = bad.group(1)
-            if not (chars[0] in ',.' and chars[1] in "0123456789"):   # it's a number
-                if not (chars[0] == ":" and chars[1] in "0123456789"):
-                    reportIssue("Check the punctuation at " + state.getReference() + ": " + chars, 45)
-                # elif not state.lastToken or not (state.inFootnote() or state.lastToken.getType().startswith('io') \
-                #           or state.lastToken.getType().startswith('ip')):
-                #     s = context(text, bad.start()-2, bad.end()+1)
+            if not (chars[0] in ',.:' and chars[1] in "0123456789"):   # it's a number or a verse reference
+                s = context(text, i, i+2)
+                reportIssue("Check the punctuation at " + state.getReference() + ": " + s, 45)
     if bad := spacey_re.search(text):
         reportIssue("Space before phrase ending mark at " + state.getReference() + ": " + bad.group(1), 48)
-    if issue := findOutsideQuote(text):
-        reportIssue(f"Punctuation after quote mark at {state.getReference()}: {issue}", 50)
+    # temporarily out, until we compare to source text and determine whether it's a real problem
+    # if issue := findOutsideQuote(text):
+    #     reportIssue(f"Punctuation after quote mark at {state.getReference()}: {issue}", 50)
     if bad := spacey2_re.search(text):
         s = context(text, bad.start()-2, bad.end()+2)
     elif bad := spacey3_re.match(text):
